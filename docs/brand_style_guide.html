@@ -1,0 +1,2482 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta
+			name="description"
+			content="Employee Hierarchy Management System brand style guide: colours, typography, spacing, motion, components, org chart patterns and accessibility standards."
+		/>
+		<title>Employee Hierarchy Management System — Brand Style Guide</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+		<link rel="stylesheet" href="brand_style_guide.css" />
+	</head>
+	<body>
+		<a href="#main-content" class="skip-link">Skip to main content</a>
+
+		<section class="hero" id="top">
+			<svg
+				class="hero-bg"
+				viewBox="0 0 1200 340"
+				xmlns="http://www.w3.org/2000/svg"
+				preserveAspectRatio="xMidYMid slice"
+				aria-hidden="true"
+			>
+				<g opacity="0.5">
+					<path class="lineage-path" stroke-width="1.2" d="M760,170 H820" />
+					<path class="lineage-path" stroke-width="1.2" d="M820,170 V70 H880" />
+					<path class="lineage-path" stroke-width="1.2" d="M820,170 V270 H880" />
+					<path class="lineage-path" stroke-width="1" d="M880,70 V30 H940" />
+					<path class="lineage-path" stroke-width="1" d="M880,70 V110 H940" />
+					<path class="lineage-path" stroke-width="1" d="M880,270 V230 H940" />
+					<path class="lineage-path" stroke-width="1" d="M880,270 V310 H940" />
+					<path class="lineage-path" stroke-width="0.8" d="M940,110 V90 H1010" />
+					<path class="lineage-path" stroke-width="0.8" d="M940,110 V140 H1010" />
+					<path class="lineage-path" stroke-width="0.8" d="M940,230 V200 H1010" />
+					<path class="lineage-path" stroke-width="0.8" d="M940,230 V260 H1010" />
+					<path class="lineage-path" stroke-width="0.7" d="M1010,140 V130 H1090" />
+					<path class="lineage-path" stroke-width="0.7" d="M1010,140 V165 H1090" />
+					<path class="lineage-path" stroke-width="0.7" d="M1010,200 V185 H1090" />
+					<circle class="lineage-node" cx="760" cy="170" r="7" />
+					<circle class="lineage-node" cx="880" cy="70" r="5" />
+					<circle class="lineage-node" cx="880" cy="270" r="5" />
+					<circle class="lineage-node" cx="940" cy="30" r="4" />
+					<circle class="lineage-node" cx="940" cy="110" r="4" />
+					<circle class="lineage-node" cx="940" cy="230" r="4" />
+					<circle class="lineage-node" cx="940" cy="310" r="4" />
+					<circle class="lineage-node" cx="1010" cy="90" r="3" />
+					<circle class="lineage-node" cx="1010" cy="140" r="3" />
+					<circle class="lineage-node" cx="1010" cy="200" r="3" />
+					<circle class="lineage-node" cx="1010" cy="260" r="3" />
+					<circle class="lineage-node" cx="1090" cy="130" r="2.5" />
+					<circle class="lineage-node" cx="1090" cy="165" r="2.5" />
+					<circle class="lineage-node" cx="1090" cy="185" r="2.5" />
+				</g>
+			</svg>
+
+			<div class="hero-content">
+				<div class="wrap">
+					<div class="hero-body">
+						<span class="overline">Brand Style Guide · Version 1.0</span>
+						<h1>Employee Hierarchy Management System</h1>
+						<p class="hero-sub">
+							One organisation, one reporting structure, one set of rules for
+							how it looks and behaves. Built for the EPI-USE Africa technical
+							assessment.
+						</p>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<nav class="site-nav" aria-label="Style guide sections">
+			<span class="nav-mark">EHM</span>
+			<a href="#thread">Golden Thread</a>
+			<a href="#foundation">Foundation</a>
+			<a href="#tokens">Tokens</a>
+			<a href="#token-usage">In Code</a>
+			<a href="#colour">Colour</a>
+			<a href="#typography">Typography</a>
+			<a href="#spacing">Spacing</a>
+			<a href="#motion">Motion</a>
+			<a href="#iconography">Iconography</a>
+			<a href="#components">Components</a>
+			<a href="#hierarchy">Hierarchy</a>
+			<a href="#shadcn-map">Component Map</a>
+			<a href="#accessibility">Accessibility</a>
+			<a href="#voice">Voice</a>
+			<a href="#changelog">Changelog</a>
+		</nav>
+
+		<main id="main-content">
+			<!-- ============================================ golden thread -->
+			<section id="thread" class="thread-section section-pad">
+				<div class="wrap">
+					<h2 class="section-title">The Golden Thread</h2>
+					<p class="section-lead">
+						This guide is a chain. What the product is for shapes how it speaks.
+						How it speaks shapes what it looks like. Those choices become
+						components, and the components are built from tokens.
+					</p>
+
+					<div class="thread-flow">
+						<div class="thread-connector" aria-hidden="true"></div>
+
+						<div class="thread-node">
+							<div class="thread-num" aria-hidden="true">1</div>
+							<div>
+								<div class="thread-node-title">Values</div>
+								<div class="thread-node-body">
+									Structure you can trust. Someone reading the org chart is
+									making a decision about a person, so the screen has to be
+									right, and it has to be obvious when something cannot be
+									done.
+								</div>
+							</div>
+						</div>
+
+						<div class="thread-node">
+							<div class="thread-num" aria-hidden="true">2</div>
+							<div>
+								<div class="thread-node-title">Voice</div>
+								<div class="thread-node-body">
+									Administrative and exact. A record of a promotion and a
+									refusal to create a reporting loop are written by the same
+									person, in the same register.
+								</div>
+							</div>
+						</div>
+
+						<div class="thread-node">
+							<div class="thread-num" aria-hidden="true">3</div>
+							<div>
+								<div class="thread-node-title">Visual</div>
+								<div class="thread-node-body">
+									Dominant colour: Deep Navy. Barlow Condensed for display,
+									Barlow for body. A 4pt spacing grid. The blue spot colours
+									carry hierarchy depth; the status colours appear only when a
+									record needs attention.
+								</div>
+							</div>
+						</div>
+
+						<div class="thread-node">
+							<div class="thread-num" aria-hidden="true">4</div>
+							<div>
+								<div class="thread-node-title">Patterns</div>
+								<div class="thread-node-body">
+									Node cards, the reporting table, forms, deletion policies,
+									the audit timeline. Every component shows its state,
+									including the states nobody wants: conflict, refusal, empty.
+								</div>
+							</div>
+						</div>
+
+						<div class="thread-node">
+							<div class="thread-num" aria-hidden="true">5</div>
+							<div>
+								<div class="thread-node-title">Code</div>
+								<div class="thread-node-body">
+									<code>--brand-primary</code><br /><code>--depth-2</code> /
+									<code>--sp-4</code> / <code>--dur-fast</code>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- =============================================== foundation -->
+			<section id="foundation" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Brand Foundation</h2>
+					<p class="section-lead">
+						From the colour of a blocked reassignment to the wording of a
+						confirmation dialog, everything comes from the same three
+						decisions.
+					</p>
+
+					<div class="foundation-layout">
+						<div>
+							<p class="foundation-purpose">
+								The system holds one organisation's reporting structure and
+								lets an HR administrator read it, search it and change it
+								without ever putting it into a state that cannot exist in real
+								life.
+							</p>
+						</div>
+
+						<div class="foundation-right">
+							<div>
+								<div class="foundation-item-label">Values</div>
+								<p class="foundation-item-body">
+									Correctness before convenience. The interface will happily
+									slow a user down to stop them creating a reporting loop,
+									deleting a branch by accident, or overwriting a colleague's
+									edit. Salary is treated as confidential by default, not as an
+									ordinary column that happens to be sensitive.
+								</p>
+							</div>
+
+							<div>
+								<div class="foundation-item-label">Voice</div>
+								<p class="foundation-item-body">
+									The system sounds like a competent administrator explaining
+									what it did and why. It names the people and the fields
+									involved. It does not apologise, soften a refusal, or
+									describe a change in vaguer terms than it has to.
+								</p>
+							</div>
+
+							<div>
+								<div class="foundation-item-label">Tone</div>
+								<p class="foundation-item-body">
+									The stakes change, the voice does not. Renaming a position
+									reads like routine admin. Deleting a manager with 14 reports
+									reads like a decision. Neither one raises its voice.
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- =================================================== tokens -->
+			<section id="tokens" class="section-tint section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Design Tokens</h2>
+					<p class="section-lead">
+						Every colour, spacing value and duration has a named CSS custom
+						property. Components reference tokens, never raw values, so a change
+						made here propagates everywhere.
+					</p>
+
+					<div class="token-group">
+						<h3 class="token-group-title">Brand and surface</h3>
+						<table class="token-table">
+							<thead>
+								<tr>
+									<th></th>
+									<th>Token</th>
+									<th>Value</th>
+									<th>Used for</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--brand-primary)"
+										></span>
+									</td>
+									<td class="token-name">--brand-primary</td>
+									<td class="token-value">#003a6b</td>
+									<td class="token-usage">
+										Top bar, primary buttons, headings, root-level chart nodes
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--color-surface-deep)"
+										></span>
+									</td>
+									<td class="token-name">--color-surface-deep</td>
+									<td class="token-value">#002354</td>
+									<td class="token-usage">
+										Sticky navigation, footer, code blocks
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--brand-mid)"
+										></span>
+									</td>
+									<td class="token-name">--brand-mid</td>
+									<td class="token-value">#174585</td>
+									<td class="token-usage">Links, ghost buttons, inline code</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--brand-teal)"
+										></span>
+									</td>
+									<td class="token-name">--brand-teal</td>
+									<td class="token-value">#056595</td>
+									<td class="token-usage">
+										Section labels, decision callout rules
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--brand-steel)"
+										></span>
+									</td>
+									<td class="token-name">--brand-steel</td>
+									<td class="token-value">#6897b8</td>
+									<td class="token-usage">
+										Avatar fallback background, audit timeline markers
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--brand-muted)"
+										></span>
+									</td>
+									<td class="token-name">--brand-muted</td>
+									<td class="token-value">#4f7392</td>
+									<td class="token-usage">
+										Secondary text, redacted salary treatment
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--color-surface-bg)"
+										></span>
+									</td>
+									<td class="token-name">--color-surface-bg</td>
+									<td class="token-value">#f2f2f2</td>
+									<td class="token-usage">
+										Page background, table headers, chart canvas base
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div class="token-group">
+						<h3 class="token-group-title">Hierarchy depth</h3>
+						<p class="group-desc">
+							Depth tokens alias onto the existing spot colours. The org chart
+							introduces no new hues — it reuses the blue family at descending
+							saturation so that depth reads as a ramp rather than as five
+							unrelated categories. Levels beyond four repeat
+							<code>--depth-4</code>.
+						</p>
+						<table class="token-table">
+							<thead>
+								<tr>
+									<th></th>
+									<th>Token</th>
+									<th>Aliases</th>
+									<th>Used for</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--depth-0)"
+										></span>
+									</td>
+									<td class="token-name">--depth-0</td>
+									<td class="token-value">--spot-navy · #103364</td>
+									<td class="token-usage">Root — employees with no manager</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--depth-1)"
+										></span>
+									</td>
+									<td class="token-name">--depth-1</td>
+									<td class="token-value">--spot-cobalt · #2042b2</td>
+									<td class="token-usage">Direct reports of a root</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--depth-2)"
+										></span>
+									</td>
+									<td class="token-name">--depth-2</td>
+									<td class="token-value">--spot-blue · #0070bf</td>
+									<td class="token-usage">Second level</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--depth-3)"
+										></span>
+									</td>
+									<td class="token-name">--depth-3</td>
+									<td class="token-value">--spot-sky · #0580bb</td>
+									<td class="token-usage">Third level</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--depth-4)"
+										></span>
+									</td>
+									<td class="token-name">--depth-4</td>
+									<td class="token-value">--spot-aqua · #009193</td>
+									<td class="token-usage">Fourth level and deeper</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div class="token-group">
+						<h3 class="token-group-title">Status</h3>
+						<p class="group-desc">
+							Status colour is reserved for the state of a record or an
+							operation. It never indicates seniority, department or headcount —
+							if everything is coloured, nothing is.
+						</p>
+						<table class="token-table">
+							<thead>
+								<tr>
+									<th></th>
+									<th>Token</th>
+									<th>Value</th>
+									<th>Means</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--status-safe)"
+										></span>
+									</td>
+									<td class="token-name">--status-safe</td>
+									<td class="token-value">#06b050</td>
+									<td class="token-usage">
+										Valid — row will import, reassignment is allowed, change
+										saved
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--status-caution)"
+										></span>
+									</td>
+									<td class="token-name">--status-caution</td>
+									<td class="token-value">#fae203</td>
+									<td class="token-usage">
+										Structural warning — span of control outside the healthy
+										range, unsaved changes
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--status-alert)"
+										></span>
+									</td>
+									<td class="token-name">--status-alert</td>
+									<td class="token-value">#ff9300</td>
+									<td class="token-usage">
+										Consequential but permitted — cascade delete preview, edit
+										conflict needing a choice
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--status-critical)"
+										></span>
+									</td>
+									<td class="token-name">--status-critical</td>
+									<td class="token-value">#b30000</td>
+									<td class="token-usage">
+										Blocked — reporting cycle, failed validation, destructive
+										confirmation
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--status-safe-text)"
+										></span>
+									</td>
+									<td class="token-name">--status-safe-text</td>
+									<td class="token-value">#0a7d3a</td>
+									<td class="token-usage">
+										Text form of safe — the raw green fails contrast on white
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<span
+											class="token-swatch"
+											style="background: var(--status-caution-text)"
+										></span>
+									</td>
+									<td class="token-name">--status-caution-text</td>
+									<td class="token-value">#7a4800</td>
+									<td class="token-usage">
+										Text form of caution and alert
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div class="token-group">
+						<h3 class="token-group-title">Motion and shape</h3>
+						<table class="token-table">
+							<thead>
+								<tr>
+									<th>Token</th>
+									<th>Value</th>
+									<th>Used for</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td class="token-name">--dur-instant</td>
+									<td class="token-value">80ms</td>
+									<td class="token-usage">Hover and press feedback</td>
+								</tr>
+								<tr>
+									<td class="token-name">--dur-fast</td>
+									<td class="token-value">150ms</td>
+									<td class="token-usage">
+										Drop-target highlight, chip removal, focus movement
+									</td>
+								</tr>
+								<tr>
+									<td class="token-name">--dur-normal</td>
+									<td class="token-value">250ms</td>
+									<td class="token-usage">
+										Node expand and collapse, drawer open
+									</td>
+								</tr>
+								<tr>
+									<td class="token-name">--dur-deliberate</td>
+									<td class="token-value">400ms</td>
+									<td class="token-usage">
+										Chart re-layout after a reassignment commits
+									</td>
+								</tr>
+								<tr>
+									<td class="token-name">--ease-standard</td>
+									<td class="token-value">cubic-bezier(0.2, 0, 0, 1)</td>
+									<td class="token-usage">Default for everything</td>
+								</tr>
+								<tr>
+									<td class="token-name">--radius-sm / --radius-md</td>
+									<td class="token-value">4px / 8px</td>
+									<td class="token-usage">
+										Controls and inputs / cards, panels, tables
+									</td>
+								</tr>
+								<tr>
+									<td class="token-name">--touch-target</td>
+									<td class="token-value">44px</td>
+									<td class="token-usage">
+										Minimum interactive height, no exceptions
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================== token usage -->
+			<section id="token-usage" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Using Tokens in Code</h2>
+					<p class="section-lead">
+						Tokens are defined once in <code>index.css</code> and exposed to
+						Tailwind through the <code>@theme</code> block, so a class and a
+						custom property always resolve to the same value.
+					</p>
+
+					<h3 class="comp-section-label">Declaring the theme</h3>
+					<pre class="code-block"><code>/* src/index.css — Tailwind v4 */
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #003a6b;
+  --color-brand-mid:     #174585;
+  --color-brand-steel:   #6897b8;
+  --color-depth-0:       #103364;
+  --color-depth-1:       #2042b2;
+  --color-depth-2:       #0070bf;
+  --color-depth-3:       #0580bb;
+  --color-depth-4:       #009193;
+  --color-status-safe:     #06b050;
+  --color-status-alert:    #ff9300;
+  --color-status-critical: #b30000;
+
+  --font-display: "Barlow Condensed", sans-serif;
+  --font-sans:    "Barlow", sans-serif;
+}</code></pre>
+
+					<h3 class="comp-section-label">Consuming it in a component</h3>
+					<pre class="code-block"><code>const DEPTH_TOKENS = [
+  "border-l-depth-0",
+  "border-l-depth-1",
+  "border-l-depth-2",
+  "border-l-depth-3",
+  "border-l-depth-4",
+] as const;
+
+export function depthToken(depth: number) {
+  return DEPTH_TOKENS[Math.min(depth, DEPTH_TOKENS.length - 1)];
+}
+
+&lt;article
+  className={cn(
+    "w-64 rounded-md border border-l-4 bg-white p-3 shadow-sm",
+    depthToken(employee.depth),
+    isSelected &amp;&amp; "ring-2 ring-brand-primary",
+    isInvalidDropTarget &amp;&amp; "ring-2 ring-status-critical",
+  )}
+&gt;</code></pre>
+
+					<div class="decision-callout">
+						<span class="decision-callout-label">Rule</span>
+						No component may contain a literal hex value, a raw pixel spacing
+						value, or a hardcoded duration. If a value is needed that no token
+						covers, the token set is wrong — add the token, then use it.
+					</div>
+				</div>
+			</section>
+
+			<!-- =================================================== colour -->
+			<section id="colour" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Colour System</h2>
+					<p class="section-lead">
+						Three families, each with one job: brand blues for structure and
+						chrome, the spot ramp for hierarchy depth, and status colours for
+						the state of a record. Click any swatch to copy its hex.
+					</p>
+
+					<div class="colour-group">
+						<h3 class="colour-group-title">Brand</h3>
+						<div class="colour-roles">
+							<div class="colour-role-card" data-hex="#003a6b">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Deep Navy</div>
+									<div class="colour-role-token">--brand-primary</div>
+									<div class="colour-role-hex">#003a6b</div>
+									<p class="colour-role-desc">
+										The dominant colour. Top bar, primary action, all headings.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+
+							<div class="colour-role-card" data-hex="#174585">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Mid Blue</div>
+									<div class="colour-role-token">--brand-mid</div>
+									<div class="colour-role-hex">#174585</div>
+									<p class="colour-role-desc">
+										Links and ghost buttons. Distinct from body text without
+										shouting.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+
+							<div class="colour-role-card" data-hex="#6897b8">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Steel</div>
+									<div class="colour-role-token">--brand-steel</div>
+									<div class="colour-role-hex">#6897b8</div>
+									<p class="colour-role-desc">
+										Avatar fallback fill and timeline markers. Never used for
+										text.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+
+							<div class="colour-role-card" data-hex="#4f7392">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Muted</div>
+									<div class="colour-role-token">--brand-muted</div>
+									<div class="colour-role-hex">#4f7392</div>
+									<p class="colour-role-desc">
+										Secondary text, and the colour of a redacted salary field.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="colour-group">
+						<h3 class="colour-group-title">Hierarchy depth ramp</h3>
+						<p class="group-desc">
+							Depth is shown on the left border of a node card, never as a fill.
+							Colour is a secondary cue: the chart's layout and each card's
+							indentation already encode depth, so the ramp remains legible to
+							anyone who cannot distinguish these blues.
+						</p>
+						<div class="depth-ramp">
+							<div class="depth-ramp-step" style="background: var(--depth-0)">
+								Depth 0<br />Root
+							</div>
+							<div class="depth-ramp-step" style="background: var(--depth-1)">
+								Depth 1<br />Executive
+							</div>
+							<div class="depth-ramp-step" style="background: var(--depth-2)">
+								Depth 2<br />Manager
+							</div>
+							<div class="depth-ramp-step" style="background: var(--depth-3)">
+								Depth 3<br />Lead
+							</div>
+							<div class="depth-ramp-step" style="background: var(--depth-4)">
+								Depth 4+<br />Individual
+							</div>
+						</div>
+						<p class="demo-caption">
+							Labels are illustrative. The ramp encodes distance from the root,
+							not job grade — the system holds no concept of seniority.
+						</p>
+					</div>
+
+					<div class="colour-group">
+						<h3 class="colour-group-title">Status</h3>
+						<div class="colour-roles">
+							<div class="colour-role-card" data-hex="#06b050">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Valid</div>
+									<div class="colour-role-token">--status-safe</div>
+									<div class="colour-role-hex">#06b050</div>
+									<p class="colour-role-desc">
+										Drop target accepted, import row will commit, change saved.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+
+							<div class="colour-role-card" data-hex="#fae203">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Structural warning</div>
+									<div class="colour-role-token">--status-caution</div>
+									<div class="colour-role-hex">#fae203</div>
+									<p class="colour-role-desc">
+										Span of control outside the healthy range, or unsaved edits
+										in a form.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+
+							<div class="colour-role-card" data-hex="#ff9300">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Consequential</div>
+									<div class="colour-role-token">--status-alert</div>
+									<div class="colour-role-hex">#ff9300</div>
+									<p class="colour-role-desc">
+										Allowed, but it affects other people: cascade preview, edit
+										conflict.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+
+							<div class="colour-role-card" data-hex="#b30000">
+								<div class="colour-swatch"></div>
+								<div class="colour-role-info">
+									<div class="colour-role-name">Blocked</div>
+									<div class="colour-role-token">--status-critical</div>
+									<div class="colour-role-hex">#b30000</div>
+									<p class="colour-role-desc">
+										Reporting cycle, failed validation, destructive
+										confirmation.
+									</p>
+									<span class="colour-copy-hint">Copy hex</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="do-dont" style="margin-top: var(--sp-10)">
+						<div class="do-card">
+							<div class="do-head">Do</div>
+							<p class="type-caption">
+								Pair every status colour with a word and an icon. A blocked
+								reassignment says why it was blocked and names the employee in
+								the way.
+							</p>
+						</div>
+						<div class="dont-card">
+							<div class="do-head">Don't</div>
+							<p class="type-caption">
+								Use the depth ramp to imply importance, tint whole node cards
+								with status colour, or introduce a colour for "department" —
+								departments are a filter, not a hue.
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- =============================================== typography -->
+			<section id="typography" class="section-tint section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Typography</h2>
+					<p class="section-lead">
+						Barlow Condensed for anything structural — headings, table headers,
+						statistics, wordmarks. Barlow for everything a person reads as a
+						sentence. Numbers in tables and node cards are set with tabular
+						figures so columns align.
+					</p>
+
+					<div class="type-specimen">
+						<div class="type-row">
+							<div class="type-meta-label">Display</div>
+							<div class="type-meta-spec">
+								Barlow Condensed · 800 · --text-4xl · --lh-tight · --ls-tight
+							</div>
+							<div class="type-display">Reporting structure</div>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Heading 1</div>
+							<div class="type-meta-spec">
+								Barlow Condensed · 800 · --text-2xl
+							</div>
+							<div class="type-h1">Organisation chart</div>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Heading 2</div>
+							<div class="type-meta-spec">
+								Barlow Condensed · 700 · --text-xl
+							</div>
+							<div class="type-h2">Direct reports</div>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Heading 3</div>
+							<div class="type-meta-spec">
+								Barlow Condensed · 700 · --text-lg
+							</div>
+							<div class="type-h3">Change history</div>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Body</div>
+							<div class="type-meta-spec">
+								Barlow · 400 · --text-base · --lh-relaxed · max 65ch
+							</div>
+							<p class="type-body">
+								Reassigning this employee moves their four direct reports with
+								them. Their reporting line will change from Operations to
+								Technical Services. Nothing else about their record changes.
+							</p>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Interface</div>
+							<div class="type-meta-spec">Barlow · 500 / 600 · --text-sm</div>
+							<div class="type-ui">Filter by position</div>
+							<div class="type-ui-em">Save changes</div>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Numeric</div>
+							<div class="type-meta-spec">
+								Barlow · 600 · tabular-nums · right-aligned in tables
+							</div>
+							<div class="type-numeric">R 742 500.00 · 14 reports · depth 3</div>
+						</div>
+
+						<div class="type-row">
+							<div class="type-meta-label">Caption</div>
+							<div class="type-meta-spec">Barlow · 400 · --text-xs</div>
+							<p class="type-caption">
+								Last changed 12 September 2026 by m.koch
+							</p>
+						</div>
+					</div>
+
+					<div class="decision-callout" style="margin-top: var(--sp-8)">
+						<span class="decision-callout-label">Rule</span>
+						Names are never truncated in the middle. If a node card cannot fit a
+						full name it wraps to two lines and the card grows. A person's name
+						rendered as "Mokoena, T…" is worse than a slightly taller card.
+					</div>
+				</div>
+			</section>
+
+			<!-- ================================================== spacing -->
+			<section id="spacing" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Spacing System</h2>
+					<p class="section-lead">
+						A 4pt grid. Every margin, padding and gap in the product is one of
+						these values. Chart layout also uses them: 24px between siblings, 40px
+						between a manager and their reports.
+					</p>
+
+					<div style="max-width: 640px">
+						<div class="sp-row">
+							<span class="sp-token">--sp-1</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 4px"></div>
+							</div>
+							<span class="sp-val">4px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-2</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 8px"></div>
+							</div>
+							<span class="sp-val">8px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-3</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 12px"></div>
+							</div>
+							<span class="sp-val">12px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-4</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 16px"></div>
+							</div>
+							<span class="sp-val">16px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-6</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 24px"></div>
+							</div>
+							<span class="sp-val">24px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-8</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 32px"></div>
+							</div>
+							<span class="sp-val">32px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-10</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 40px"></div>
+							</div>
+							<span class="sp-val">40px</span>
+						</div>
+						<div class="sp-row">
+							<span class="sp-token">--sp-16</span>
+							<div class="sp-bar-track">
+								<div class="sp-bar-fill" style="width: 64px"></div>
+							</div>
+							<span class="sp-val">64px</span>
+						</div>
+					</div>
+
+					<table class="state-table" style="margin-top: var(--sp-8)">
+						<thead>
+							<tr>
+								<th>Context</th>
+								<th>Value</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Inside a node card</td>
+								<td class="state-label">--sp-3</td>
+							</tr>
+							<tr>
+								<td>Between sibling nodes in the chart</td>
+								<td class="state-label">--sp-6</td>
+							</tr>
+							<tr>
+								<td>Between a manager column and its reports column</td>
+								<td class="state-label">--sp-10</td>
+							</tr>
+							<tr>
+								<td>Table cell padding</td>
+								<td class="state-label">--sp-3 --sp-4</td>
+							</tr>
+							<tr>
+								<td>Between form fields</td>
+								<td class="state-label">--sp-5</td>
+							</tr>
+							<tr>
+								<td>Page section padding</td>
+								<td class="state-label">--sp-16</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<!-- =================================================== motion -->
+			<section id="motion" class="section-tint section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Motion</h2>
+					<p class="section-lead">
+						Motion exists to show what changed. When a reassignment commits, the
+						chart re-lays out slowly enough that a person can follow where the
+						branch went. Nothing animates on page load. Click a card to play it.
+					</p>
+
+					<div class="motion-demos">
+						<div class="motion-card" data-dur="--dur-instant">
+							<div class="motion-card-title">Instant</div>
+							<div class="motion-card-spec">--dur-instant · 80ms</div>
+							<div class="motion-track"><div class="motion-dot"></div></div>
+							<p class="motion-card-caption">
+								Hover and press. Fast enough to feel like the control responded,
+								not animated.
+							</p>
+						</div>
+
+						<div class="motion-card" data-dur="--dur-fast">
+							<div class="motion-card-title">Fast</div>
+							<div class="motion-card-spec">--dur-fast · 150ms</div>
+							<div class="motion-track"><div class="motion-dot"></div></div>
+							<p class="motion-card-caption">
+								Drop-target highlight during a drag, filter chip removal.
+							</p>
+						</div>
+
+						<div class="motion-card" data-dur="--dur-normal">
+							<div class="motion-card-title">Normal</div>
+							<div class="motion-card-spec">--dur-normal · 250ms</div>
+							<div class="motion-track"><div class="motion-dot"></div></div>
+							<p class="motion-card-caption">
+								Expanding or collapsing a branch, opening the employee drawer.
+							</p>
+						</div>
+
+						<div class="motion-card" data-dur="--dur-deliberate">
+							<div class="motion-card-title">Deliberate</div>
+							<div class="motion-card-spec">--dur-deliberate · 400ms</div>
+							<div class="motion-track"><div class="motion-dot"></div></div>
+							<p class="motion-card-caption">
+								Chart re-layout after a reassignment. Slow on purpose: the user
+								needs to see where the branch moved to.
+							</p>
+						</div>
+					</div>
+
+					<div class="decision-callout" style="margin-top: var(--sp-8)">
+						<span class="decision-callout-label">Rule</span>
+						Every transition is wrapped in a
+						<code>prefers-reduced-motion</code> check. With reduced motion on,
+						the chart re-layout becomes an instant jump plus a 1.5s highlight on
+						the moved node — the information is preserved, the movement is not.
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================== iconography -->
+			<section id="iconography" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Iconography</h2>
+					<p class="section-lead">
+						Lucide, 20px in interface controls and 16px inline, 2px stroke,
+						<code>currentColor</code> always. An icon never appears alone in a
+						destructive or ambiguous control — it carries a label or an
+						accessible name.
+					</p>
+
+					<div class="icon-grid">
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="network"></i></div>
+							<div class="icon-label">Org chart</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="table-2"></i></div>
+							<div class="icon-label">Reporting table</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="user-plus"></i></div>
+							<div class="icon-label">Add employee</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="git-branch"></i></div>
+							<div class="icon-label">Reassign manager</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="search"></i></div>
+							<div class="icon-label">Search</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="sliders-horizontal"></i></div>
+							<div class="icon-label">Filters</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="lock"></i></div>
+							<div class="icon-label">Restricted field</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="history"></i></div>
+							<div class="icon-label">Change history</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="upload"></i></div>
+							<div class="icon-label">Import</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="download"></i></div>
+							<div class="icon-label">Export</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="ban"></i></div>
+							<div class="icon-label">Blocked action</div>
+						</div>
+						<div class="icon-tile">
+							<div class="icon-bg"><i data-lucide="undo-2"></i></div>
+							<div class="icon-label">Restore</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- =============================================== components -->
+			<section id="components" class="section-tint section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Components</h2>
+					<p class="section-lead">
+						The general-purpose library. Every component here is documented with
+						the states it can be in, because the states are where interfaces
+						usually fail.
+					</p>
+
+					<h3 class="comp-section-label">Buttons</h3>
+					<div class="btn-row">
+						<button class="btn btn-primary">
+							<i data-lucide="user-plus"></i> Add employee
+						</button>
+						<button class="btn btn-outline">Export CSV</button>
+						<button class="btn btn-ghost">Cancel</button>
+						<button class="btn btn-danger">
+							<i data-lucide="trash-2"></i> Delete employee
+						</button>
+						<button class="btn btn-primary" disabled>Saving…</button>
+						<button class="btn btn-outline btn-icon" aria-label="Filters">
+							<i data-lucide="sliders-horizontal"></i>
+						</button>
+					</div>
+					<p class="demo-caption">
+						One primary action per screen. Destructive actions are never the
+						default focus in a dialog.
+					</p>
+
+					<h3 class="comp-section-label">Status badges</h3>
+					<div class="badge-row">
+						<span class="badge badge-neutral">No manager</span>
+						<span class="badge badge-safe">Valid</span>
+						<span class="badge badge-caution">14 direct reports</span>
+						<span class="badge badge-alert">Edit conflict</span>
+						<span class="badge badge-critical">Reporting cycle</span>
+					</div>
+
+					<h3 class="comp-section-label">Form fields</h3>
+					<div class="comp-two-col">
+						<div class="form-demo">
+							<div class="form-field">
+								<label class="form-label" for="demo-empnum">
+									<span class="form-label-text">Employee number</span>
+								</label>
+								<span class="form-hint" id="demo-empnum-hint">
+									Must be unique among active employees.
+								</span>
+								<input
+									class="form-input"
+									id="demo-empnum"
+									type="text"
+									value="EU-10432"
+									aria-describedby="demo-empnum-hint"
+								/>
+							</div>
+
+							<div class="form-field">
+								<label class="form-label" for="demo-salary">
+									<span class="form-label-text">Annual salary</span>
+								</label>
+								<div class="form-input-unit-wrapper">
+									<span class="form-input-unit">ZAR</span>
+									<input
+										class="form-input"
+										id="demo-salary"
+										type="text"
+										inputmode="decimal"
+										value="742 500.00"
+									/>
+								</div>
+							</div>
+
+							<div class="form-field">
+								<label class="form-label" for="demo-manager">
+									<span class="form-label-text">Reporting line manager</span>
+								</label>
+								<span class="form-hint" id="demo-manager-hint">
+									Leave empty for an employee with no manager.
+								</span>
+								<select
+									class="form-select"
+									id="demo-manager"
+									aria-describedby="demo-manager-hint"
+								>
+									<option>— No manager —</option>
+									<option selected>Thandi Mokoena · Head of Delivery</option>
+									<option>Riaan Botha · Integration Lead</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-demo">
+							<div class="form-field">
+								<label class="form-label" for="demo-birth">
+									<span class="form-label-text">Date of birth</span>
+								</label>
+								<input
+									class="form-input"
+									id="demo-birth"
+									type="text"
+									value="2031-04-02"
+									aria-invalid="true"
+									aria-describedby="demo-birth-err"
+								/>
+								<p class="form-error-msg" id="demo-birth-err">
+									<i data-lucide="alert-circle"></i>
+									Date of birth is in the future. Enter a date before today.
+								</p>
+							</div>
+
+							<div class="form-field">
+								<label class="form-label" for="demo-email">
+									<span class="form-label-text">Email address</span>
+								</label>
+								<span class="form-hint">
+									Used to resolve the Gravatar avatar. Never shown in the chart.
+								</span>
+								<input
+									class="form-input"
+									id="demo-email"
+									type="email"
+									value="t.mokoena@epiuse.com"
+								/>
+							</div>
+
+							<div class="form-field">
+								<div class="form-controls-group">
+									<div class="form-check-wrapper">
+										<input
+											class="form-checkbox-input"
+											type="checkbox"
+											id="demo-notify"
+											checked
+										/>
+										<label for="demo-notify">
+											<span class="type-ui-em">Record a reason for this change</span>
+											<span class="form-hint">
+												Appended to the audit entry. Recommended for
+												reassignments.
+											</span>
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<p class="demo-caption">
+						Errors sit below the field, name the problem and say what to do
+						next. They never appear only as a red border, and never only as a
+						toast.
+					</p>
+
+					<h3 class="comp-section-label">Search and filters</h3>
+					<div class="form-demo">
+						<div class="search-bar">
+							<div class="search-input-wrap">
+								<i data-lucide="search" class="search-icon"></i>
+								<input
+									class="search-input"
+									type="search"
+									value="mokoena"
+									aria-label="Search employees"
+								/>
+								<button class="search-clear-btn" aria-label="Clear search">
+									<i data-lucide="x"></i>
+								</button>
+							</div>
+							<button class="btn btn-outline">
+								<i data-lucide="sliders-horizontal"></i> Filters
+								<span class="filter-count-badge">3</span>
+							</button>
+						</div>
+						<div class="filter-chip-row">
+							<span class="filter-chip">
+								Position: Integration Architect
+								<button class="filter-chip-remove" aria-label="Remove position filter">
+									<i data-lucide="x"></i>
+								</button>
+							</span>
+							<span class="filter-chip">
+								Salary: R400 000 – R900 000
+								<button class="filter-chip-remove" aria-label="Remove salary filter">
+									<i data-lucide="x"></i>
+								</button>
+							</span>
+							<span class="filter-chip">
+								Reports to: Thandi Mokoena
+								<button class="filter-chip-remove" aria-label="Remove manager filter">
+									<i data-lucide="x"></i>
+								</button>
+							</span>
+						</div>
+					</div>
+
+					<h3 class="comp-section-label">Reporting table</h3>
+					<div class="data-table-wrap">
+						<table class="data-table">
+							<thead>
+								<tr>
+									<th>
+										<button type="button">
+											Employee <i data-lucide="chevron-up"></i>
+										</button>
+									</th>
+									<th>Employee no.</th>
+									<th>Position</th>
+									<th>Reports to</th>
+									<th class="cell-numeric">Salary</th>
+									<th class="cell-numeric">Reports</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>
+										<div class="cell-person">
+											<span class="node-avatar" aria-hidden="true">TM</span>
+											Thandi Mokoena
+										</div>
+									</td>
+									<td>EU-10001</td>
+									<td>Head of Delivery</td>
+									<td><span class="badge badge-neutral">No manager</span></td>
+									<td class="cell-numeric">R 1 240 000</td>
+									<td class="cell-numeric">6</td>
+								</tr>
+								<tr>
+									<td>
+										<div class="cell-person">
+											<span class="node-avatar" aria-hidden="true">RB</span>
+											Riaan Botha
+										</div>
+									</td>
+									<td>EU-10044</td>
+									<td>Integration Architect</td>
+									<td>Thandi Mokoena</td>
+									<td class="cell-numeric">R 942 000</td>
+									<td class="cell-numeric">4</td>
+								</tr>
+								<tr>
+									<td>
+										<div class="cell-person">
+											<span class="node-avatar" aria-hidden="true">NP</span>
+											Naledi Phiri
+										</div>
+									</td>
+									<td>EU-10112</td>
+									<td>Senior Developer</td>
+									<td>Riaan Botha</td>
+									<td class="cell-numeric">
+										<span class="salary-locked">
+											<i data-lucide="lock"></i> Restricted
+										</span>
+									</td>
+									<td class="cell-numeric">0</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div class="pagination">
+						<button class="pagination-btn" aria-label="Previous page">
+							<i data-lucide="chevron-left"></i>
+						</button>
+						<button class="pagination-btn" aria-current="page">1</button>
+						<button class="pagination-btn">2</button>
+						<button class="pagination-btn">3</button>
+						<span class="pagination-ellipsis">…</span>
+						<button class="pagination-btn">17</button>
+						<button class="pagination-btn" aria-label="Next page">
+							<i data-lucide="chevron-right"></i>
+						</button>
+					</div>
+					<p class="demo-caption">
+						Sorting, filtering and pagination are server-side. The restricted
+						salary treatment is what a viewer sees — the value is absent from the
+						API response, not hidden with CSS.
+					</p>
+
+					<h3 class="comp-section-label">Statistics</h3>
+					<div class="comp-two-col">
+						<div class="stat-card">
+							<div class="stat-card-label">Total headcount</div>
+							<div class="stat-card-value">248</div>
+							<div class="stat-card-meta">3 employees have no manager</div>
+						</div>
+						<div class="stat-card stat-caution">
+							<div class="stat-card-label">Widest span of control</div>
+							<div class="stat-card-value">17</div>
+							<div class="stat-card-meta">
+								Riaan Botha · above the healthy range of 3–10
+							</div>
+						</div>
+					</div>
+
+					<h3 class="comp-section-label">Toasts</h3>
+					<div class="toast-stack">
+						<div class="toast toast-safe" role="status">
+							<i data-lucide="check-circle-2"></i>
+							<div class="toast-content">
+								<div class="toast-title">Reporting line updated</div>
+								<div class="toast-body">
+									Naledi Phiri now reports to Thandi Mokoena. 4 reports moved
+									with her.
+								</div>
+								<div class="toast-time">Just now</div>
+							</div>
+							<button class="toast-close" aria-label="Dismiss">
+								<i data-lucide="x"></i>
+							</button>
+						</div>
+
+						<div class="toast toast-caution" role="status">
+							<i data-lucide="git-merge"></i>
+							<div class="toast-content">
+								<div class="toast-title">This record changed while you were editing</div>
+								<div class="toast-body">
+									m.koch updated the position field 40 seconds ago. Review both
+									versions before saving.
+								</div>
+								<div class="toast-time">40 seconds ago</div>
+							</div>
+							<button class="toast-close" aria-label="Dismiss">
+								<i data-lucide="x"></i>
+							</button>
+						</div>
+
+						<div class="toast toast-critical" role="alert">
+							<i data-lucide="ban"></i>
+							<div class="toast-content">
+								<div class="toast-title">Reassignment blocked</div>
+								<div class="toast-body">
+									Riaan Botha reports to Naledi Phiri indirectly, so he cannot
+									become her manager.
+								</div>
+								<div class="toast-time">Just now</div>
+							</div>
+							<button class="toast-close" aria-label="Dismiss">
+								<i data-lucide="x"></i>
+							</button>
+						</div>
+					</div>
+
+					<h3 class="comp-section-label">Confirmation dialog</h3>
+					<div class="modal">
+						<div class="modal-header">
+							<div class="modal-title">Delete Riaan Botha</div>
+							<button class="modal-close-btn" aria-label="Close">
+								<i data-lucide="x"></i>
+							</button>
+						</div>
+						<div class="modal-body">
+							<p style="margin-bottom: var(--sp-4)">
+								Riaan Botha has 4 direct reports. Choose what happens to them.
+							</p>
+
+							<div data-policy-group>
+								<label class="policy-option is-selected">
+									<input
+										class="form-radio-input"
+										type="radio"
+										name="policy"
+										checked
+									/>
+									<span>
+										<span class="policy-option-title">
+											Move reports to Thandi Mokoena
+										</span>
+										<span class="policy-option-desc">
+											The 4 reports take Riaan's manager. The chain stays
+											intact.
+										</span>
+									</span>
+								</label>
+
+								<label class="policy-option">
+									<input class="form-radio-input" type="radio" name="policy" />
+									<span>
+										<span class="policy-option-title">
+											Leave reports without a manager
+										</span>
+										<span class="policy-option-desc">
+											The 4 reports become roots and appear at the top of the
+											chart.
+										</span>
+									</span>
+								</label>
+
+								<label class="policy-option">
+									<input class="form-radio-input" type="radio" name="policy" />
+									<span>
+										<span class="policy-option-title">
+											Delete the whole branch
+										</span>
+										<span class="policy-option-desc">
+											Removes Riaan and all 11 employees beneath him. All 11 are
+											listed before you confirm.
+										</span>
+									</span>
+								</label>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button class="btn btn-ghost">Cancel</button>
+							<button class="btn btn-danger">Delete employee</button>
+						</div>
+					</div>
+					<p class="demo-caption">
+						Cancel holds initial focus. The dialog states the real number of
+						affected people before the user commits, not after.
+					</p>
+
+					<h3 class="comp-section-label">Empty and loading</h3>
+					<div class="comp-two-col">
+						<div class="empty-state">
+							<div class="empty-state-icon"><i data-lucide="search-x"></i></div>
+							<div class="empty-state-title">No employees match those filters</div>
+							<p class="empty-state-body">
+								Three filters are active. Clearing the salary range will widen
+								the results the most.
+							</p>
+							<button class="btn btn-outline">Clear all filters</button>
+						</div>
+
+						<div>
+							<div class="data-table-wrap" style="padding: var(--sp-4)">
+								<div
+									class="skeleton"
+									style="height: 20px; width: 60%; margin-bottom: var(--sp-3)"
+								></div>
+								<div
+									class="skeleton"
+									style="height: 16px; width: 90%; margin-bottom: var(--sp-2)"
+								></div>
+								<div
+									class="skeleton"
+									style="height: 16px; width: 80%; margin-bottom: var(--sp-2)"
+								></div>
+								<div class="skeleton" style="height: 16px; width: 85%"></div>
+							</div>
+							<p class="demo-caption">
+								Skeletons match the shape of the content that replaces them, so
+								nothing jumps when data arrives.
+							</p>
+						</div>
+					</div>
+
+					<h3 class="comp-section-label">Navigation</h3>
+					<header class="topbar-demo" style="margin-bottom: var(--sp-4)">
+						<div class="topbar-left">
+							<span class="topbar-wordmark">EHM</span>
+						</div>
+						<div class="topbar-right">
+							<button class="topbar-icon-btn" aria-label="Search">
+								<i data-lucide="search"></i>
+							</button>
+							<button class="topbar-icon-btn" aria-label="Change history">
+								<i data-lucide="history"></i>
+							</button>
+							<span class="topbar-avatar">MK</span>
+						</div>
+					</header>
+
+					<nav class="nav-demo" aria-label="Primary">
+						<a class="nav-item" aria-current="page">
+							<i data-lucide="network"></i> Org chart
+						</a>
+						<a class="nav-item"><i data-lucide="table-2"></i> Employees</a>
+						<a class="nav-item"><i data-lucide="bar-chart-3"></i> Analytics</a>
+						<a class="nav-item"><i data-lucide="upload"></i> Import</a>
+					</nav>
+				</div>
+			</section>
+
+			<!-- ==================================== hierarchy components -->
+			<section id="hierarchy" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Hierarchy Components</h2>
+					<p class="section-lead">
+						The components unique to this product. The org chart is the screen
+						people remember, so it carries the most specific rules — and the
+						only genuinely novel interaction in the system, dragging a person
+						onto a new manager.
+					</p>
+
+					<h3 class="comp-section-label">Node card</h3>
+					<div class="chart-canvas">
+						<div style="display: grid; gap: var(--sp-4); max-width: 280px">
+							<article class="node-card" data-depth="0">
+								<span class="node-avatar">TM</span>
+								<div>
+									<div class="node-name">Thandi Mokoena</div>
+									<div class="node-role">Head of Delivery</div>
+									<div class="node-meta">
+										<span class="badge badge-neutral">Root</span>
+										<span class="node-report-count">6 reports</span>
+									</div>
+								</div>
+							</article>
+
+							<article class="node-card is-selected" data-depth="2">
+								<span class="node-avatar">RB</span>
+								<div>
+									<div class="node-name">Riaan Botha</div>
+									<div class="node-role">Integration Architect</div>
+									<div class="node-meta">
+										<span class="badge badge-caution">17 reports</span>
+									</div>
+								</div>
+							</article>
+
+							<article class="node-card" data-depth="4">
+								<span class="node-avatar">NP</span>
+								<div>
+									<div class="node-name">Naledi Phiri</div>
+									<div class="node-role">Senior Developer</div>
+									<div class="node-meta">
+										<span class="node-report-count">No reports</span>
+									</div>
+								</div>
+							</article>
+						</div>
+					</div>
+
+					<table class="state-table" style="margin-top: var(--sp-6)">
+						<thead>
+							<tr>
+								<th>State</th>
+								<th>Class</th>
+								<th>Treatment</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Default</td>
+								<td class="state-label">.node-card</td>
+								<td>Depth colour on the left border, subtle shadow</td>
+							</tr>
+							<tr>
+								<td>Selected</td>
+								<td class="state-label">.is-selected</td>
+								<td>2px navy ring; the detail drawer opens alongside</td>
+							</tr>
+							<tr>
+								<td>Being dragged</td>
+								<td class="state-label">.is-dragging</td>
+								<td>60% opacity, raised shadow, original position held</td>
+							</tr>
+							<tr>
+								<td>Valid drop target</td>
+								<td class="state-label">.is-drop-valid</td>
+								<td>Green ring, plus a cursor change</td>
+							</tr>
+							<tr>
+								<td>Invalid drop target</td>
+								<td class="state-label">.is-drop-invalid</td>
+								<td>
+									Red ring and not-allowed cursor — a descendant of the dragged
+									employee
+								</td>
+							</tr>
+							<tr>
+								<td>Out of focus</td>
+								<td class="state-label">.is-dimmed</td>
+								<td>35% opacity when focus mode isolates a reporting line</td>
+							</tr>
+						</tbody>
+					</table>
+
+					<h3 class="comp-section-label">Drag to reassign</h3>
+					<div data-drag-demo>
+						<div class="chart-canvas">
+							<div class="chart-tree">
+								<article
+									class="node-card"
+									data-depth="1"
+									data-drag-source
+									style="align-self: center"
+								>
+									<span class="node-avatar">RB</span>
+									<div>
+										<div class="node-name">Riaan Botha</div>
+										<div class="node-role">Integration Architect</div>
+										<div class="node-meta">
+											<span class="node-report-count">Dragging · 4 reports</span>
+										</div>
+									</div>
+								</article>
+
+								<div class="chart-branch">
+									<article
+										class="node-card"
+										data-depth="2"
+										data-drop-target="valid"
+									>
+										<span class="node-avatar">TM</span>
+										<div>
+											<div class="node-name">Thandi Mokoena</div>
+											<div class="node-role">Head of Delivery</div>
+											<div class="node-meta">
+												<span class="node-report-count">Unrelated branch</span>
+											</div>
+										</div>
+									</article>
+
+									<article
+										class="node-card"
+										data-depth="3"
+										data-drop-target="invalid"
+									>
+										<span class="node-avatar">NP</span>
+										<div>
+											<div class="node-name">Naledi Phiri</div>
+											<div class="node-role">Senior Developer</div>
+											<div class="node-meta">
+												<span class="node-report-count">
+													Reports to Riaan — cannot accept
+												</span>
+											</div>
+										</div>
+									</article>
+								</div>
+							</div>
+						</div>
+						<div class="btn-row" style="margin-top: var(--sp-4)">
+							<button class="btn btn-outline" data-drag-toggle>
+								Simulate drag
+							</button>
+						</div>
+					</div>
+					<p class="demo-caption">
+						Validity is shown before the drop, not after. The browser computes it
+						from the loaded subtree for immediate feedback; the server re-checks
+						it and remains the authority.
+					</p>
+
+					<h3 class="comp-section-label">Blocked reassignment</h3>
+					<div class="cycle-error">
+						<i data-lucide="ban"></i>
+						<div>
+							<div class="cycle-error-title">
+								This would create a reporting cycle
+							</div>
+							<p class="cycle-error-body">
+								Naledi Phiri already reports to Riaan Botha through two levels,
+								so she cannot become his manager. Move Naledi out of Riaan's
+								branch first, or choose a different manager.
+							</p>
+							<div class="cycle-path">
+								Riaan Botha → Sipho Dlamini → Naledi Phiri → Riaan Botha
+							</div>
+						</div>
+					</div>
+					<p class="demo-caption">
+						The error names the exact chain. A generic "invalid manager" message
+						leaves the user to work out the loop themselves.
+					</p>
+
+					<h3 class="comp-section-label">Tree, connectors and collapse</h3>
+					<div class="chart-canvas">
+						<div class="chart-tree">
+							<article class="node-card" data-depth="1" style="align-self: center">
+								<span class="node-avatar">TM</span>
+								<div>
+									<div class="node-name">Thandi Mokoena</div>
+									<div class="node-role">Head of Delivery</div>
+									<div class="node-meta">
+										<span class="node-report-count">3 reports</span>
+									</div>
+								</div>
+								<button
+									class="node-collapse"
+									aria-expanded="true"
+									aria-controls="demo-branch"
+									aria-label="Collapse reports of Thandi Mokoena"
+								>
+									−
+								</button>
+							</article>
+
+							<div class="chart-branch" id="demo-branch">
+								<article class="node-card" data-depth="2">
+									<span class="node-avatar">RB</span>
+									<div>
+										<div class="node-name">Riaan Botha</div>
+										<div class="node-role">Integration Architect</div>
+									</div>
+								</article>
+								<article class="node-card" data-depth="2">
+									<span class="node-avatar">SD</span>
+									<div>
+										<div class="node-name">Sipho Dlamini</div>
+										<div class="node-role">Delivery Manager</div>
+									</div>
+								</article>
+								<article class="node-card" data-depth="2">
+									<span class="node-avatar">AV</span>
+									<div>
+										<div class="node-name">Ayesha Vawda</div>
+										<div class="node-role">Business Analyst</div>
+									</div>
+								</article>
+							</div>
+						</div>
+					</div>
+
+					<h3 class="comp-section-label">Reporting line and depth legend</h3>
+					<div class="form-demo">
+						<nav class="reporting-line" aria-label="Reporting line">
+							<a href="#top">Thandi Mokoena</a>
+							<i data-lucide="chevron-right"></i>
+							<a href="#top">Riaan Botha</a>
+							<i data-lucide="chevron-right"></i>
+							<a href="#top">Sipho Dlamini</a>
+							<i data-lucide="chevron-right"></i>
+							<span aria-current="page">Naledi Phiri</span>
+						</nav>
+
+						<div class="depth-legend" style="margin-top: var(--sp-5)">
+							<span class="depth-legend-item">
+								<span class="depth-swatch" style="background: var(--depth-0)"></span>
+								Root
+							</span>
+							<span class="depth-legend-item">
+								<span class="depth-swatch" style="background: var(--depth-1)"></span>
+								Depth 1
+							</span>
+							<span class="depth-legend-item">
+								<span class="depth-swatch" style="background: var(--depth-2)"></span>
+								Depth 2
+							</span>
+							<span class="depth-legend-item">
+								<span class="depth-swatch" style="background: var(--depth-3)"></span>
+								Depth 3
+							</span>
+							<span class="depth-legend-item">
+								<span class="depth-swatch" style="background: var(--depth-4)"></span>
+								Depth 4+
+							</span>
+						</div>
+
+						<div style="margin-top: var(--sp-5)">
+							<div class="minimap" aria-hidden="true">
+								<span class="minimap-dot" style="left: 20px; top: 46px"></span>
+								<span class="minimap-dot" style="left: 52px; top: 24px"></span>
+								<span class="minimap-dot" style="left: 52px; top: 68px"></span>
+								<span class="minimap-dot" style="left: 84px; top: 14px"></span>
+								<span class="minimap-dot" style="left: 84px; top: 36px"></span>
+								<span class="minimap-dot" style="left: 84px; top: 58px"></span>
+								<span class="minimap-dot" style="left: 84px; top: 80px"></span>
+								<span class="minimap-dot" style="left: 118px; top: 30px"></span>
+								<span class="minimap-dot" style="left: 118px; top: 66px"></span>
+								<span
+									class="minimap-viewport"
+									style="left: 36px; top: 12px; width: 70px; height: 56px"
+								></span>
+							</div>
+							<p class="demo-caption">
+								The minimap is decorative for screen readers. The accessible
+								equivalent of the whole chart is the nested list view, which is
+								also the print layout.
+							</p>
+						</div>
+					</div>
+
+					<h3 class="comp-section-label">Gravatar avatars</h3>
+					<div class="form-demo">
+						<div class="btn-row" style="align-items: center">
+							<span class="node-avatar">
+								<img
+									src="https://gravatar.com/avatar/84059b07d4be67b806386c0aad8070a23f18836bbaae342275dc0a83414c32ee?s=80&amp;d=mp&amp;r=pg"
+									alt=""
+								/>
+							</span>
+							<span class="node-avatar">TM</span>
+							<span class="node-avatar"><i data-lucide="user"></i></span>
+						</div>
+						<p class="demo-caption" style="margin-top: var(--sp-3)">
+							Resolution order: uploaded override, then the Gravatar image, then
+							locally generated initials on
+							<code>--brand-steel</code>. Avatars are always decorative —
+							<code>alt=""</code> — because the name sits next to them in every
+							context. An avatar that fails to load never leaves a broken image.
+						</p>
+					</div>
+
+					<h3 class="comp-section-label">Import dry run</h3>
+					<div class="data-table-wrap">
+						<div class="import-row">
+							<i data-lucide="check-circle-2" style="color: var(--status-safe-text)"></i>
+							<div>
+								<div class="type-ui-em">Row 2 · EU-10501 · Lerato Khumalo</div>
+								<div class="import-row-detail">
+									Will be created, reporting to Thandi Mokoena
+								</div>
+							</div>
+							<span class="badge badge-safe">Will import</span>
+						</div>
+						<div class="import-row">
+							<i data-lucide="alert-triangle" style="color: var(--status-caution-text)"></i>
+							<div>
+								<div class="type-ui-em">Row 7 · EU-10044 · Riaan Botha</div>
+								<div class="import-row-detail">
+									Employee number already exists — the salary and position will
+									be updated
+								</div>
+							</div>
+							<span class="badge badge-alert">Will update</span>
+						</div>
+						<div class="import-row">
+							<i data-lucide="ban" style="color: var(--status-critical-text)"></i>
+							<div>
+								<div class="type-ui-em">Row 12 · EU-10620 · Kabelo Nkosi</div>
+								<div class="import-row-detail">
+									Manager "EU-99999" not found in the file or the database
+								</div>
+							</div>
+							<span class="badge badge-critical">Blocked</span>
+						</div>
+					</div>
+					<p class="demo-caption">
+						A dry run always precedes a commit. Nothing is written until the user
+						has seen this list, and the same list downloads as a CSV error
+						report.
+					</p>
+
+					<h3 class="comp-section-label">Change history</h3>
+					<div class="form-demo">
+						<div class="audit-list">
+							<div class="audit-item">
+								<div class="audit-action">Reporting line changed</div>
+								<div class="audit-meta">
+									m.koch · 12 September 2026 at 14:22
+								</div>
+								<div class="audit-diff">
+									<span class="diff-before">Riaan Botha</span>
+									<i data-lucide="arrow-right"></i>
+									<span class="diff-after">Thandi Mokoena</span>
+								</div>
+							</div>
+
+							<div class="audit-item">
+								<div class="audit-action">Salary updated</div>
+								<div class="audit-meta">
+									m.koch · 4 August 2026 at 09:10
+								</div>
+								<div class="audit-diff">
+									<span class="salary-locked">
+										<i data-lucide="lock"></i> Values restricted
+									</span>
+								</div>
+							</div>
+
+							<div class="audit-item">
+								<div class="audit-action">Employee created</div>
+								<div class="audit-meta">
+									import · 2 March 2026 at 16:45
+								</div>
+							</div>
+						</div>
+					</div>
+					<p class="demo-caption">
+						The audit timeline shows that a salary changed even to users who may
+						not see the values. Hiding the fact of the change would defeat the
+						point of an audit trail.
+					</p>
+				</div>
+			</section>
+
+			<!-- ============================================== shadcn map -->
+			<section id="shadcn-map" class="section-tint section-pad">
+				<div class="wrap">
+					<h2 class="section-title">shadcn Component Map</h2>
+					<p class="section-lead">
+						Which primitive backs each pattern in this guide, and what has been
+						changed from the default. Anything not listed here is built from
+						scratch.
+					</p>
+
+					<table class="decision-table">
+						<thead>
+							<tr>
+								<th>Pattern</th>
+								<th>Primitive</th>
+								<th>Adjustment</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Buttons</td>
+								<td class="state-label">button</td>
+								<td>
+									Variants remapped to primary / outline / ghost / danger;
+									minimum height raised to 44px
+								</td>
+							</tr>
+							<tr>
+								<td>Employee form</td>
+								<td class="state-label">form, input, select, label</td>
+								<td>
+									Wired to React Hook Form with a Zod resolver shared with the
+									API schema
+								</td>
+							</tr>
+							<tr>
+								<td>Reporting table</td>
+								<td class="state-label">table</td>
+								<td>
+									Driven by TanStack Table in manual mode — server-side sorting,
+									filtering and pagination
+								</td>
+							</tr>
+							<tr>
+								<td>Delete confirmation</td>
+								<td class="state-label">alert-dialog</td>
+								<td>
+									Policy radio group added inside the body; Cancel takes initial
+									focus
+								</td>
+							</tr>
+							<tr>
+								<td>Employee detail</td>
+								<td class="state-label">sheet</td>
+								<td>Right-hand drawer, 420px, closes on Escape</td>
+							</tr>
+							<tr>
+								<td>Manager picker</td>
+								<td class="state-label">command</td>
+								<td>
+									Async search; descendants of the current employee are listed
+									but disabled with a reason
+								</td>
+							</tr>
+							<tr>
+								<td>Quick search</td>
+								<td class="state-label">command + dialog</td>
+								<td>Opens on Ctrl/Cmd + K, searches name, number and position</td>
+							</tr>
+							<tr>
+								<td>Toasts</td>
+								<td class="state-label">sonner</td>
+								<td>
+									Status variants mapped to the token set; blocking errors use
+									<code>role="alert"</code>
+								</td>
+							</tr>
+							<tr>
+								<td>Filters panel</td>
+								<td class="state-label">popover, slider, checkbox</td>
+								<td>Applied filters mirrored into URL search params</td>
+							</tr>
+							<tr>
+								<td>Org chart</td>
+								<td class="state-label">— none —</td>
+								<td>
+									React Flow with a Dagre layout pass; nodes are ordinary React
+									components using the classes in this guide
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<!-- =========================================== accessibility -->
+			<section id="accessibility" class="section-dark section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Accessibility</h2>
+					<p class="section-lead">
+						Target: WCAG 2.1 AA, verified with axe and Lighthouse on every
+						screen. A visual org chart has an obvious accessibility risk, so it
+						has an explicit equivalent rather than a disclaimer.
+					</p>
+
+					<h3 class="a11y-section-title">Contrast ratios</h3>
+					<table class="contrast-table">
+						<thead>
+							<tr>
+								<th>Preview</th>
+								<th>Foreground</th>
+								<th>Background</th>
+								<th>Ratio</th>
+								<th>Rating</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>
+									<span
+										class="contrast-preview"
+										style="
+											color: var(--color-text-primary);
+											background: var(--color-surface-raised);
+										"
+										>Body text</span
+									>
+								</td>
+								<td>--color-text-primary</td>
+								<td>--color-surface-raised</td>
+								<td>
+									<span
+										class="auto-ratio"
+										data-fg="--color-text-primary"
+										data-bg="--color-surface-raised"
+									></span>
+								</td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>
+									<span
+										class="contrast-preview"
+										style="
+											color: var(--color-text-inverse);
+											background: var(--brand-primary);
+										"
+										>Primary button</span
+									>
+								</td>
+								<td>--color-text-inverse</td>
+								<td>--brand-primary</td>
+								<td>
+									<span
+										class="auto-ratio"
+										data-fg="--color-text-inverse"
+										data-bg="--brand-primary"
+									></span>
+								</td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>
+									<span
+										class="contrast-preview"
+										style="
+											color: var(--brand-mid);
+											background: var(--color-surface-raised);
+										"
+										>Link</span
+									>
+								</td>
+								<td>--brand-mid</td>
+								<td>--color-surface-raised</td>
+								<td>
+									<span
+										class="auto-ratio"
+										data-fg="--brand-mid"
+										data-bg="--color-surface-raised"
+									></span>
+								</td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>
+									<span
+										class="contrast-preview"
+										style="
+											color: var(--color-text-secondary);
+											background: var(--color-surface-raised);
+										"
+										>Secondary text</span
+									>
+								</td>
+								<td>--color-text-secondary</td>
+								<td>--color-surface-raised</td>
+								<td>
+									<span
+										class="auto-ratio"
+										data-fg="--color-text-secondary"
+										data-bg="--color-surface-raised"
+									></span>
+								</td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>
+									<span
+										class="contrast-preview"
+										style="
+											color: var(--status-critical-text);
+											background: var(--color-surface-raised);
+										"
+										>Blocked message</span
+									>
+								</td>
+								<td>--status-critical-text</td>
+								<td>--color-surface-raised</td>
+								<td>
+									<span
+										class="auto-ratio"
+										data-fg="--status-critical-text"
+										data-bg="--color-surface-raised"
+									></span>
+								</td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>
+									<span
+										class="contrast-preview"
+										style="
+											color: var(--status-safe-text);
+											background: var(--color-surface-raised);
+										"
+										>Valid message</span
+									>
+								</td>
+								<td>--status-safe-text</td>
+								<td>--color-surface-raised</td>
+								<td>
+									<span
+										class="auto-ratio"
+										data-fg="--status-safe-text"
+										data-bg="--color-surface-raised"
+									></span>
+								</td>
+								<td></td>
+							</tr>
+						</tbody>
+					</table>
+					<p class="demo-caption" style="color: rgba(255, 255, 255, 0.7)">
+						Ratios are computed in the browser from the live token values, so
+						this table cannot go stale when a token changes.
+					</p>
+
+					<h3 class="a11y-section-title">Focus ring</h3>
+					<div class="focus-demo">
+						<div class="focus-example focus-example-light">
+							<span class="focus-demo-tile">Save changes</span>
+							<span class="focus-demo-tile-label">
+								3px --spot-sky, 2px offset
+							</span>
+						</div>
+						<div class="focus-example focus-example-dark">
+							<span class="focus-demo-tile">Save changes</span>
+							<span class="focus-demo-tile-label">
+								3px white on dark surfaces
+							</span>
+						</div>
+					</div>
+
+					<h3 class="a11y-section-title">Requirements</h3>
+					<ul class="a11y-list">
+						<li>
+							The org chart has a keyboard-navigable nested list equivalent,
+							reachable from the chart toolbar and used as the print layout. It
+							is not a fallback — it is a supported view.
+						</li>
+						<li>
+							Drag-to-reassign has a keyboard path: select an employee, press
+							M, choose a manager from the command palette. Every drag
+							interaction has a non-drag equivalent.
+						</li>
+						<li>
+							Colour never carries meaning alone. Depth is also encoded by
+							position and indentation; drop validity is also encoded by cursor
+							and by a text reason.
+						</li>
+						<li>
+							Blocking errors use <code>role="alert"</code>; confirmations use
+							<code>role="status"</code>. A reassignment result is announced,
+							not just drawn.
+						</li>
+						<li>
+							All interactive targets are at least 44 × 44px, including the
+							collapse handle on a node card.
+						</li>
+						<li>
+							Every input has a persistently visible label. Placeholder text is
+							never the only label.
+						</li>
+						<li>
+							Dialogs trap focus, restore it to the trigger on close, and close
+							on Escape. Destructive dialogs open with focus on Cancel.
+						</li>
+						<li>
+							All motion respects <code>prefers-reduced-motion</code>; the chart
+							re-layout degrades to an instant jump plus a highlight.
+						</li>
+						<li>
+							The interface is usable at 200% zoom and down to a 360px viewport.
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<!-- ==================================================== voice -->
+			<section id="voice" class="section-light section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Voice and Tone</h2>
+					<p class="section-lead">
+						The system is describing changes to real people's records. It says
+						what happened, to whom, and what follows from it.
+					</p>
+
+					<div class="do-dont">
+						<div class="do-card">
+							<div class="do-head">Write this</div>
+							<p class="type-caption" style="margin-bottom: var(--sp-3)">
+								"Naledi Phiri now reports to Thandi Mokoena. Her 4 direct
+								reports moved with her."
+							</p>
+							<p class="type-caption" style="margin-bottom: var(--sp-3)">
+								"Riaan Botha reports to Naledi Phiri indirectly, so he cannot
+								become her manager."
+							</p>
+							<p class="type-caption">
+								"Deleting Riaan Botha will remove 11 other employees. Review the
+								list before confirming."
+							</p>
+						</div>
+						<div class="dont-card">
+							<div class="do-head">Not this</div>
+							<p class="type-caption" style="margin-bottom: var(--sp-3)">
+								"Employee record successfully updated!"
+							</p>
+							<p class="type-caption" style="margin-bottom: var(--sp-3)">
+								"Invalid manager selection. Please try again."
+							</p>
+							<p class="type-caption">
+								"Sorry, this action cannot be completed at this time."
+							</p>
+						</div>
+					</div>
+
+					<table class="decision-table" style="margin-top: var(--sp-8)">
+						<thead>
+							<tr>
+								<th>Situation</th>
+								<th>Approach</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Something succeeded</td>
+								<td>
+									State the change and its side effects in one sentence. No
+									exclamation marks, no congratulation.
+								</td>
+							</tr>
+							<tr>
+								<td>Something is blocked</td>
+								<td>
+									Name the rule, name the people involved, and say what the user
+									can do instead. Never apologise for enforcing a rule.
+								</td>
+							</tr>
+							<tr>
+								<td>Something is destructive</td>
+								<td>
+									Give the real count of affected people before the action, and
+									name the action on the button exactly as it was named in the
+									heading.
+								</td>
+							</tr>
+							<tr>
+								<td>A screen is empty</td>
+								<td>
+									Say why it is empty and give the one action most likely to
+									fix it.
+								</td>
+							</tr>
+							<tr>
+								<td>Something is restricted</td>
+								<td>
+									Say the field is restricted rather than pretending it does not
+									exist. "Restricted", not a blank cell.
+								</td>
+							</tr>
+							<tr>
+								<td>Something failed unexpectedly</td>
+								<td>
+									Say what was being attempted and that nothing was changed.
+									Include a reference the user can quote.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+					<div class="decision-callout" style="margin-top: var(--sp-8)">
+						<span class="decision-callout-label">Vocabulary</span>
+						An action keeps its name through the whole flow. "Reassign" is the
+						menu item, the dialog heading, the button and the audit entry — it
+						never becomes "move", "change manager" or "update reporting line"
+						along the way.
+					</div>
+				</div>
+			</section>
+
+			<!-- ================================================ changelog -->
+			<section id="changelog" class="section-tint section-pad">
+				<div class="wrap">
+					<h2 class="section-title">Changelog</h2>
+					<table class="decision-table">
+						<thead>
+							<tr>
+								<th>Version</th>
+								<th>Date</th>
+								<th>Change</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>1.0</td>
+								<td>September 2026</td>
+								<td>
+									Initial guide. Token set inherited unchanged; spot colours
+									reassigned to a hierarchy depth ramp; status colours redefined
+									around record state; map components replaced with org chart,
+									import and audit patterns.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+		</main>
+
+		<footer class="site-footer">
+			<div class="wrap">
+				<div class="footer-brand">EHM</div>
+				<p>
+					Employee Hierarchy Management System · Brand Style Guide v1.0 ·
+					Prepared for the EPI-USE Africa Technical Services internship
+					assessment.
+				</p>
+			</div>
+		</footer>
+
+		<script src="brand_style_guide.js"></script>
+	</body>
+</html>
