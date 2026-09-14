@@ -11,7 +11,7 @@
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@600;700;800&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=Inter+Tight:wght@600;700;800&display=swap"
 			rel="stylesheet"
 		/>
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -138,8 +138,8 @@
 							<div>
 								<div class="thread-node-title">Visual</div>
 								<div class="thread-node-body">
-									Dominant colour: Deep Navy. Barlow Condensed for display,
-									Barlow for body. A 4pt spacing grid. The blue spot colours
+									Dominant colour: Deep Navy. Inter Tight for display,
+									Inter for body. A 4pt spacing grid. The blue spot colours
 									carry hierarchy depth; the status colours appear only when a
 									record needs attention.
 								</div>
@@ -612,8 +612,8 @@
   --color-status-alert:    #ff9300;
   --color-status-critical: #b30000;
 
-  --font-display: "Barlow Condensed", sans-serif;
-  --font-sans:    "Barlow", sans-serif;
+  --font-display: "Inter Tight", sans-serif;
+  --font-sans:    "Inter", sans-serif;
 }</code></pre>
 
 					<h3 class="comp-section-label">Consuming it in a component</h3>
@@ -833,8 +833,8 @@ export function depthToken(depth: number) {
 				<div class="wrap">
 					<h2 class="section-title">Typography</h2>
 					<p class="section-lead">
-						Barlow Condensed for anything structural — headings, table headers,
-						statistics, wordmarks. Barlow for everything a person reads as a
+						Inter Tight for anything structural — headings, table headers,
+						statistics, wordmarks. Inter for everything a person reads as a
 						sentence. Numbers in tables and node cards are set with tabular
 						figures so columns align.
 					</p>
@@ -843,7 +843,7 @@ export function depthToken(depth: number) {
 						<div class="type-row">
 							<div class="type-meta-label">Display</div>
 							<div class="type-meta-spec">
-								Barlow Condensed · 800 · --text-4xl · --lh-tight · --ls-tight
+								Inter Tight · 800 · --text-4xl · --lh-tight · --ls-tight
 							</div>
 							<div class="type-display">Reporting structure</div>
 						</div>
@@ -851,7 +851,7 @@ export function depthToken(depth: number) {
 						<div class="type-row">
 							<div class="type-meta-label">Heading 1</div>
 							<div class="type-meta-spec">
-								Barlow Condensed · 800 · --text-2xl
+								Inter Tight · 800 · --text-2xl
 							</div>
 							<div class="type-h1">Organisation chart</div>
 						</div>
@@ -859,7 +859,7 @@ export function depthToken(depth: number) {
 						<div class="type-row">
 							<div class="type-meta-label">Heading 2</div>
 							<div class="type-meta-spec">
-								Barlow Condensed · 700 · --text-xl
+								Inter Tight · 700 · --text-xl
 							</div>
 							<div class="type-h2">Direct reports</div>
 						</div>
@@ -867,7 +867,7 @@ export function depthToken(depth: number) {
 						<div class="type-row">
 							<div class="type-meta-label">Heading 3</div>
 							<div class="type-meta-spec">
-								Barlow Condensed · 700 · --text-lg
+								Inter Tight · 700 · --text-lg
 							</div>
 							<div class="type-h3">Change history</div>
 						</div>
@@ -875,7 +875,7 @@ export function depthToken(depth: number) {
 						<div class="type-row">
 							<div class="type-meta-label">Body</div>
 							<div class="type-meta-spec">
-								Barlow · 400 · --text-base · --lh-relaxed · max 65ch
+								Inter · 400 · --text-base · --lh-relaxed · max 65ch
 							</div>
 							<p class="type-body">
 								Reassigning this employee moves their four direct reports with
@@ -886,7 +886,7 @@ export function depthToken(depth: number) {
 
 						<div class="type-row">
 							<div class="type-meta-label">Interface</div>
-							<div class="type-meta-spec">Barlow · 500 / 600 · --text-sm</div>
+							<div class="type-meta-spec">Inter · 500 / 600 · --text-sm</div>
 							<div class="type-ui">Filter by position</div>
 							<div class="type-ui-em">Save changes</div>
 						</div>
@@ -894,14 +894,14 @@ export function depthToken(depth: number) {
 						<div class="type-row">
 							<div class="type-meta-label">Numeric</div>
 							<div class="type-meta-spec">
-								Barlow · 600 · tabular-nums · right-aligned in tables
+								Inter · 600 · tabular-nums · right-aligned in tables
 							</div>
 							<div class="type-numeric">R 742 500.00 · 14 reports · depth 3</div>
 						</div>
 
 						<div class="type-row">
 							<div class="type-meta-label">Caption</div>
-							<div class="type-meta-spec">Barlow · 400 · --text-xs</div>
+							<div class="type-meta-spec">Inter · 400 · --text-xs</div>
 							<p class="type-caption">
 								Last changed 12 September 2026 by m.koch
 							</p>

@@ -1,9 +1,3 @@
-/* =========================================================================
-   Employee Hierarchy Management System — Brand Style Guide
-   Token values inherited unchanged from the Savanna Sentinel system.
-   Semantic roles remapped for org-structure data.
-   ========================================================================= */
-
 :root {
 	--color-surface-raised: #ffffff;
 	--color-input-border: #767676;
@@ -136,7 +130,7 @@ html {
 }
 
 body {
-	font-family: "Barlow", sans-serif;
+	font-family: "Inter", sans-serif;
 	font-size: var(--text-base);
 	line-height: var(--lh-relaxed);
 	color: var(--color-text-primary);
@@ -148,7 +142,7 @@ h2,
 h3,
 h4,
 h5 {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
 	text-wrap: balance;
@@ -236,7 +230,7 @@ table {
 }
 
 .comp-section-label {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
@@ -347,7 +341,7 @@ table {
 }
 
 .overline {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-sm);
 	font-weight: var(--fw-semibold);
 	letter-spacing: var(--ls-widest);
@@ -393,7 +387,7 @@ table {
 }
 
 .nav-mark {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-extrabold);
 	font-size: var(--text-lg);
 	color: var(--color-text-inverse);
@@ -443,14 +437,14 @@ table {
 	place-items: center;
 	background: var(--spot-aqua);
 	color: var(--color-surface-deep);
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-extrabold);
 	font-size: var(--text-base);
 	z-index: 1;
 }
 
 .thread-node-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--color-text-inverse);
@@ -472,7 +466,7 @@ table {
 }
 
 .foundation-purpose {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-xl);
 	font-weight: var(--fw-semibold);
 	line-height: var(--lh-snug);
@@ -484,7 +478,7 @@ table {
 }
 
 .foundation-item-label {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-base);
 	font-weight: var(--fw-bold);
 	letter-spacing: var(--ls-widest);
@@ -505,7 +499,7 @@ table {
 }
 
 .token-group-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
@@ -524,7 +518,7 @@ table {
 .token-table th {
 	text-align: left;
 	background: var(--color-surface-bg);
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-sm);
 	letter-spacing: var(--ls-wider);
 	color: var(--brand-primary);
@@ -591,7 +585,7 @@ table {
 }
 
 .colour-group-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
@@ -628,7 +622,7 @@ table {
 }
 
 .colour-role-name {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-bold);
 	font-size: var(--text-base);
 	letter-spacing: var(--ls-wider);
@@ -700,7 +694,7 @@ table {
 }
 
 .type-meta-label {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-sm);
 	font-weight: var(--fw-bold);
 	letter-spacing: var(--ls-widest);
@@ -715,7 +709,7 @@ table {
 }
 
 .type-display {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-4xl);
 	font-weight: var(--fw-extrabold);
 	line-height: var(--lh-tight);
@@ -723,19 +717,19 @@ table {
 	color: var(--brand-primary);
 }
 .type-h1 {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-2xl);
 	font-weight: var(--fw-extrabold);
 	color: var(--brand-primary);
 }
 .type-h2 {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-xl);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
 }
 .type-h3 {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
@@ -821,7 +815,7 @@ table {
 }
 
 .motion-card-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-bold);
 	letter-spacing: var(--ls-wider);
 	color: var(--brand-primary);
@@ -909,7 +903,7 @@ table {
 	padding: 0 var(--sp-5);
 	border: 1px solid transparent;
 	border-radius: var(--radius-sm);
-	font-family: "Barlow", sans-serif;
+	font-family: "Inter", sans-serif;
 	font-size: var(--text-sm);
 	font-weight: var(--fw-semibold);
 	letter-spacing: var(--ls-wider);
@@ -1220,7 +1214,7 @@ table {
 .data-table th {
 	text-align: left;
 	background: var(--color-surface-bg);
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-sm);
 	font-weight: var(--fw-bold);
 	letter-spacing: var(--ls-wider);
@@ -1388,7 +1382,7 @@ table {
 }
 
 .modal-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
@@ -1440,7 +1434,7 @@ table {
 }
 
 .empty-state-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--brand-primary);
@@ -1489,7 +1483,7 @@ table {
 }
 
 .stat-card-label {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-sm);
 	font-weight: var(--fw-semibold);
 	letter-spacing: var(--ls-widest);
@@ -1497,7 +1491,7 @@ table {
 }
 
 .stat-card-value {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-2xl);
 	font-weight: var(--fw-extrabold);
 	color: var(--brand-primary);
@@ -1542,7 +1536,7 @@ table {
 }
 
 .topbar-wordmark {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-extrabold);
 	letter-spacing: var(--ls-wider);
 	font-size: var(--text-lg);
@@ -1684,7 +1678,7 @@ table {
 	color: var(--color-surface-deep);
 	display: grid;
 	place-items: center;
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-bold);
 	font-size: var(--text-sm);
 	overflow: hidden;
@@ -2010,7 +2004,7 @@ table {
 }
 
 .do-head {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-bold);
 	letter-spacing: var(--ls-wider);
 	margin-bottom: var(--sp-2);
@@ -2027,7 +2021,7 @@ table {
 }
 
 .decision-callout-label {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-bold);
 	letter-spacing: var(--ls-widest);
 	color: var(--brand-teal);
@@ -2056,7 +2050,7 @@ table {
 .a11y-req-table th {
 	text-align: left;
 	background: var(--color-surface-bg);
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	letter-spacing: var(--ls-wider);
 	color: var(--brand-primary);
 	padding: var(--sp-3) var(--sp-4);
@@ -2086,7 +2080,7 @@ table {
 /* -------------------------------------------------------- accessibility */
 
 .a11y-section-title {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-size: var(--text-lg);
 	font-weight: var(--fw-bold);
 	color: var(--color-text-inverse);
@@ -2112,7 +2106,7 @@ table {
 .contrast-table th {
 	text-align: left;
 	background: var(--color-surface-bg);
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	letter-spacing: var(--ls-wider);
 	color: var(--brand-primary);
 	padding: var(--sp-3) var(--sp-4);
@@ -2209,7 +2203,7 @@ table {
 }
 
 .footer-brand {
-	font-family: "Barlow Condensed", sans-serif;
+	font-family: "Inter Tight", sans-serif;
 	font-weight: var(--fw-extrabold);
 	letter-spacing: var(--ls-wider);
 	color: var(--color-text-inverse);
