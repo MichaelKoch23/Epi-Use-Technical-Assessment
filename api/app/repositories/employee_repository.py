@@ -136,6 +136,22 @@ class EmployeeRepository:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def get_any(self, id: uuid.UUID) -> Employee | None:
+        """Like `get`, but also returns soft-deleted rows — used by restore."""
+        stmt = select(Employee).where(Employee.id == id)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_for_update(self, id: uuid.UUID) -> Employee | None:
+        """Row-locking read for the services that mutate the hierarchy
+        (§5.2): `SELECT ... FOR UPDATE`, serialising conflicting writes to
+        the same row regardless of which app instance handles them."""
+        stmt = (
+            select(Employee)
+            .where(Employee.id == id, Employee.deleted_at.is_(None))
+            .with_for_update()
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def list(
         self,
         filters: EmployeeListFilters,
@@ -213,6 +229,12 @@ class EmployeeRepository:
     async def get_roots(self) -> Sequence[Employee]:
         stmt = select(Employee).where(
             Employee.manager_id.is_(None), Employee.deleted_at.is_(None)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
+
+    async def get_direct_reports(self, manager_id: uuid.UUID) -> Sequence[Employee]:
+        stmt = select(Employee).where(
+            Employee.manager_id == manager_id, Employee.deleted_at.is_(None)
         )
         return (await self._session.execute(stmt)).scalars().all()
 
