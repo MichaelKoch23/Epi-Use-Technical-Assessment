@@ -22,12 +22,19 @@ from app.core.pagination import (
 from app.core.security import Principal, get_current_principal, require_admin
 from app.db.session import get_db
 from app.models.employee import Employee
-from app.repositories.employee_repository import EmployeeListFilters, EmployeeRepository
+from app.repositories.employee_repository import (
+    EmployeeListFilters,
+    EmployeeListRow,
+    EmployeeRepository,
+)
 from app.schemas.employee import (
     AuditLogPage,
     AuditLogRead,
     EmployeeCreate,
     EmployeeHierarchyNode,
+    EmployeeListItemRead,
+    EmployeeListItemReadAny,
+    EmployeeListItemReadRestricted,
     EmployeePage,
     EmployeeRead,
     EmployeeReadAny,
@@ -79,6 +86,18 @@ def to_employee_read(employee: Employee, principal: Principal) -> EmployeeReadAn
     return EmployeeReadRestricted.model_validate(employee)
 
 
+def to_employee_list_item(row: EmployeeListRow, principal: Principal) -> EmployeeListItemReadAny:
+    base = to_employee_read(row.employee, principal)
+    merged = {
+        **base.model_dump(),
+        "manager_name": row.manager_name,
+        "direct_report_count": row.direct_report_count,
+    }
+    if principal.is_admin:
+        return EmployeeListItemRead.model_validate(merged)
+    return EmployeeListItemReadRestricted.model_validate(merged)
+
+
 def _require_salary_access(
     principal: Principal, filters: EmployeeListFilters, sort: str
 ) -> None:
@@ -116,7 +135,7 @@ async def list_employees(
         page_size=pagination.page_size,
     )
     return EmployeePage(
-        items=[to_employee_read(e, principal) for e in items],
+        items=[to_employee_list_item(row, principal) for row in items],
         total=total,
         page=pagination.page,
         page_size=pagination.page_size,

@@ -3,13 +3,14 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, func, select, text
+from sqlalchemy import ColumnElement, case, func, select, text
 from sqlalchemy.engine import Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute
+from sqlalchemy.orm import InstrumentedAttribute, aliased
 
 from app.models.employee import Employee
 
@@ -40,6 +41,19 @@ class EmployeeListFilters:
     manager_id: uuid.UUID | None = None
     min_salary: Decimal | None = None
     max_salary: Decimal | None = None
+    min_birth_date: date | None = None
+    max_birth_date: date | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class EmployeeListRow:
+    """One row of a paged list: the employee plus fields that would
+    otherwise cost an extra query per row — the manager's display name and
+    direct-report count, both computed in the same statement (§below)."""
+
+    employee: Employee
+    manager_name: str | None
+    direct_report_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,7 +174,7 @@ class EmployeeRepository:
         order: Literal["asc", "desc"] = "asc",
         page: int = 1,
         page_size: int = 50,
-    ) -> tuple[Sequence[Employee], int]:
+    ) -> tuple[Sequence[EmployeeListRow], int]:
         if sort not in SORTABLE_COLUMNS:
             raise ValueError(f"unsupported sort field: {sort!r}")
         if page < 1:
@@ -180,12 +194,34 @@ class EmployeeRepository:
             conditions.append(Employee.salary >= filters.min_salary)
         if filters.max_salary is not None:
             conditions.append(Employee.salary <= filters.max_salary)
+        if filters.min_birth_date is not None:
+            conditions.append(Employee.birth_date >= filters.min_birth_date)
+        if filters.max_birth_date is not None:
+            conditions.append(Employee.birth_date <= filters.max_birth_date)
 
         sort_column = SORTABLE_COLUMNS[sort]
         order_by = sort_column.asc() if order == "asc" else sort_column.desc()
 
+        manager = aliased(Employee)
+        report = aliased(Employee)
+        # `concat()` (unlike `||`) treats NULL arguments as empty strings, so
+        # a root employee's absent manager would otherwise come back as the
+        # single-space string `" "` instead of NULL.
+        manager_name = case(
+            (manager.id.is_(None), None),
+            else_=func.concat(manager.first_name, " ", manager.last_name),
+        )
+        report_count = (
+            select(func.count())
+            .select_from(report)
+            .where(report.manager_id == Employee.id, report.deleted_at.is_(None))
+            .correlate(Employee)
+            .scalar_subquery()
+        )
+
         list_stmt = (
-            select(Employee)
+            select(Employee, manager_name, report_count)
+            .outerjoin(manager, Employee.manager_id == manager.id)
             .where(*conditions)
             .order_by(order_by, Employee.id)
             .limit(page_size)
@@ -193,8 +229,12 @@ class EmployeeRepository:
         )
         count_stmt = select(func.count()).select_from(Employee).where(*conditions)
 
-        items = (await self._session.execute(list_stmt)).scalars().all()
+        rows = (await self._session.execute(list_stmt)).all()
         total = (await self._session.execute(count_stmt)).scalar_one()
+        items = [
+            EmployeeListRow(employee=employee, manager_name=manager_name_, direct_report_count=count)
+            for employee, manager_name_, count in rows
+        ]
         return items, total
 
     async def get_subtree(

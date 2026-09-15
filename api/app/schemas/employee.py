@@ -74,8 +74,25 @@ class EmployeeReadRestricted(_EmployeeReadBase):
 EmployeeReadAny = EmployeeRead | EmployeeReadRestricted
 
 
+class EmployeeListItemRead(EmployeeRead):
+    """`EmployeeRead` plus fields only the list endpoint bothers to compute
+    (§list query in the repository) — a manager's display name in place of
+    a bare id, and the row's own direct-report count."""
+
+    manager_name: str | None
+    direct_report_count: int
+
+
+class EmployeeListItemReadRestricted(EmployeeReadRestricted):
+    manager_name: str | None
+    direct_report_count: int
+
+
+EmployeeListItemReadAny = EmployeeListItemRead | EmployeeListItemReadRestricted
+
+
 class EmployeePage(BaseModel):
-    items: list[EmployeeReadAny]
+    items: list[EmployeeListItemReadAny]
     total: int
     page: int
     page_size: int

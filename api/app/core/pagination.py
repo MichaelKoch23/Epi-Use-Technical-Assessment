@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Literal
 
@@ -52,6 +53,8 @@ def employee_filter_params(
     manager_id: uuid.UUID | None = Query(None),
     min_salary: Decimal | None = Query(None, ge=0),
     max_salary: Decimal | None = Query(None, ge=0),
+    min_birth_date: date | None = Query(None),
+    max_birth_date: date | None = Query(None),
 ) -> EmployeeListFilters:
     return EmployeeListFilters(
         q=q,
@@ -59,4 +62,6 @@ def employee_filter_params(
         manager_id=manager_id,
         min_salary=min_salary,
         max_salary=max_salary,
+        min_birth_date=min_birth_date,
+        max_birth_date=max_birth_date,
     )
