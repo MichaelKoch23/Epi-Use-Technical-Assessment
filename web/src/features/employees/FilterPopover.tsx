@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
-import { ManagerCombobox } from './ManagerCombobox'
+import { ManagerPicker } from './ManagerPicker'
 import type { EmployeesFilterState } from './useEmployeesViewState'
 
 // The popover never touches `q` (the search bar owns that field), so its
@@ -76,9 +76,10 @@ export function FilterPopover({
 
         <div className="flex flex-col gap-1.5">
           <Label>Reports to</Label>
-          <ManagerCombobox
+          <ManagerPicker
             value={draft.managerId}
             label={draft.managerName}
+            clearLabel="Any manager"
             onChange={(managerId, managerName) =>
               setDraft((d) => ({ ...d, managerId, managerName }))
             }

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTable } from '@tanstack/react-table'
-import { ChevronDownIcon, ChevronUpIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   InputGroup,
   InputGroupAddon,
@@ -19,13 +20,18 @@ import {
 } from '@/components/ui/table'
 import { getErrorMessage } from '@/lib/apiError'
 import type { EmployeeListFilters } from '@/lib/queryKeys'
+import { cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { employeeColumns, SORTABLE_COLUMN_IDS } from './columns'
+import { CreateEmployeeSheet } from './CreateEmployeeSheet'
+import { DeleteEmployeeDialog } from './DeleteEmployeeDialog'
+import { EditEmployeeSheet } from './EditEmployeeSheet'
 import { EmployeesPagination } from './EmployeesPagination'
 import { FilterChipRow } from './FilterChipRow'
 import { getFilterChips } from './filterChips'
 import { FilterPopover } from './FilterPopover'
-import { employeeTableFeatures } from './tableFeatures'
+import { useRestoreEmployeeMutation } from './mutations'
+import { employeeTableFeatures, type EmployeeTableMeta } from './tableFeatures'
 import { hasSalary, type EmployeeListItem } from './types'
 import { useEmployeesListQuery } from './useEmployeesListQuery'
 import { useEmployeesViewState } from './useEmployeesViewState'
@@ -45,12 +51,18 @@ function toApiFilters(state: ReturnType<typeof useEmployeesViewState>['state']):
     order: state.order,
     page: state.page,
     page_size: state.pageSize,
+    deleted: state.deleted || undefined,
   }
 }
 
 export function EmployeesListPage() {
-  const { state, applyFilters, clearFilters, setSort, setPage, setPageSize } =
+  const { state, applyFilters, clearFilters, setSort, setPage, setPageSize, setDeleted } =
     useEmployeesViewState()
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null)
+  const [deletingEmployee, setDeletingEmployee] = useState<EmployeeListItem | null>(null)
+  const restoreEmployee = useRestoreEmployeeMutation()
 
   const [searchInput, setSearchInput] = useState(state.q)
   const debouncedSearch = useDebouncedValue(searchInput, 300)
@@ -93,6 +105,18 @@ export function EmployeesListPage() {
   const employees = query.data?.items ?? EMPTY_EMPLOYEES
   const salaryFilterAllowed = employees.length === 0 || hasSalary(employees[0]!)
 
+  const meta: EmployeeTableMeta = {
+    onEdit: setEditingEmployee,
+    onDelete: setDeletingEmployee,
+    onRestore: (employee) => {
+      restoreEmployee.mutate(employee.id, {
+        onSuccess: () => toast.success(`${employee.first_name} ${employee.last_name} was restored`),
+        onError: (error) => toast.error(getErrorMessage(error, 'Failed to restore employee')),
+      })
+    },
+    showRestore: state.deleted,
+  }
+
   // Server owns sorting, filtering and pagination entirely (§ manual mode);
   // the table gets one already-processed page and never reprocesses it.
   const table = useTable({
@@ -104,6 +128,7 @@ export function EmployeesListPage() {
     manualFiltering: true,
     manualPagination: true,
     rowCount: query.data?.total ?? 0,
+    meta,
   })
 
   const chips = getFilterChips(state, applyFilters)
@@ -111,9 +136,14 @@ export function EmployeesListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Employees</h1>
-        <p className="text-muted-foreground">Browse, search and filter the full roster.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Employees</h1>
+          <p className="text-muted-foreground">Browse, search and filter the full roster.</p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <PlusIcon /> Add employee
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -157,6 +187,14 @@ export function EmployeesListPage() {
             Clear all
           </button>
         )}
+
+        <Button
+          variant="outline"
+          className={cn('ml-auto', state.deleted && 'border-primary text-primary')}
+          onClick={() => setDeleted(!state.deleted)}
+        >
+          {state.deleted ? 'Showing deleted' : 'Deleted'}
+        </Button>
       </div>
 
       <FilterChipRow chips={chips} />
@@ -235,6 +273,18 @@ export function EmployeesListPage() {
         total={query.data?.total ?? 0}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+      />
+
+      <CreateEmployeeSheet open={createOpen} onOpenChange={setCreateOpen} />
+      <EditEmployeeSheet
+        employee={editingEmployee}
+        open={Boolean(editingEmployee)}
+        onOpenChange={(open) => !open && setEditingEmployee(null)}
+      />
+      <DeleteEmployeeDialog
+        employee={deletingEmployee}
+        open={Boolean(deletingEmployee)}
+        onOpenChange={(open) => !open && setDeletingEmployee(null)}
       />
     </div>
   )

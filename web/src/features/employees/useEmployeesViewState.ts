@@ -23,6 +23,7 @@ export interface EmployeesViewState extends EmployeesFilterState {
   order: 'asc' | 'desc'
   page: number
   pageSize: number
+  deleted: boolean
 }
 
 const FILTER_PARAM_KEYS: Record<keyof EmployeesFilterState, string> = {
@@ -61,6 +62,7 @@ function parseState(params: URLSearchParams): EmployeesViewState {
     order: params.get('order') === 'desc' ? 'desc' : DEFAULT_ORDER,
     page: parsePositiveInt(params.get('page'), 1),
     pageSize: parsePositiveInt(params.get('page_size'), DEFAULT_PAGE_SIZE),
+    deleted: params.get('deleted') === 'true',
   }
 }
 
@@ -156,5 +158,16 @@ export function useEmployeesViewState() {
     [commit]
   )
 
-  return { state, applyFilters, clearFilters, setSort, setPage, setPageSize }
+  const setDeleted = useCallback(
+    (deleted: boolean) => {
+      commit((next) => {
+        if (deleted) next.set('deleted', 'true')
+        else next.delete('deleted')
+        next.delete('page')
+      })
+    },
+    [commit]
+  )
+
+  return { state, applyFilters, clearFilters, setSort, setPage, setPageSize, setDeleted }
 }

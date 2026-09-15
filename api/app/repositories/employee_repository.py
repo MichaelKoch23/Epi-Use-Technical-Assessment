@@ -43,6 +43,7 @@ class EmployeeListFilters:
     max_salary: Decimal | None = None
     min_birth_date: date | None = None
     max_birth_date: date | None = None
+    deleted: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,7 +183,9 @@ class EmployeeRepository:
         if not (1 <= page_size <= 500):
             raise ValueError("page_size must be between 1 and 500")
 
-        conditions: list[ColumnElement[bool]] = [Employee.deleted_at.is_(None)]
+        conditions: list[ColumnElement[bool]] = [
+            Employee.deleted_at.is_not(None) if filters.deleted else Employee.deleted_at.is_(None)
+        ]
         if filters.q:
             full_name = func.concat(Employee.first_name, " ", Employee.last_name)
             conditions.append(full_name.ilike("%" + filters.q + "%"))

@@ -1,44 +1,42 @@
-import { useEffect, useState } from 'react'
-import { gravatarUrl } from '@/lib/gravatar'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 function initials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
 }
 
+function AvatarImage({ avatarUrl, fallback }: { avatarUrl: string; fallback: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <>{fallback}</>
+  return (
+    <img
+      src={avatarUrl}
+      alt=""
+      className="size-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+/**
+ * Renders whatever `avatarUrl` the API resolved (uploaded override, else a
+ * Gravatar image — see `avatars.py`), falling back to initials on
+ * `--brand-steel` if that URL 404s. Decorative (`alt=""`): the name always
+ * sits next to the avatar, so a failed load never leaves a broken image.
+ */
 export function EmployeeAvatar({
-  email,
+  avatarUrl,
   firstName,
   lastName,
-  overrideUrl,
   size = 32,
   className,
 }: {
-  email: string
+  avatarUrl: string
   firstName: string
   lastName: string
-  overrideUrl?: string | null
   size?: number
   className?: string
 }) {
-  const [gravatar, setGravatar] = useState<string | null>(null)
-  const [imgFailed, setImgFailed] = useState(false)
-
-  useEffect(() => {
-    setImgFailed(false)
-    if (overrideUrl) return
-    let cancelled = false
-    gravatarUrl(email, size * 2).then((url) => {
-      if (!cancelled) setGravatar(url)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [email, overrideUrl, size])
-
-  const src = overrideUrl ?? gravatar
-  const showImage = Boolean(src) && !imgFailed
-
   return (
     <span
       className={cn(
@@ -47,18 +45,9 @@ export function EmployeeAvatar({
       )}
       style={{ width: size, height: size }}
     >
-      {showImage ? (
-        // Decorative: the name always sits next to the avatar, so a failed
-        // load falls back to initials rather than a broken-image icon.
-        <img
-          src={src ?? undefined}
-          alt=""
-          className="size-full object-cover"
-          onError={() => setImgFailed(true)}
-        />
-      ) : (
-        initials(firstName, lastName)
-      )}
+      {/* Keyed on the URL so a fresh image gets a fresh "has it failed?"
+       * state instead of carrying over the previous row/avatar's result. */}
+      <AvatarImage key={avatarUrl} avatarUrl={avatarUrl} fallback={initials(firstName, lastName)} />
     </span>
   )
 }

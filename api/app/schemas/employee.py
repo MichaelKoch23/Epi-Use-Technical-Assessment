@@ -5,7 +5,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from app.core.avatars import resolve_avatar_url
 
 
 class EmployeeCreate(BaseModel):
@@ -58,6 +60,11 @@ class _EmployeeReadBase(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def avatar_url(self) -> str:
+        return resolve_avatar_url(avatar_override_url=self.avatar_override_url, email=self.email)
 
 
 class EmployeeRead(_EmployeeReadBase):

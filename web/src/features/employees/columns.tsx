@@ -42,10 +42,9 @@ export const employeeColumns = columnHelper.columns([
           className="flex items-center gap-2 text-foreground no-underline hover:underline"
         >
           <EmployeeAvatar
-            email={employee.email}
+            avatarUrl={employee.avatar_url}
             firstName={employee.first_name}
             lastName={employee.last_name}
-            overrideUrl={employee.avatar_override_url}
           />
           <span className="font-medium">
             {employee.first_name} {employee.last_name}
@@ -99,18 +98,34 @@ export const employeeColumns = columnHelper.columns([
   columnHelper.display({
     id: 'actions',
     header: '',
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-          <MoreHorizontalIcon className="size-4" />
-          <span className="sr-only">Row actions</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem render={<Link to={`/employees/${row.original.id}`} />}>
-            View details
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+    cell: ({ row, table }) => {
+      const employee = row.original
+      const meta = table.options.meta!
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+            <MoreHorizontalIcon className="size-4" />
+            <span className="sr-only">Row actions</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {meta.showRestore ? (
+              <DropdownMenuItem onClick={() => meta.onRestore(employee)}>
+                Restore
+              </DropdownMenuItem>
+            ) : (
+              <>
+                <DropdownMenuItem render={<Link to={`/employees/${employee.id}`} />}>
+                  View details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => meta.onEdit(employee)}>Edit</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => meta.onDelete(employee)}>
+                  Delete
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
   }),
 ])

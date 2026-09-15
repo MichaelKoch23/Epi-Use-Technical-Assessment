@@ -297,6 +297,8 @@ export interface components {
             manager_name: string | null;
             /** Direct Report Count */
             direct_report_count: number;
+            /** Avatar Url */
+            readonly avatar_url: string;
         };
         /** EmployeeListItemReadRestricted */
         EmployeeListItemReadRestricted: {
@@ -344,6 +346,8 @@ export interface components {
             manager_name: string | null;
             /** Direct Report Count */
             direct_report_count: number;
+            /** Avatar Url */
+            readonly avatar_url: string;
         };
         /** EmployeePage */
         EmployeePage: {
@@ -403,6 +407,8 @@ export interface components {
             deleted_at: string | null;
             /** Salary */
             salary: string;
+            /** Avatar Url */
+            readonly avatar_url: string;
         };
         /**
          * EmployeeReadRestricted
@@ -450,6 +456,8 @@ export interface components {
             updated_at: string;
             /** Deleted At */
             deleted_at: string | null;
+            /** Avatar Url */
+            readonly avatar_url: string;
         };
         /**
          * EmployeeUpdate
@@ -542,6 +550,8 @@ export interface operations {
                 max_salary?: number | string | null;
                 min_birth_date?: string | null;
                 max_birth_date?: string | null;
+                /** @description List soft-deleted employees instead of active ones */
+                deleted?: boolean;
                 /** @description One of: birth_date, created_at, email, employee_number, first_name, last_name, position, salary, updated_at */
                 sort?: string;
                 order?: "asc" | "desc";
