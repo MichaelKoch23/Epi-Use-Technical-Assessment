@@ -7,7 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.core.config import settings
+from app.core.problem_details import install_exception_handlers
 from app.db.session import engine
+from app.routers.employees import router as employees_router
 
 app = FastAPI(title="Employee Hierarchy API")
 
@@ -19,6 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+install_exception_handlers(app)
+
 
 # Route precedence (§3.3): /api/v1/* first, then FastAPI's own /docs,
 # /redoc and /openapi.json, then /assets/*, then everything else falls
@@ -28,6 +32,9 @@ async def health() -> dict[str, str]:
     async with engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
     return {"status": "ok", "db": "ok"}
+
+
+app.include_router(employees_router)
 
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

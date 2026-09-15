@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit_log import AuditLog
@@ -67,3 +69,21 @@ class AuditService:
         self._session.add(entry)
         await self._session.flush()
         return entry
+
+    async def list_for_employee(
+        self, employee_id: uuid.UUID, *, page: int = 1, page_size: int = 50
+    ) -> tuple[Sequence[AuditLog], int]:
+        """Change history for one employee, newest first (§6.2)."""
+        base = select(AuditLog).where(AuditLog.employee_id == employee_id)
+        list_stmt = (
+            base.order_by(AuditLog.occurred_at.desc())
+            .limit(page_size)
+            .offset((page - 1) * page_size)
+        )
+        count_stmt = select(func.count()).select_from(
+            select(AuditLog.id).where(AuditLog.employee_id == employee_id).subquery()
+        )
+
+        items = (await self._session.execute(list_stmt)).scalars().all()
+        total = (await self._session.execute(count_stmt)).scalar_one()
+        return items, total
