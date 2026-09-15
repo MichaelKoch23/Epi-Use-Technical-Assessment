@@ -7,7 +7,7 @@
 			name="description"
 			content="Employee Hierarchy Management System brand style guide: colours, typography, spacing, motion, components, org chart patterns and accessibility standards."
 		/>
-		<title>Employee Hierarchy Management System — Brand Style Guide</title>
+		<title>Employee Hierarchy Management System - Brand Style Guide</title>
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -346,7 +346,7 @@
 						<h3 class="token-group-title">Hierarchy depth</h3>
 						<p class="group-desc">
 							Depth tokens alias onto the existing spot colours. The org chart
-							introduces no new hues — it reuses the blue family at descending
+							introduces no new hues - it reuses the blue family at descending
 							saturation so that depth reads as a ramp rather than as five
 							unrelated categories. Levels beyond four repeat
 							<code>--depth-4</code>.
@@ -370,7 +370,7 @@
 									</td>
 									<td class="token-name">--depth-0</td>
 									<td class="token-value">--spot-navy · #103364</td>
-									<td class="token-usage">Root — employees with no manager</td>
+									<td class="token-usage">Root - employees with no manager</td>
 								</tr>
 								<tr>
 									<td>
@@ -424,7 +424,7 @@
 						<h3 class="token-group-title">Status</h3>
 						<p class="group-desc">
 							Status colour is reserved for the state of a record or an
-							operation. It never indicates seniority, department or headcount —
+							operation. It never indicates seniority, department or headcount -
 							if everything is coloured, nothing is.
 						</p>
 						<table class="token-table">
@@ -447,7 +447,7 @@
 									<td class="token-name">--status-safe</td>
 									<td class="token-value">#06b050</td>
 									<td class="token-usage">
-										Valid — row will import, reassignment is allowed, change
+										Valid - row will import, reassignment is allowed, change
 										saved
 									</td>
 								</tr>
@@ -461,7 +461,7 @@
 									<td class="token-name">--status-caution</td>
 									<td class="token-value">#fae203</td>
 									<td class="token-usage">
-										Structural warning — span of control outside the healthy
+										Structural warning - span of control outside the healthy
 										range, unsaved changes
 									</td>
 								</tr>
@@ -475,7 +475,7 @@
 									<td class="token-name">--status-alert</td>
 									<td class="token-value">#ff9300</td>
 									<td class="token-usage">
-										Consequential but permitted — cascade delete preview, edit
+										Consequential but permitted - cascade delete preview, edit
 										conflict needing a choice
 									</td>
 								</tr>
@@ -489,7 +489,7 @@
 									<td class="token-name">--status-critical</td>
 									<td class="token-value">#b30000</td>
 									<td class="token-usage">
-										Blocked — reporting cycle, failed validation, destructive
+										Blocked - reporting cycle, failed validation, destructive
 										confirmation
 									</td>
 								</tr>
@@ -503,7 +503,7 @@
 									<td class="token-name">--status-safe-text</td>
 									<td class="token-value">#0a7d3a</td>
 									<td class="token-usage">
-										Text form of safe — the raw green fails contrast on white
+										Text form of safe - the raw green fails contrast on white
 									</td>
 								</tr>
 								<tr>
@@ -596,7 +596,7 @@
 					</p>
 
 					<h3 class="comp-section-label">Declaring the theme</h3>
-					<pre class="code-block"><code>/* src/index.css — Tailwind v4 */
+					<pre class="code-block"><code>/* src/index.css - Tailwind v4 */
 @import "tailwindcss";
 
 @theme {
@@ -642,7 +642,7 @@ export function depthToken(depth: number) {
 						<span class="decision-callout-label">Rule</span>
 						No component may contain a literal hex value, a raw pixel spacing
 						value, or a hardcoded duration. If a value is needed that no token
-						covers, the token set is wrong — add the token, then use it.
+						covers, the token set is wrong - add the token, then use it.
 					</div>
 				</div>
 			</section>
@@ -743,7 +743,7 @@ export function depthToken(depth: number) {
 						</div>
 						<p class="demo-caption">
 							Labels are illustrative. The ramp encodes distance from the root,
-							not job grade — the system holds no concept of seniority.
+							not job grade - the system holds no concept of seniority.
 						</p>
 					</div>
 
@@ -820,7 +820,7 @@ export function depthToken(depth: number) {
 							<div class="do-head">Don't</div>
 							<p class="type-caption">
 								Use the depth ramp to imply importance, tint whole node cards
-								with status colour, or introduce a colour for "department" —
+								with status colour, or introduce a colour for "department" -
 								departments are a filter, not a hue.
 							</p>
 						</div>
@@ -833,7 +833,7 @@ export function depthToken(depth: number) {
 				<div class="wrap">
 					<h2 class="section-title">Typography</h2>
 					<p class="section-lead">
-						Inter Tight for anything structural — headings, table headers,
+						Inter Tight for anything structural - headings, table headers,
 						statistics, wordmarks. Inter for everything a person reads as a
 						sentence. Numbers in tables and node cards are set with tabular
 						figures so columns align.
@@ -1078,7 +1078,7 @@ export function depthToken(depth: number) {
 						Every transition is wrapped in a
 						<code>prefers-reduced-motion</code> check. With reduced motion on,
 						the chart re-layout becomes an instant jump plus a 1.5s highlight on
-						the moved node — the information is preserved, the movement is not.
+						the moved node - the information is preserved, the movement is not.
 					</div>
 				</div>
 			</section>
@@ -1090,7 +1090,7 @@ export function depthToken(depth: number) {
 					<p class="section-lead">
 						Lucide, 20px in interface controls and 16px inline, 2px stroke,
 						<code>currentColor</code> always. An icon never appears alone in a
-						destructive or ambiguous control — it carries a label or an
+						destructive or ambiguous control - it carries a label or an
 						accessible name.
 					</p>
 
@@ -1233,7 +1233,7 @@ export function depthToken(depth: number) {
 									id="demo-manager"
 									aria-describedby="demo-manager-hint"
 								>
-									<option>— No manager —</option>
+									<option>- No manager -</option>
 									<option selected>Thandi Mokoena · Head of Delivery</option>
 									<option>Riaan Botha · Integration Lead</option>
 								</select>
@@ -1423,7 +1423,7 @@ export function depthToken(depth: number) {
 					</div>
 					<p class="demo-caption">
 						Sorting, filtering and pagination are server-side. The restricted
-						salary treatment is what a viewer sees — the value is absent from the
+						salary treatment is what a viewer sees - the value is absent from the
 						API response, not hidden with CSS.
 					</p>
 
@@ -1628,7 +1628,7 @@ export function depthToken(depth: number) {
 					<h2 class="section-title">Hierarchy Components</h2>
 					<p class="section-lead">
 						The components unique to this product. The org chart is the screen
-						people remember, so it carries the most specific rules — and the
+						people remember, so it carries the most specific rules - and the
 						only genuinely novel interaction in the system, dragging a person
 						onto a new manager.
 					</p>
@@ -1705,7 +1705,7 @@ export function depthToken(depth: number) {
 								<td>Invalid drop target</td>
 								<td class="state-label">.is-drop-invalid</td>
 								<td>
-									Red ring and not-allowed cursor — a descendant of the dragged
+									Red ring and not-allowed cursor - a descendant of the dragged
 									employee
 								</td>
 							</tr>
@@ -1764,7 +1764,7 @@ export function depthToken(depth: number) {
 											<div class="node-role">Senior Developer</div>
 											<div class="node-meta">
 												<span class="node-report-count">
-													Reports to Riaan — cannot accept
+													Reports to Riaan - cannot accept
 												</span>
 											</div>
 										</div>
@@ -1928,8 +1928,8 @@ export function depthToken(depth: number) {
 						<p class="demo-caption" style="margin-top: var(--sp-3)">
 							Resolution order: uploaded override, then the Gravatar image, then
 							locally generated initials on
-							<code>--brand-steel</code>. Avatars are always decorative —
-							<code>alt=""</code> — because the name sits next to them in every
+							<code>--brand-steel</code>. Avatars are always decorative -
+							<code>alt=""</code> - because the name sits next to them in every
 							context. An avatar that fails to load never leaves a broken image.
 						</p>
 					</div>
@@ -1951,7 +1951,7 @@ export function depthToken(depth: number) {
 							<div>
 								<div class="type-ui-em">Row 7 · EU-10044 · Riaan Botha</div>
 								<div class="import-row-detail">
-									Employee number already exists — the salary and position will
+									Employee number already exists - the salary and position will
 									be updated
 								</div>
 							</div>
@@ -2056,7 +2056,7 @@ export function depthToken(depth: number) {
 								<td>Reporting table</td>
 								<td class="state-label">table</td>
 								<td>
-									Driven by TanStack Table in manual mode — server-side sorting,
+									Driven by TanStack Table in manual mode - server-side sorting,
 									filtering and pagination
 								</td>
 							</tr>
@@ -2101,7 +2101,7 @@ export function depthToken(depth: number) {
 							</tr>
 							<tr>
 								<td>Org chart</td>
-								<td class="state-label">— none —</td>
+								<td class="state-label">- none -</td>
 								<td>
 									React Flow with a Dagre layout pass; nodes are ordinary React
 									components using the classes in this guide
@@ -2294,7 +2294,7 @@ export function depthToken(depth: number) {
 						<li>
 							The org chart has a keyboard-navigable nested list equivalent,
 							reachable from the chart toolbar and used as the print layout. It
-							is not a fallback — it is a supported view.
+							is not a fallback - it is a supported view.
 						</li>
 						<li>
 							Drag-to-reassign has a keyboard path: select an employee, press
@@ -2430,7 +2430,7 @@ export function depthToken(depth: number) {
 					<div class="decision-callout" style="margin-top: var(--sp-8)">
 						<span class="decision-callout-label">Vocabulary</span>
 						An action keeps its name through the whole flow. "Reassign" is the
-						menu item, the dialog heading, the button and the audit entry — it
+						menu item, the dialog heading, the button and the audit entry - it
 						never becomes "move", "change manager" or "update reporting line"
 						along the way.
 					</div>

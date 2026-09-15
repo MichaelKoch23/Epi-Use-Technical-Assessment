@@ -31,7 +31,7 @@
 	--status-critical-text: #9b0000;
 	--color-text-secondary: #4f7392;
 
-	/* Hierarchy depth ramp — aliases onto the existing spot colours so the
+	/* Hierarchy depth ramp - aliases onto the existing spot colours so the
 	   org chart introduces no new hues. Depth 5+ reuses depth 4. */
 	--depth-0: var(--spot-navy);
 	--depth-1: var(--spot-cobalt);

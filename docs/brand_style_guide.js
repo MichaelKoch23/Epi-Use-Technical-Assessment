@@ -1,5 +1,5 @@
 /* =========================================================================
-   Employee Hierarchy Management System — Brand Style Guide behaviour
+   Employee Hierarchy Management System - Brand Style Guide behaviour
    Contrast maths and scrollspy carried over unchanged; the interactive
    demos below are specific to the hierarchy components.
    ========================================================================= */
