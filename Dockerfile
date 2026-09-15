@@ -1,7 +1,7 @@
 # ---- stage 1: build the SPA
 FROM node:22-alpine AS web
 WORKDIR /web
-COPY web/package*.json ./
+COPY web/package*.json web/.npmrc ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build
