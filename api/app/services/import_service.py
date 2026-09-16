@@ -130,7 +130,9 @@ def _check_duplicate_numbers(rows: list[_Row]) -> None:
     for number, group in groups.items():
         if len(group) > 1:
             for row in group:
-                row.block(f"employee_number {number!r} appears more than once in the file")
+                row.block(
+                    f"employee_number {number!r} appears more than once in the file"
+                )
 
 
 def _check_business_rules(rows: list[_Row], today: date) -> None:
@@ -193,7 +195,9 @@ class ImportService:
             for _, number, manager_id in identity_map
         }
 
-        file_numbers = {r.employee_number for r in rows if r.employee_number is not None}
+        file_numbers = {
+            r.employee_number for r in rows if r.employee_number is not None
+        }
         for row in rows:
             if row.employee_number is None or row.manager_employee_number is None:
                 continue

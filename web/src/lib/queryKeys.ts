@@ -29,3 +29,8 @@ export const employeeKeys = {
 export const hierarchyKeys = {
   roots: () => ['hierarchy', 'roots'] as const,
 }
+
+export const analyticsKeys = {
+  orgSummary: () => ['analytics', 'org-summary'] as const,
+  branch: (employeeId: string) => ['analytics', 'branch', employeeId] as const,
+}

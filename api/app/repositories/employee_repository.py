@@ -291,9 +291,7 @@ class EmployeeRepository:
         )
         return (await self._session.execute(stmt)).scalars().all()
 
-    async def get_names_by_ids(
-        self, ids: Sequence[uuid.UUID]
-    ) -> dict[uuid.UUID, str]:
+    async def get_names_by_ids(self, ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
         """Display names for a batch of ids, including soft-deleted rows —
         used to resolve a manager referenced from an audit snapshot, who may
         since have been deleted (§ audit timeline UI)."""

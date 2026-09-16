@@ -20,7 +20,9 @@ async def _csv_text(response) -> str:
     return "".join([chunk async for chunk in response.body_iterator])
 
 
-async def test_viewer_export_has_no_salary_column(db_session, actor_id, employee_factory):
+async def test_viewer_export_has_no_salary_column(
+    db_session, actor_id, employee_factory
+):
     await employee_factory(salary=Decimal(123456))
     viewer = Principal(id=uuid.uuid4(), role="viewer")
 

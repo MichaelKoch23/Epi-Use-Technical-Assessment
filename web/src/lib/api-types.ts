@@ -271,10 +271,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/org-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Org Summary */
+        get: operations["get_org_summary_api_v1_analytics_org_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/branch/{employee_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Branch Summary */
+        get: operations["get_branch_summary_api_v1_analytics_branch__employee_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnomaliesRead */
+        AnomaliesRead: {
+            /** Wide Spans */
+            wide_spans: components["schemas"]["WideSpanAnomalyRead"][];
+            /** Single Report Managers */
+            single_report_managers: components["schemas"]["SingleReportAnomalyRead"][];
+            /** Deep Chains */
+            deep_chains: components["schemas"]["DeepChainAnomalyRead"][];
+            /** Unreachable */
+            unreachable: components["schemas"]["UnreachableAnomalyRead"][];
+        };
         /** AuditLogPage */
         AuditLogPage: {
             /** Items */
@@ -331,6 +376,82 @@ export interface components {
         Body_import_employees_api_v1_imports_employees_post: {
             /** File */
             file: string;
+        };
+        /** BranchEmployeeRead */
+        BranchEmployeeRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+        };
+        /** BranchSummaryRead */
+        BranchSummaryRead: {
+            employee: components["schemas"]["BranchEmployeeRead"];
+            /** Headcount */
+            headcount: number;
+            /** Direct Reports */
+            direct_reports: number;
+            /** Depth Below */
+            depth_below: number;
+            /** Average Span Of Control */
+            average_span_of_control: number;
+            cost: components["schemas"]["CostSummaryRead"];
+        };
+        /** BranchSummaryReadRestricted */
+        BranchSummaryReadRestricted: {
+            employee: components["schemas"]["BranchEmployeeRead"];
+            /** Headcount */
+            headcount: number;
+            /** Direct Reports */
+            direct_reports: number;
+            /** Depth Below */
+            depth_below: number;
+            /** Average Span Of Control */
+            average_span_of_control: number;
+        };
+        /**
+         * CostSummaryRead
+         * @description Admin-only (§9.3) — never a field on the `*Restricted` schemas below,
+         *     so it's absent from a viewer's payload entirely, not null.
+         */
+        CostSummaryRead: {
+            /** Total Annual */
+            total_annual: string;
+            /** Average */
+            average: string;
+            /** Median */
+            median: string;
+            /**
+             * Currency
+             * @default ZAR
+             */
+            currency: string;
+        };
+        /** DeepChainAnomalyRead */
+        DeepChainAnomalyRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+            /** Depth */
+            depth: number;
+        };
+        /** DepthCountRead */
+        DepthCountRead: {
+            /** Depth */
+            depth: number;
+            /** Count */
+            count: number;
         };
         /** EmployeeCreate */
         EmployeeCreate: {
@@ -671,10 +792,83 @@ export interface components {
             /** Can Edit */
             can_edit: boolean;
         };
+        /**
+         * OrgSummaryRead
+         * @description `hr_admin` representation — includes the cost roll-up.
+         */
+        OrgSummaryRead: {
+            /** Headcount */
+            headcount: number;
+            /** Root Count */
+            root_count: number;
+            /** Manager Count */
+            manager_count: number;
+            /** Individual Contributor Count */
+            individual_contributor_count: number;
+            /** Max Depth */
+            max_depth: number;
+            /** Average Span Of Control */
+            average_span_of_control: number;
+            /** Median Span Of Control */
+            median_span_of_control: number;
+            /** Depth Distribution */
+            depth_distribution: components["schemas"]["DepthCountRead"][];
+            /** Span Distribution */
+            span_distribution: components["schemas"]["SpanCountRead"][];
+            anomalies: components["schemas"]["AnomaliesRead"];
+            cost: components["schemas"]["CostSummaryRead"];
+        };
+        /**
+         * OrgSummaryReadRestricted
+         * @description `viewer` representation. `cost` is not a field here at all, so it's
+         *     absent from the serialised payload — never null, never masked.
+         */
+        OrgSummaryReadRestricted: {
+            /** Headcount */
+            headcount: number;
+            /** Root Count */
+            root_count: number;
+            /** Manager Count */
+            manager_count: number;
+            /** Individual Contributor Count */
+            individual_contributor_count: number;
+            /** Max Depth */
+            max_depth: number;
+            /** Average Span Of Control */
+            average_span_of_control: number;
+            /** Median Span Of Control */
+            median_span_of_control: number;
+            /** Depth Distribution */
+            depth_distribution: components["schemas"]["DepthCountRead"][];
+            /** Span Distribution */
+            span_distribution: components["schemas"]["SpanCountRead"][];
+            anomalies: components["schemas"]["AnomaliesRead"];
+        };
         /** RefreshRequest */
         RefreshRequest: {
             /** Refresh Token */
             refresh_token: string;
+        };
+        /** SingleReportAnomalyRead */
+        SingleReportAnomalyRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+            /** Direct Reports */
+            direct_reports: number;
+        };
+        /** SpanCountRead */
+        SpanCountRead: {
+            /** Direct Reports */
+            direct_reports: number;
+            /** Manager Count */
+            manager_count: number;
         };
         /** TokenPair */
         TokenPair: {
@@ -688,6 +882,18 @@ export interface components {
              */
             token_type: string;
         };
+        /** UnreachableAnomalyRead */
+        UnreachableAnomalyRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -700,6 +906,20 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WideSpanAnomalyRead */
+        WideSpanAnomalyRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+            /** Direct Reports */
+            direct_reports: number;
         };
     };
     responses: never;
@@ -1281,6 +1501,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_org_summary_api_v1_analytics_org_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSummaryRead"] | components["schemas"]["OrgSummaryReadRestricted"];
+                };
+            };
+        };
+    };
+    get_branch_summary_api_v1_analytics_branch__employee_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchSummaryRead"] | components["schemas"]["BranchSummaryReadRestricted"];
                 };
             };
             /** @description Validation Error */

@@ -6,6 +6,7 @@ echo "→ api: types"  && (cd api && uv run mypy app)
 echo "→ api: tests"  && (cd api && uv run pytest -q)
 echo "→ web: types"  && (cd web && npx tsc --noEmit)
 echo "→ web: lint"   && (cd web && npx oxlint src)
+echo "→ web: tests"  && (cd web && npm run test)
 echo "→ web: build"  && (cd web && npm run build)
 echo "→ image builds" && docker build -q -t ehm:check . > /dev/null
 echo "✓ all checks passed"

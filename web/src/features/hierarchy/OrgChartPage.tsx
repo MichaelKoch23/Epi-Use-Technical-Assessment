@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   Controls,
@@ -17,9 +17,11 @@ import {
 import '@xyflow/react/dist/style.css'
 import { toPng } from 'html-to-image'
 import { ImageDownIcon, ListIcon, NetworkIcon, XIcon } from 'lucide-react'
+import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/useAuth'
+import { apiClient } from '@/lib/apiClient'
 import { getErrorMessage } from '@/lib/apiError'
 import { triggerDownload } from '@/lib/download'
 import { cn } from '@/lib/utils'
@@ -189,6 +191,28 @@ function OrgChartCanvas() {
     },
     [orgData, centerOnNode]
   )
+
+  // `?focus={id}` (from the analytics anomaly panel and branch explorer,
+  // §chart-deep-link) selects and centers that employee on arrival — a
+  // ref rather than state so a later manual selection doesn't re-trigger
+  // this on an unrelated re-render.
+  const [searchParams] = useSearchParams()
+  const consumedFocusParam = useRef(false)
+  useEffect(() => {
+    const focusId = searchParams.get('focus')
+    if (!focusId || consumedFocusParam.current) return
+    consumedFocusParam.current = true
+    void (async () => {
+      const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}', {
+        params: { path: { employee_id: focusId } },
+      })
+      if (error) {
+        toast.error('Could not find that employee')
+        return
+      }
+      await selectEmployee(data)
+    })()
+  }, [searchParams, selectEmployee])
 
   const handleNodeClick: NodeMouseHandler<EmployeeFlowNode> = useCallback((_event, node) => {
     setSelectedId(node.id)

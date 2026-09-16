@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.problem_details import install_exception_handlers
 from app.db.session import engine
+from app.routers.analytics import router as analytics_router
 from app.routers.auth import router as auth_router
 from app.routers.employees import router as employees_router
 from app.routers.exports import router as exports_router
@@ -43,6 +44,7 @@ app.include_router(employees_router)
 app.include_router(hierarchy_router)
 app.include_router(imports_router)
 app.include_router(exports_router)
+app.include_router(analytics_router)
 
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

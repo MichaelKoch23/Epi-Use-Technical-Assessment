@@ -18,7 +18,9 @@ def parse_csv(content: bytes) -> list[dict[str, str]]:
 
 
 def parse_xlsx(content: bytes) -> list[dict[str, str]]:
-    workbook = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    workbook = openpyxl.load_workbook(
+        io.BytesIO(content), read_only=True, data_only=True
+    )
     sheet = workbook.worksheets[0]
     rows = sheet.iter_rows(values_only=True)
     headers = [str(h).strip() if h is not None else "" for h in next(rows, ())]

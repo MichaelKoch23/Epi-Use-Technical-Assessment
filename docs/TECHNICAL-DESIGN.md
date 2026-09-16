@@ -84,6 +84,8 @@ Three decisions shape the design, and the rest of this document justifies them:
 | FR-12 | `DeletionPolicy` strategy | `test_deletion_policies.py` |
 | FR-13 | RBAC dependency + response schema selection | `test_salary_redaction.py` |
 | FR-14 | `AuditLog` written inside the unit of work | `test_audit_trail.py` |
+| FR-15 | `POST /imports/employees`, `GET /exports/employees.csv` | `test_import.py`, `test_export.py` |
+| FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` — `cost` field-gated to `hr_admin` (§9.3), not endpoint-gated | `test_analytics.py` |
 
 ---
 
@@ -474,7 +476,7 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `GET` | `/hierarchy/roots` | Employees with no manager | Viewer |
 | `GET` | `/hierarchy/tree` | Chart-shaped payload, lazily expandable | Viewer |
 | `GET` | `/analytics/org-summary` | Headcount, depth, span-of-control, anomalies | Viewer |
-| `GET` | `/analytics/branch/{id}` | Cost and headcount roll-up for a branch | Admin |
+| `GET` | `/analytics/branch/{id}` | Cost and headcount roll-up for a branch | Viewer (`cost` field-gated to Admin, §9.3) |
 | `POST` | `/imports/employees` | CSV/XLSX upload; `?dry_run=true` validates only | Admin |
 | `GET` | `/exports/employees.csv` | Full extract honouring current filters | Viewer |
 | `GET` | `/search` | Cross-entity quick search for the command palette | Viewer |
