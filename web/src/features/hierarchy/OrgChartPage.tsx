@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Background,
   Controls,
+  getNodesBounds,
+  getViewportForBounds,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -13,11 +15,13 @@ import {
   type OnNodeDrag,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ListIcon, NetworkIcon, XIcon } from 'lucide-react'
+import { toPng } from 'html-to-image'
+import { ImageDownIcon, ListIcon, NetworkIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/useAuth'
 import { getErrorMessage } from '@/lib/apiError'
+import { triggerDownload } from '@/lib/download'
 import { cn } from '@/lib/utils'
 import { ChartSearch } from './ChartSearch'
 import { EmployeeDetailDrawer } from './EmployeeDetailDrawer'
@@ -282,6 +286,37 @@ function OrgChartCanvas() {
 
   const exitFocus = useCallback(() => setSelectedId(null), [])
 
+  const exportPng = useCallback(async () => {
+    if (viewMode !== 'chart') {
+      toast.error('Switch to the chart view to export a PNG')
+      return
+    }
+    const viewportEl = document.querySelector<HTMLElement>('.react-flow__viewport')
+    if (!viewportEl || nodes.length === 0) return
+
+    const bounds = getNodesBounds(nodes)
+    const imageWidth = Math.max(1024, Math.round(bounds.width + 200))
+    const imageHeight = Math.max(768, Math.round(bounds.height + 200))
+    const viewport = getViewportForBounds(bounds, imageWidth, imageHeight, 0.1, 2, 0.1)
+
+    try {
+      const dataUrl = await toPng(viewportEl, {
+        backgroundColor: '#ffffff',
+        width: imageWidth,
+        height: imageHeight,
+        style: {
+          width: `${imageWidth}px`,
+          height: `${imageHeight}px`,
+          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        },
+      })
+      const blob = await (await fetch(dataUrl)).blob()
+      triggerDownload('org-chart.png', blob)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to export the chart as an image'))
+    }
+  }, [nodes, viewMode])
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
@@ -291,6 +326,9 @@ function OrgChartCanvas() {
         </div>
         <div className="flex items-center gap-2">
           <ChartSearch onSelect={selectEmployee} />
+          <Button variant="outline" size="sm" onClick={() => void exportPng()}>
+            <ImageDownIcon className="size-4" /> Export PNG
+          </Button>
           {selectedId && (
             <Button variant="outline" size="sm" onClick={exitFocus}>
               <XIcon className="size-4" /> Exit focus

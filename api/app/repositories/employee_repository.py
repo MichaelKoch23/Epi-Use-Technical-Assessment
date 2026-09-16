@@ -151,6 +151,12 @@ class EmployeeRepository:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def get_by_email(self, email: str) -> Employee | None:
+        stmt = select(Employee).where(
+            func.lower(Employee.email) == email.lower(), Employee.deleted_at.is_(None)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def get_any(self, id: uuid.UUID) -> Employee | None:
         """Like `get`, but also returns soft-deleted rows — used by restore."""
         stmt = select(Employee).where(Employee.id == id)
@@ -284,6 +290,32 @@ class EmployeeRepository:
             Employee.manager_id == manager_id, Employee.deleted_at.is_(None)
         )
         return (await self._session.execute(stmt)).scalars().all()
+
+    async def get_names_by_ids(
+        self, ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, str]:
+        """Display names for a batch of ids, including soft-deleted rows —
+        used to resolve a manager referenced from an audit snapshot, who may
+        since have been deleted (§ audit timeline UI)."""
+        if not ids:
+            return {}
+        stmt = select(Employee.id, Employee.first_name, Employee.last_name).where(
+            Employee.id.in_(ids)
+        )
+        rows = (await self._session.execute(stmt)).all()
+        return {id_: f"{first} {last}" for id_, first, last in rows}
+
+    async def list_active_identity_map(
+        self,
+    ) -> Sequence[tuple[uuid.UUID, str, uuid.UUID | None]]:
+        """`(id, employee_number, manager_id)` for every non-deleted employee,
+        in one query — the seed for the import service's whole-graph cycle
+        check (§ import validation), which needs the full existing reporting
+        graph, not just the rows a file happens to touch."""
+        stmt = select(Employee.id, Employee.employee_number, Employee.manager_id).where(
+            Employee.deleted_at.is_(None)
+        )
+        return [tuple(row) for row in (await self._session.execute(stmt)).all()]
 
     async def count_reports(self, id: uuid.UUID) -> int:
         stmt = (

@@ -25,6 +25,12 @@ class DuplicateEmployeeNumberError(DomainError):
         super().__init__(f"Employee number {employee_number!r} is already in use")
 
 
+class DuplicateEmailError(DomainError):
+    def __init__(self, email: str) -> None:
+        self.email = email
+        super().__init__(f"Email {email!r} is already in use")
+
+
 class VersionConflictError(DomainError):
     """Raised when a write's `expected_version` no longer matches the
     row's current `version` — another change landed first (§5.4)."""

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTable } from '@tanstack/react-table'
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, ChevronUpIcon, DownloadIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,7 +31,7 @@ import { EmployeesPagination } from './EmployeesPagination'
 import { FilterChipRow } from './FilterChipRow'
 import { getFilterChips } from './filterChips'
 import { FilterPopover } from './FilterPopover'
-import { useRestoreEmployeeMutation } from './mutations'
+import { exportEmployeesCsv, useRestoreEmployeeMutation } from './mutations'
 import { employeeTableFeatures, type EmployeeTableMeta } from './tableFeatures'
 import type { EmployeeListItem } from './types'
 import { useEmployeesListQuery } from './useEmployeesListQuery'
@@ -63,6 +63,7 @@ export function EmployeesListPage() {
   const columns = useMemo(() => buildEmployeeColumns(canViewSalary), [canViewSalary])
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null)
   const [deletingEmployee, setDeletingEmployee] = useState<EmployeeListItem | null>(null)
   const restoreEmployee = useRestoreEmployeeMutation()
@@ -145,11 +146,29 @@ export function EmployeesListPage() {
           <h1 className="font-display text-2xl font-bold">Employees</h1>
           <p className="text-muted-foreground">Browse, search and filter the full roster.</p>
         </div>
-        {canEdit && (
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusIcon /> Add employee
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={isExporting}
+            onClick={async () => {
+              setIsExporting(true)
+              try {
+                await exportEmployeesCsv(filters)
+              } catch (error) {
+                toast.error(getErrorMessage(error, 'Failed to export employees'))
+              } finally {
+                setIsExporting(false)
+              }
+            }}
+          >
+            <DownloadIcon /> Export CSV
           </Button>
-        )}
+          {canEdit && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <PlusIcon /> Add employee
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

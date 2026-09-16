@@ -8,6 +8,7 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
+    DuplicateEmailError,
     DuplicateEmployeeNumberError,
     EmployeeNotFound,
     VersionConflictError,
@@ -57,6 +58,8 @@ class EmployeeService:
     ) -> Employee:
         if await self._repo.get_by_employee_number(employee_number) is not None:
             raise DuplicateEmployeeNumberError(employee_number)
+        if await self._repo.get_by_email(email) is not None:
+            raise DuplicateEmailError(email)
 
         employee = Employee(
             employee_number=employee_number,
@@ -113,6 +116,11 @@ class EmployeeService:
             clash = await self._repo.get_by_employee_number(employee_number)
             if clash is not None and clash.id != employee.id:
                 raise DuplicateEmployeeNumberError(employee_number)
+
+        if not isinstance(email, _UnsetType) and email != employee.email:
+            clash = await self._repo.get_by_email(email)
+            if clash is not None and clash.id != employee.id:
+                raise DuplicateEmailError(email)
 
         before = snapshot_employee(employee)
 

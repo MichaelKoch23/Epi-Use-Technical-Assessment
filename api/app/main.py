@@ -11,7 +11,9 @@ from app.core.problem_details import install_exception_handlers
 from app.db.session import engine
 from app.routers.auth import router as auth_router
 from app.routers.employees import router as employees_router
+from app.routers.exports import router as exports_router
 from app.routers.hierarchy import router as hierarchy_router
+from app.routers.imports import router as imports_router
 
 app = FastAPI(title="Employee Hierarchy API")
 
@@ -39,6 +41,8 @@ async def health() -> dict[str, str]:
 app.include_router(auth_router)
 app.include_router(employees_router)
 app.include_router(hierarchy_router)
+app.include_router(imports_router)
+app.include_router(exports_router)
 
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

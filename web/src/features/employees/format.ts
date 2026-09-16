@@ -10,3 +10,10 @@ export function formatCurrency(amount: number | string, currency: string): strin
 export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('en-ZA', { dateStyle: 'medium' }).format(new Date(iso))
 }
+
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-ZA', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+  }).format(new Date(iso))
+}

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,7 +42,7 @@ from app.schemas.employee import (
     EmployeeUpdate,
     ManagerReassignRequest,
 )
-from app.services.audit_service import AuditService
+from app.services.audit_service import AuditLogRow, AuditService
 from app.services.deletion_policy import (
     Cascade,
     DeletionPolicy,
@@ -98,6 +98,55 @@ def to_employee_list_item(
     if principal.is_admin:
         return EmployeeListItemRead.model_validate(merged)
     return EmployeeListItemReadRestricted.model_validate(merged)
+
+
+def _strip_salary(snapshot: dict[str, Any] | None) -> dict[str, Any] | None:
+    if snapshot is None:
+        return None
+    return {key: value for key, value in snapshot.items() if key != "salary"}
+
+
+def to_audit_log_read(
+    row: AuditLogRow,
+    principal: Principal,
+    manager_names: dict[uuid.UUID, str],
+) -> AuditLogRead:
+    """§9.3 extended to the audit trail: a viewer may see *that* salary
+    changed, never the values. `salary_changed` is computed from the raw
+    snapshots before any stripping, so it stays correct for a viewer whose
+    payload never contains the key at all."""
+    entry = row.entry
+    before, after = entry.before, entry.after
+    salary_changed = (
+        before is not None
+        and after is not None
+        and before.get("salary") != after.get("salary")
+    )
+
+    manager_before_name = manager_after_name = None
+    if entry.action == "employee.reassigned":
+        if before is not None and before.get("manager_id") is not None:
+            manager_before_name = manager_names.get(uuid.UUID(before["manager_id"]))
+        if after is not None and after.get("manager_id") is not None:
+            manager_after_name = manager_names.get(uuid.UUID(after["manager_id"]))
+
+    if not principal.is_admin:
+        before = _strip_salary(before)
+        after = _strip_salary(after)
+
+    return AuditLogRead(
+        id=entry.id,
+        employee_id=entry.employee_id,
+        actor_id=entry.actor_id,
+        actor_email=row.actor_email,
+        action=entry.action,
+        before=before,
+        after=after,
+        occurred_at=entry.occurred_at,
+        salary_changed=salary_changed,
+        manager_before_name=manager_before_name,
+        manager_after_name=manager_after_name,
+    )
 
 
 def _require_salary_access(
@@ -285,18 +334,31 @@ async def get_employee_audit(
     employee_id: uuid.UUID,
     pagination: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_role("hr_admin")),
+    principal: Principal = Depends(get_current_principal),
 ) -> AuditLogPage:
+    """Open to any authenticated role (§9.3 extended): a viewer may read
+    the change history, but `to_audit_log_read` still keeps salary values
+    out of their payload entirely."""
     repo = EmployeeRepository(session)
     if await repo.get_any(employee_id) is None:
         raise EmployeeNotFound(employee_id)
 
     audit = AuditService(session)
-    entries, total = await audit.list_for_employee(
+    rows, total = await audit.list_for_employee(
         employee_id, page=pagination.page, page_size=pagination.page_size
     )
+
+    manager_ids = {
+        uuid.UUID(snapshot["manager_id"])
+        for row in rows
+        if row.entry.action == "employee.reassigned"
+        for snapshot in (row.entry.before, row.entry.after)
+        if snapshot is not None and snapshot.get("manager_id") is not None
+    }
+    manager_names = await repo.get_names_by_ids(list(manager_ids))
+
     return AuditLogPage(
-        items=[AuditLogRead.model_validate(e) for e in entries],
+        items=[to_audit_log_read(row, principal, manager_names) for row in rows],
         total=total,
         page=pagination.page,
         page_size=pagination.page_size,

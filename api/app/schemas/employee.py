@@ -118,10 +118,21 @@ class AuditLogRead(BaseModel):
     id: uuid.UUID
     employee_id: uuid.UUID
     actor_id: uuid.UUID
+    actor_email: str
     action: str
     before: dict[str, Any] | None
     after: dict[str, Any] | None
     occurred_at: datetime
+    # True/False whenever `before`/`after` are both present and their raw
+    # `salary` values differ — computed before any role-based redaction, so
+    # a viewer who never sees the values themselves can still see *that* a
+    # change happened (§9.3 extended to the audit trail).
+    salary_changed: bool
+    # Only populated for `employee.reassigned` entries — `before`/`after`
+    # only carry a bare `manager_id` UUID, which isn't renderable as a
+    # human diff on its own (§ audit timeline UI).
+    manager_before_name: str | None = None
+    manager_after_name: str | None = None
 
 
 class AuditLogPage(BaseModel):

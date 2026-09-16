@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
 import type { components } from '@/lib/api-types'
-import { employeeKeys } from '@/lib/queryKeys'
+import { getAccessToken } from '@/lib/auth'
+import { triggerDownload } from '@/lib/download'
+import { employeeKeys, type EmployeeListFilters } from '@/lib/queryKeys'
 
 type EmployeeCreate = components['schemas']['EmployeeCreate']
 type EmployeeUpdate = components['schemas']['EmployeeUpdate']
@@ -141,6 +143,35 @@ export async function fetchDeletionPreview(id: string, policy: DeletionPolicy) {
 export async function fetchEmployee(id: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}', {
     params: { path: { employee_id: id } },
+  })
+  if (error) throw error
+  return data
+}
+
+/** `GET /exports/employees.csv` — a plain `fetch` with the bearer token
+ * attached by hand, same as the import upload, since the response is a
+ * file download rather than JSON the generated client expects. Honours
+ * whatever filters/sort are currently applied on the list page, minus
+ * pagination — the export is always the full filtered set. */
+export async function exportEmployeesCsv(filters: EmployeeListFilters): Promise<void> {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) {
+    if (key === 'page' || key === 'page_size' || value === undefined || value === null) continue
+    params.set(key, String(value))
+  }
+
+  const token = getAccessToken()
+  const response = await fetch(`/api/v1/exports/employees.csv?${params.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (!response.ok) throw new Error('Failed to export employees')
+
+  triggerDownload('employees.csv', await response.blob())
+}
+
+export async function fetchAuditLog(id: string, page: number) {
+  const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/audit', {
+    params: { path: { employee_id: id }, query: { page } },
   })
   if (error) throw error
   return data

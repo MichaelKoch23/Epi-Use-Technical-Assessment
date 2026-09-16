@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -9,8 +10,20 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.app_user import AppUser
 from app.models.audit_log import AuditLog
 from app.models.employee import Employee
+
+
+@dataclass(frozen=True, slots=True)
+class AuditLogRow:
+    """One audit entry plus the actor's email — resolved in the same
+    query rather than pushed onto the caller, mirroring how
+    `EmployeeRepository.list` already merges a manager's display name onto
+    each row instead of leaving that join to the router."""
+
+    entry: AuditLog
+    actor_email: str
 
 
 def _jsonable(value: Any) -> Any:
@@ -72,9 +85,13 @@ class AuditService:
 
     async def list_for_employee(
         self, employee_id: uuid.UUID, *, page: int = 1, page_size: int = 50
-    ) -> tuple[Sequence[AuditLog], int]:
+    ) -> tuple[Sequence[AuditLogRow], int]:
         """Change history for one employee, newest first (§6.2)."""
-        base = select(AuditLog).where(AuditLog.employee_id == employee_id)
+        base = (
+            select(AuditLog, AppUser.email)
+            .join(AppUser, AppUser.id == AuditLog.actor_id)
+            .where(AuditLog.employee_id == employee_id)
+        )
         list_stmt = (
             base.order_by(AuditLog.occurred_at.desc())
             .limit(page_size)
@@ -84,6 +101,7 @@ class AuditService:
             select(AuditLog.id).where(AuditLog.employee_id == employee_id).subquery()
         )
 
-        items = (await self._session.execute(list_stmt)).scalars().all()
+        rows = (await self._session.execute(list_stmt)).all()
         total = (await self._session.execute(count_stmt)).scalar_one()
+        items = [AuditLogRow(entry=entry, actor_email=email) for entry, email in rows]
         return items, total

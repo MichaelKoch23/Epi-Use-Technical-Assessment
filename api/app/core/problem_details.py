@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.exceptions import (
     DomainError,
+    DuplicateEmailError,
     DuplicateEmployeeNumberError,
     EmployeeNotFound,
     ReportingCycleError,
@@ -25,6 +26,12 @@ _PROBLEMS: list[tuple[type[DomainError], int, str, str]] = [
         409,
         "duplicate-employee-number",
         "Employee number is already in use",
+    ),
+    (
+        DuplicateEmailError,
+        409,
+        "duplicate-email",
+        "Email is already in use",
     ),
     (
         VersionConflictError,
@@ -54,6 +61,8 @@ def _field_errors(exc: DomainError) -> list[dict[str, str]]:
         return [{"field": "manager_id", "code": "cycle_detected"}]
     if isinstance(exc, DuplicateEmployeeNumberError):
         return [{"field": "employee_number", "code": "duplicate"}]
+    if isinstance(exc, DuplicateEmailError):
+        return [{"field": "email", "code": "duplicate"}]
     if isinstance(exc, VersionConflictError):
         return [{"field": "version", "code": "conflict"}]
     return []

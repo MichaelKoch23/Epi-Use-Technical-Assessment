@@ -201,7 +201,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Employee Audit */
+        /**
+         * Get Employee Audit
+         * @description Open to any authenticated role (§9.3 extended): a viewer may read
+         *     the change history, but `to_audit_log_read` still keeps salary values
+         *     out of their payload entirely.
+         */
         get: operations["get_employee_audit_api_v1_employees__employee_id__audit_get"];
         put?: never;
         post?: never;
@@ -224,6 +229,40 @@ export interface paths {
          *     points (there's no single-root guarantee, §15 known limitations).
          */
         get: operations["get_roots_api_v1_hierarchy_roots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Employees */
+        post: operations["import_employees_api_v1_imports_employees_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/employees.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Employees Csv */
+        get: operations["export_employees_csv_api_v1_exports_employees_csv_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -264,6 +303,8 @@ export interface components {
              * Format: uuid
              */
             actor_id: string;
+            /** Actor Email */
+            actor_email: string;
             /** Action */
             action: string;
             /** Before */
@@ -279,6 +320,17 @@ export interface components {
              * Format: date-time
              */
             occurred_at: string;
+            /** Salary Changed */
+            salary_changed: boolean;
+            /** Manager Before Name */
+            manager_before_name?: string | null;
+            /** Manager After Name */
+            manager_after_name?: string | null;
+        };
+        /** Body_import_employees_api_v1_imports_employees_post */
+        Body_import_employees_api_v1_imports_employees_post: {
+            /** File */
+            file: string;
         };
         /** EmployeeCreate */
         EmployeeCreate: {
@@ -561,6 +613,35 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportResult */
+        ImportResult: {
+            /** Rows */
+            rows: components["schemas"]["ImportRowResult"][];
+            /** Created */
+            created: number;
+            /** Updated */
+            updated: number;
+            /** Blocked */
+            blocked: number;
+            /** Committed */
+            committed: boolean;
+        };
+        /** ImportRowResult */
+        ImportRowResult: {
+            /** Row Number */
+            row_number: number;
+            /** Employee Number */
+            employee_number: string | null;
+            /** Name */
+            name: string | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "will_create" | "will_update" | "blocked";
+            /** Reason */
+            reason: string | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1131,6 +1212,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": (components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"])[];
+                };
+            };
+        };
+    };
+    import_employees_api_v1_imports_employees_post: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_employees_api_v1_imports_employees_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_employees_csv_api_v1_exports_employees_csv_get: {
+        parameters: {
+            query?: {
+                /** @description Fuzzy match on first + last name */
+                q?: string | null;
+                position?: string | null;
+                manager_id?: string | null;
+                min_salary?: number | string | null;
+                max_salary?: number | string | null;
+                min_birth_date?: string | null;
+                max_birth_date?: string | null;
+                /** @description List soft-deleted employees instead of active ones */
+                deleted?: boolean;
+                /** @description One of: birth_date, created_at, email, employee_number, first_name, last_name, position, salary, updated_at */
+                sort?: string;
+                order?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
