@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     JWT_SECRET: str
     JWT_ACCESS_TTL_SECONDS: int = 900
+    JWT_REFRESH_TTL_SECONDS: int = 60 * 60 * 24 * 7
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
     GRAVATAR_DEFAULT_IMAGE: str = "mp"
     ENVIRONMENT: str = "development"

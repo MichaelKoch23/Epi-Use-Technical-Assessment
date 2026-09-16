@@ -11,7 +11,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { apiClient, getActorId } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +19,6 @@ async function searchEmployees(q: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees', {
     params: {
       query: { q: q || undefined, page: 1, page_size: 8, sort: 'last_name', order: 'asc' },
-      header: { 'X-Actor-Id': getActorId() ?? '' },
     },
   })
   if (error) return []
@@ -30,10 +29,7 @@ async function searchEmployees(q: string) {
  * manager: the employee itself, plus its full subtree of descendants. */
 async function fetchExcludedIds(employeeId: string): Promise<Set<string>> {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/subtree', {
-    params: {
-      path: { employee_id: employeeId },
-      header: { 'X-Actor-Id': getActorId() ?? '' },
-    },
+    params: { path: { employee_id: employeeId } },
   })
   if (error) return new Set([employeeId])
   return new Set([employeeId, ...data.map((node) => node.employee.id)])

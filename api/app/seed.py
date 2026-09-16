@@ -24,12 +24,22 @@ from typing import TypedDict
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.passwords import hash_password
 from app.db.session import async_session_factory
 from app.models.app_user import AppUser
 from app.models.employee import Employee
 from app.services.employee_service import EmployeeService
 
 SEED_ACTOR_EMAIL = "seed@employee.example.com"
+
+# Real, loggable-in demo accounts (§9 — "these go in the submission
+# email"), distinct from `SEED_ACTOR_EMAIL` above, which only exists to
+# satisfy the audit log's actor FK for synthetic seed data and was never
+# meant to be a real login.
+DEMO_ACCOUNTS = [
+    ("admin@epiuse-demo.com", "EpiUse-Admin-2026!", "hr_admin"),
+    ("viewer@epiuse-demo.com", "EpiUse-Viewer-2026!", "viewer"),
+]
 
 FIRST_NAMES = [
     "Thabo", "Sipho", "Bongani", "Mandla", "Kagiso", "Lwazi", "Tumelo", "Sizwe",
@@ -200,6 +210,24 @@ async def _ensure_seed_actor(session: AsyncSession) -> uuid.UUID:
     return actor.id
 
 
+async def _ensure_demo_accounts(session: AsyncSession) -> None:
+    """Create (or repassword) the two accounts named in the submission
+    email — safe to re-run: an existing row just gets its hash refreshed
+    rather than erroring on the unique email constraint."""
+    for email, password, role in DEMO_ACCOUNTS:
+        existing = (
+            await session.execute(select(AppUser).where(AppUser.email == email))
+        ).scalar_one_or_none()
+        password_hash = hash_password(password)
+        if existing is None:
+            session.add(AppUser(email=email, password_hash=password_hash, role=role))
+        else:
+            existing.password_hash = password_hash
+            existing.role = role
+    await session.commit()
+    print(f"demo accounts ready: {', '.join(email for email, _, _ in DEMO_ACCOUNTS)}")
+
+
 async def _reset(session: AsyncSession) -> None:
     await session.execute(text("TRUNCATE TABLE audit_log, employee"))
     await session.commit()
@@ -210,6 +238,7 @@ async def seed(target: int, *, reset: bool) -> None:
         if reset:
             await _reset(session)
 
+        await _ensure_demo_accounts(session)
         actor_id = await _ensure_seed_actor(session)
         service = EmployeeService(session)
 

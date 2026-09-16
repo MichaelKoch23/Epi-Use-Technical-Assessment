@@ -16,6 +16,7 @@ import '@xyflow/react/dist/style.css'
 import { ListIcon, NetworkIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/useAuth'
 import { getErrorMessage } from '@/lib/apiError'
 import { cn } from '@/lib/utils'
 import { ChartSearch } from './ChartSearch'
@@ -51,6 +52,7 @@ function buildEdges(visibleIds: Set<string>, childrenByManager: Map<string, Set<
 
 function OrgChartCanvas() {
   const orgData = useOrgChartData()
+  const { canEdit } = useAuth()
   const { getIntersectingNodes, setCenter, getZoom } = useReactFlow<EmployeeFlowNode>()
 
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart')
@@ -232,7 +234,7 @@ function OrgChartCanvas() {
   // command palette.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key.toLowerCase() !== 'm' || !selectedId) return
+      if (event.key.toLowerCase() !== 'm' || !selectedId || !canEdit) return
       const target = event.target as HTMLElement | null
       if (target && ['INPUT', 'TEXTAREA'].includes(target.tagName)) return
       event.preventDefault()
@@ -240,7 +242,7 @@ function OrgChartCanvas() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedId])
+  }, [selectedId, canEdit])
 
   const paletteEmployee = paletteEmployeeId
     ? (orgData.employeesById.get(paletteEmployeeId) ?? null)
@@ -350,7 +352,7 @@ function OrgChartCanvas() {
             onNodeClick={handleNodeClick}
             onNodeDragStart={handleNodeDragStart}
             onNodeDragStop={handleNodeDragStop}
-            nodesDraggable
+            nodesDraggable={canEdit}
             fitView
             minZoom={0.1}
             proOptions={{ hideAttribution: true }}
@@ -378,6 +380,7 @@ function OrgChartCanvas() {
           const ancestor = orgData.employeesById.get(id)
           if (ancestor) void selectEmployee(ancestor)
         }}
+        canEdit={canEdit}
       />
 
       <ReassignManagerPalette

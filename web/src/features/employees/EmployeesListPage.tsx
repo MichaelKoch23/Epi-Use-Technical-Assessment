@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTable } from '@tanstack/react-table'
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,11 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useAuth } from '@/features/auth/useAuth'
 import { getErrorMessage } from '@/lib/apiError'
 import type { EmployeeListFilters } from '@/lib/queryKeys'
 import { cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
-import { employeeColumns, SORTABLE_COLUMN_IDS } from './columns'
+import { buildEmployeeColumns, SORTABLE_COLUMN_IDS } from './columns'
 import { CreateEmployeeSheet } from './CreateEmployeeSheet'
 import { DeleteEmployeeDialog } from './DeleteEmployeeDialog'
 import { EditEmployeeSheet } from './EditEmployeeSheet'
@@ -32,7 +33,7 @@ import { getFilterChips } from './filterChips'
 import { FilterPopover } from './FilterPopover'
 import { useRestoreEmployeeMutation } from './mutations'
 import { employeeTableFeatures, type EmployeeTableMeta } from './tableFeatures'
-import { hasSalary, type EmployeeListItem } from './types'
+import type { EmployeeListItem } from './types'
 import { useEmployeesListQuery } from './useEmployeesListQuery'
 import { useEmployeesViewState } from './useEmployeesViewState'
 
@@ -56,8 +57,10 @@ function toApiFilters(state: ReturnType<typeof useEmployeesViewState>['state']):
 }
 
 export function EmployeesListPage() {
+  const { canViewSalary, canEdit } = useAuth()
   const { state, applyFilters, clearFilters, setSort, setPage, setPageSize, setDeleted } =
     useEmployeesViewState()
+  const columns = useMemo(() => buildEmployeeColumns(canViewSalary), [canViewSalary])
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null)
@@ -103,7 +106,7 @@ export function EmployeesListPage() {
   }, [query.error])
 
   const employees = query.data?.items ?? EMPTY_EMPLOYEES
-  const salaryFilterAllowed = employees.length === 0 || hasSalary(employees[0]!)
+  const salaryFilterAllowed = canViewSalary
 
   const meta: EmployeeTableMeta = {
     onEdit: setEditingEmployee,
@@ -115,13 +118,14 @@ export function EmployeesListPage() {
       })
     },
     showRestore: state.deleted,
+    canEdit,
   }
 
   // Server owns sorting, filtering and pagination entirely (§ manual mode);
   // the table gets one already-processed page and never reprocesses it.
   const table = useTable({
     features: employeeTableFeatures,
-    columns: employeeColumns,
+    columns,
     data: employees,
     getRowId: (row) => row.id,
     manualSorting: true,
@@ -141,9 +145,11 @@ export function EmployeesListPage() {
           <h1 className="font-display text-2xl font-bold">Employees</h1>
           <p className="text-muted-foreground">Browse, search and filter the full roster.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <PlusIcon /> Add employee
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <PlusIcon /> Add employee
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -239,7 +245,7 @@ export function EmployeesListPage() {
             {query.isPending ? (
               Array.from({ length: state.pageSize > 10 ? 10 : state.pageSize }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  {employeeColumns.map((column) => (
+                  {columns.map((column) => (
                     <TableCell key={column.id}>
                       <Skeleton className="h-5 w-full max-w-32" />
                     </TableCell>
@@ -248,7 +254,7 @@ export function EmployeesListPage() {
               ))
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={employeeColumns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   {query.isError ? 'Could not load employees.' : 'No employees match these filters.'}
                 </TableCell>
               </TableRow>

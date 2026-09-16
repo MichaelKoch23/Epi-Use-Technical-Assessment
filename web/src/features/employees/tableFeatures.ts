@@ -9,6 +9,8 @@ export interface EmployeeTableMeta {
   onDelete: (employee: EmployeeListItem) => void
   onRestore: (employee: EmployeeListItem) => void
   showRestore: boolean
+  /** §9.2 — a viewer never sees the edit/delete/restore row actions. */
+  canEdit: boolean
 }
 
 /**

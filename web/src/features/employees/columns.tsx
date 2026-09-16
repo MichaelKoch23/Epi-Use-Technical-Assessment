@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { LockIcon, MoreHorizontalIcon } from 'lucide-react'
+import { MoreHorizontalIcon } from 'lucide-react'
 import { Link } from 'react-router'
 import { EmployeeAvatar } from '@/components/employee-avatar'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +30,13 @@ export const SORTABLE_COLUMN_IDS: Partial<Record<string, string>> = {
 // Wrapped in `columnHelper.columns(...)` rather than a plain array literal
 // so each element's inferred `TValue` survives instead of being widened —
 // a plain array here fails `useTable`'s columns assignability check.
-export const employeeColumns = columnHelper.columns([
+//
+// §9.2/§9.3: a viewer's response payload never has a `salary` key at all,
+// so the column itself is omitted rather than rendered with a "Restricted"
+// placeholder — the capability flag from `/auth/me` decides this once, up
+// front, rather than every row re-deriving it from `hasSalary`.
+export function buildEmployeeColumns(canViewSalary: boolean) {
+  return columnHelper.columns([
   columnHelper.display({
     id: 'name',
     header: 'Employee',
@@ -72,24 +78,22 @@ export const employeeColumns = columnHelper.columns([
     header: 'Birth date',
     cell: ({ getValue }) => formatDate(getValue()),
   }),
-  columnHelper.display({
-    id: 'salary',
-    header: () => <span className="block text-right">Salary</span>,
-    cell: ({ row }) => {
-      const employee = row.original
-      return (
-        <div className="text-right tabular-nums">
-          {hasSalary(employee) ? (
-            formatCurrency(employee.salary, employee.currency)
-          ) : (
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <LockIcon className="size-3.5" /> Restricted
-            </span>
-          )}
-        </div>
-      )
-    },
-  }),
+  ...(canViewSalary
+    ? [
+        columnHelper.display({
+          id: 'salary',
+          header: () => <span className="block text-right">Salary</span>,
+          cell: ({ row }) => {
+            const employee = row.original
+            return (
+              <div className="text-right tabular-nums">
+                {hasSalary(employee) && formatCurrency(employee.salary, employee.currency)}
+              </div>
+            )
+          },
+        }),
+      ]
+    : []),
   columnHelper.accessor('direct_report_count', {
     id: 'direct_report_count',
     header: () => <span className="block text-right">Reports</span>,
@@ -109,18 +113,24 @@ export const employeeColumns = columnHelper.columns([
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {meta.showRestore ? (
-              <DropdownMenuItem onClick={() => meta.onRestore(employee)}>
-                Restore
-              </DropdownMenuItem>
+              meta.canEdit && (
+                <DropdownMenuItem onClick={() => meta.onRestore(employee)}>
+                  Restore
+                </DropdownMenuItem>
+              )
             ) : (
               <>
                 <DropdownMenuItem render={<Link to={`/employees/${employee.id}`} />}>
                   View details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => meta.onEdit(employee)}>Edit</DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onClick={() => meta.onDelete(employee)}>
-                  Delete
-                </DropdownMenuItem>
+                {meta.canEdit && (
+                  <>
+                    <DropdownMenuItem onClick={() => meta.onEdit(employee)}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onClick={() => meta.onDelete(employee)}>
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
               </>
             )}
           </DropdownMenuContent>
@@ -128,4 +138,5 @@ export const employeeColumns = columnHelper.columns([
       )
     },
   }),
-])
+  ])
+}

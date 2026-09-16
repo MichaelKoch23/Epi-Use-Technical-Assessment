@@ -33,6 +33,7 @@ export function EmployeeDetailDrawer({
   open,
   onOpenChange,
   onSelectAncestor,
+  canEdit,
 }: {
   employee: ChartEmployee | null
   managerName: string | null
@@ -40,6 +41,8 @@ export function EmployeeDetailDrawer({
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelectAncestor: (id: string) => void
+  /** §9.2 — a viewer gets the read-only detail view, no edit/delete. */
+  canEdit: boolean
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -111,12 +114,14 @@ export function EmployeeDetailDrawer({
                 </dl>
               </div>
 
-              <SheetFooter className="flex-row justify-end">
-                <Button variant="outline" onClick={() => setDeleteOpen(true)}>
-                  Delete
-                </Button>
-                <Button onClick={() => setEditOpen(true)}>Edit</Button>
-              </SheetFooter>
+              {canEdit && (
+                <SheetFooter className="flex-row justify-end">
+                  <Button variant="outline" onClick={() => setDeleteOpen(true)}>
+                    Delete
+                  </Button>
+                  <Button onClick={() => setEditOpen(true)}>Edit</Button>
+                </SheetFooter>
+              )}
             </>
           )}
         </SheetContent>

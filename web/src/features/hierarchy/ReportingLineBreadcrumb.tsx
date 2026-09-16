@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRightIcon } from 'lucide-react'
-import { apiClient, getActorId } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import { employeeKeys } from '@/lib/queryKeys'
 
 async function fetchReportingLine(id: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/reporting-line', {
-    params: { path: { employee_id: id }, header: { 'X-Actor-Id': getActorId() ?? '' } },
+    params: { path: { employee_id: id } },
   })
   if (error) throw error
   return data

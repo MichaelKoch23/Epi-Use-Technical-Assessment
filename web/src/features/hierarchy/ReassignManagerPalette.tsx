@@ -8,7 +8,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { apiClient, getActorId } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import type { ChartEmployee } from './types'
 
@@ -16,7 +16,6 @@ async function searchEmployees(q: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees', {
     params: {
       query: { q: q || undefined, page: 1, page_size: 8, sort: 'last_name', order: 'asc' },
-      header: { 'X-Actor-Id': getActorId() ?? '' },
     },
   })
   if (error) return []

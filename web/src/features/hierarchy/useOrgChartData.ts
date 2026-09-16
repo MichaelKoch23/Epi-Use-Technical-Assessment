@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiClient, getActorId } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import { employeeKeys, hierarchyKeys } from '@/lib/queryKeys'
 import type { ChartEmployee } from './types'
 
@@ -11,14 +11,8 @@ const INITIAL_DEPTH = 2
 // Every lazy expand-on-demand fetch after that only needs the next level.
 const EXPAND_DEPTH = 1
 
-export function authHeader() {
-  return { 'X-Actor-Id': getActorId() ?? '' }
-}
-
 export async function fetchRoots(): Promise<ChartEmployee[]> {
-  const { data, error } = await apiClient.GET('/api/v1/hierarchy/roots', {
-    params: { header: authHeader() },
-  })
+  const { data, error } = await apiClient.GET('/api/v1/hierarchy/roots')
   if (error) throw error
   return data
 }
@@ -27,7 +21,7 @@ export async function fetchRoots(): Promise<ChartEmployee[]> {
  * the full-parity nested-list/print view rather than the chart's lazy load. */
 export async function fetchSubtree(id: string, depth?: number) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/subtree', {
-    params: { path: { employee_id: id }, query: { depth }, header: authHeader() },
+    params: { path: { employee_id: id }, query: { depth } },
   })
   if (error) throw error
   return data
@@ -35,7 +29,7 @@ export async function fetchSubtree(id: string, depth?: number) {
 
 async function fetchReportingLine(id: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/reporting-line', {
-    params: { path: { employee_id: id }, header: authHeader() },
+    params: { path: { employee_id: id } },
   })
   if (error) throw error
   return data
@@ -293,7 +287,7 @@ export function useOrgChartData() {
         {
           params: {
             path: { employee_id: employeeId },
-            header: { ...authHeader(), 'If-Match': `"${employee.version}"` },
+            header: { 'If-Match': `"${employee.version}"` },
           },
           body: { manager_id: newManagerId },
         }

@@ -22,6 +22,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.7",
     "testcontainers[postgres]>=4.15.0",
+    "types-python-jose>=3.5.0.20260408",
 ]
 
 [tool.ruff.lint]

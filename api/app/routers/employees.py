@@ -1,6 +1,6 @@
 """`/api/v1/employees/*` — §6.2 of the technical design, the employee-scoped
-rows of the endpoint table (hierarchy/analytics/import-export/auth/search
-are separate routers, not built yet)."""
+rows of the endpoint table (hierarchy and auth are separate routers;
+analytics/import-export/search are not built yet)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from app.core.pagination import (
     employee_sort_params,
     page_params,
 )
-from app.core.security import Principal, get_current_principal, require_admin
+from app.core.security import Principal, get_current_principal, require_role
 from app.db.session import get_db
 from app.models.employee import Employee
 from app.repositories.employee_repository import (
@@ -148,7 +148,7 @@ async def list_employees(
 async def create_employee(
     body: EmployeeCreate,
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> EmployeeRead:
     service = EmployeeService(session)
     employee = await service.create(**body.model_dump(), actor_id=principal.id)
@@ -175,7 +175,7 @@ async def update_employee(
     body: EmployeeUpdate,
     if_match: str = Header(..., alias="If-Match"),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> EmployeeReadAny:
     service = EmployeeService(session)
     employee = await service.update(
@@ -193,7 +193,7 @@ async def delete_employee(
     employee_id: uuid.UUID,
     policy: DeletionPolicyName = Query("reparent"),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> None:
     await _policy_for(policy, session).apply(employee_id, actor_id=principal.id)
     await session.commit()
@@ -203,7 +203,7 @@ async def delete_employee(
 async def restore_employee(
     employee_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> EmployeeReadAny:
     service = EmployeeService(session)
     employee = await service.restore(employee_id, actor_id=principal.id)
@@ -216,7 +216,7 @@ async def deletion_preview(
     employee_id: uuid.UUID,
     policy: DeletionPolicyName = Query("reparent"),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> list[EmployeeReadAny]:
     affected = await preview(employee_id, _policy_for(policy, session))
     return [to_employee_read(e, principal) for e in affected]
@@ -228,7 +228,7 @@ async def reassign_manager(
     body: ManagerReassignRequest,
     if_match: str = Header(..., alias="If-Match"),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> EmployeeReadAny:
     service = ReassignmentService(session)
     employee = await service.reassign_manager(
@@ -285,7 +285,7 @@ async def get_employee_audit(
     employee_id: uuid.UUID,
     pagination: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(require_admin),
+    principal: Principal = Depends(require_role("hr_admin")),
 ) -> AuditLogPage:
     repo = EmployeeRepository(session)
     if await repo.get_any(employee_id) is None:

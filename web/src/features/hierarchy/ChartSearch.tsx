@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/command'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { apiClient, getActorId } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import type { ChartEmployee } from './types'
 
@@ -21,7 +21,6 @@ async function searchEmployees(q: string): Promise<ChartEmployee[]> {
   const { data, error } = await apiClient.GET('/api/v1/employees', {
     params: {
       query: { q, page: 1, page_size: 8, sort: 'last_name', order: 'asc' },
-      header: { 'X-Actor-Id': getActorId() ?? '' },
     },
   })
   if (error) return []

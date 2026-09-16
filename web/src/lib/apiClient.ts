@@ -1,37 +1,85 @@
 import createClient, { type Middleware } from 'openapi-fetch'
+import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth'
 import type { paths } from './api-types'
-
-const ACTOR_ID_STORAGE_KEY = 'ehm.actorId'
-
-/**
- * Temporary stand-in for the session a real login flow will establish.
- * The API's own auth is currently the same kind of placeholder — an
- * X-Actor-Id header naming an existing app_user row, in lieu of the JWT
- * flow in §9.1 — so this mirrors that on the client until both sides are
- * replaced together.
- */
-export function getActorId(): string | null {
-  return localStorage.getItem(ACTOR_ID_STORAGE_KEY)
-}
-
-export function setActorId(id: string | null): void {
-  if (id) {
-    localStorage.setItem(ACTOR_ID_STORAGE_KEY, id)
-  } else {
-    localStorage.removeItem(ACTOR_ID_STORAGE_KEY)
-  }
-}
-
-const authMiddleware: Middleware = {
-  onRequest({ request }) {
-    const actorId = getActorId()
-    if (actorId) request.headers.set('X-Actor-Id', actorId)
-    return request
-  },
-}
 
 // Paths in the generated spec already include the /api/v1 prefix, so the
 // client's own base is just the page's origin (relative, same as the
 // plain fetch calls elsewhere — see vite.config.ts's dev proxy note).
 export const apiClient = createClient<paths>({ baseUrl: '' })
+
+const AUTH_PATH_FRAGMENT = '/api/v1/auth/'
+
+// A request that gets a 401 needs to be replayed with a fresh access
+// token — but by the time `onResponse` sees it, the original `Request`'s
+// body (if any) has already been streamed to the network and can't be
+// read again. A clone taken in `onRequest`, before it's ever sent, is
+// still untouched and safe to replay exactly once.
+const requestClones = new Map<string, Request>()
+
+// Concurrent 401s (e.g. several queries in flight at once) share one
+// refresh call rather than each racing the server with their own.
+let refreshPromise: Promise<string | null> | null = null
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) return null
+      try {
+        const response = await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        })
+        if (!response.ok) return null
+        const data = (await response.json()) as { access_token: string; refresh_token: string }
+        setTokens(data.access_token, data.refresh_token)
+        return data.access_token
+      } catch {
+        return null
+      }
+    })()
+  }
+  try {
+    return await refreshPromise
+  } finally {
+    refreshPromise = null
+  }
+}
+
+function redirectToLogin() {
+  clearTokens()
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.assign('/login')
+  }
+}
+
+const authMiddleware: Middleware = {
+  onRequest({ request, id }) {
+    requestClones.set(id, request.clone())
+    const token = getAccessToken()
+    if (token) request.headers.set('Authorization', `Bearer ${token}`)
+    return request
+  },
+  async onResponse({ request, response, id }) {
+    const clone = requestClones.get(id)
+    requestClones.delete(id)
+
+    // Never intercept the auth endpoints themselves — a failed refresh
+    // must surface as a failed refresh, not recurse into another one.
+    if (response.status !== 401 || request.url.includes(AUTH_PATH_FRAGMENT)) {
+      return response
+    }
+
+    const newToken = await refreshAccessToken()
+    if (!newToken || !clone) {
+      redirectToLogin()
+      return response
+    }
+
+    clone.headers.set('Authorization', `Bearer ${newToken}`)
+    return fetch(clone)
+  },
+}
+
 apiClient.use(authMiddleware)

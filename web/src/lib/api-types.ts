@@ -21,6 +21,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh */
+        post: operations["refresh_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees": {
         parameters: {
             query?: never;
@@ -511,10 +562,50 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+        };
         /** ManagerReassignRequest */
         ManagerReassignRequest: {
             /** Manager Id */
             manager_id: string | null;
+        };
+        /** MeResponse */
+        MeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Role */
+            role: string;
+            /** Can View Salary */
+            can_view_salary: boolean;
+            /** Can Edit */
+            can_edit: boolean;
+        };
+        /** RefreshRequest */
+        RefreshRequest: {
+            /** Refresh Token */
+            refresh_token: string;
+        };
+        /** TokenPair */
+        TokenPair: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -560,6 +651,92 @@ export interface operations {
             };
         };
     };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_api_v1_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
     list_employees_api_v1_employees_get: {
         parameters: {
             query?: {
@@ -580,10 +757,7 @@ export interface operations {
                 page?: number;
                 page_size?: number;
             };
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -612,10 +786,7 @@ export interface operations {
     create_employee_api_v1_employees_post: {
         parameters: {
             query?: never;
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -648,10 +819,7 @@ export interface operations {
     get_employee_api_v1_employees__employee_id__get: {
         parameters: {
             query?: never;
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -684,10 +852,7 @@ export interface operations {
             query?: {
                 policy?: "reparent" | "promote_to_root" | "cascade";
             };
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -718,8 +883,6 @@ export interface operations {
             query?: never;
             header: {
                 "If-Match": string;
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
             };
             path: {
                 employee_id: string;
@@ -755,10 +918,7 @@ export interface operations {
     restore_employee_api_v1_employees__employee_id__restore_post: {
         parameters: {
             query?: never;
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -791,10 +951,7 @@ export interface operations {
             query?: {
                 policy?: "reparent" | "promote_to_root" | "cascade";
             };
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -827,8 +984,6 @@ export interface operations {
             query?: never;
             header: {
                 "If-Match": string;
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
             };
             path: {
                 employee_id: string;
@@ -866,10 +1021,7 @@ export interface operations {
             query?: {
                 depth?: number | null;
             };
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -900,10 +1052,7 @@ export interface operations {
     get_reporting_line_api_v1_employees__employee_id__reporting_line_get: {
         parameters: {
             query?: never;
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -938,10 +1087,7 @@ export interface operations {
                 page?: number;
                 page_size?: number;
             };
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path: {
                 employee_id: string;
             };
@@ -972,10 +1118,7 @@ export interface operations {
     get_roots_api_v1_hierarchy_roots_get: {
         parameters: {
             query?: never;
-            header: {
-                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
-                "X-Actor-Id": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -988,15 +1131,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": (components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"])[];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

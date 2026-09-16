@@ -1,5 +1,15 @@
-import { BarChart3, CircleUserRound, History, Network, Search, Table2, Upload } from 'lucide-react'
+import { BarChart3, CircleUserRound, History, LogOutIcon, Network, Search, Table2, Upload } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useAuth } from '@/features/auth/useAuth'
 
 // Mirrors the "topbar-demo" / "nav-demo" patterns in the brand style
 // guide (docs/brand_style_guide.html, §Navigation): a primary-colour
@@ -14,6 +24,8 @@ const NAV_ITEMS = [
 ]
 
 export function AppShell() {
+  const { principal, logout } = useAuth()
+
   return (
     <div className="min-h-svh bg-background">
       <header className="flex h-14 items-center justify-between bg-brand-primary px-4 text-white print:hidden">
@@ -33,9 +45,37 @@ export function AppShell() {
           >
             <History className="size-4" />
           </button>
-          <span className="grid size-8 place-items-center rounded-full bg-brand-steel text-brand-primary">
-            <CircleUserRound className="size-5" />
-          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Account"
+              render={
+                <button
+                  type="button"
+                  className="grid size-8 place-items-center rounded-full bg-brand-steel text-brand-primary"
+                />
+              }
+            >
+              <CircleUserRound className="size-5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {principal && (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="flex flex-col gap-0.5">
+                      <span className="font-medium text-foreground">{principal.email}</span>
+                      <span className="text-xs font-normal text-muted-foreground capitalize">
+                        {principal.role.replace('_', ' ')}
+                      </span>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem onClick={logout}>
+                <LogOutIcon /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

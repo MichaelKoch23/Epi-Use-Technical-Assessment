@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, getActorId } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import type { components } from '@/lib/api-types'
 import { employeeKeys } from '@/lib/queryKeys'
 
@@ -19,18 +19,11 @@ export class VersionConflict extends Error {
   }
 }
 
-function authHeader() {
-  return { 'X-Actor-Id': getActorId() ?? '' }
-}
-
 export function useCreateEmployeeMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (body: EmployeeCreate) => {
-      const { data, error } = await apiClient.POST('/api/v1/employees', {
-        params: { header: authHeader() },
-        body,
-      })
+      const { data, error } = await apiClient.POST('/api/v1/employees', { body })
       if (error) throw error
       return data
     },
@@ -55,7 +48,7 @@ export function useUpdateEmployeeMutation() {
       const { data, error, response } = await apiClient.PATCH('/api/v1/employees/{employee_id}', {
         params: {
           path: { employee_id: id },
-          header: { ...authHeader(), 'If-Match': `"${version}"` },
+          header: { 'If-Match': `"${version}"` },
         },
         body,
       })
@@ -88,7 +81,7 @@ export function useReassignManagerMutation() {
       const { data, error, response } = await apiClient.PUT('/api/v1/employees/{employee_id}/manager', {
         params: {
           path: { employee_id: id },
-          header: { ...authHeader(), 'If-Match': `"${version}"` },
+          header: { 'If-Match': `"${version}"` },
         },
         body: { manager_id: managerId },
       })
@@ -111,7 +104,7 @@ export function useDeleteEmployeeMutation() {
   return useMutation({
     mutationFn: async ({ id, policy }: { id: string; policy: DeletionPolicy }) => {
       const { error } = await apiClient.DELETE('/api/v1/employees/{employee_id}', {
-        params: { path: { employee_id: id }, query: { policy }, header: authHeader() },
+        params: { path: { employee_id: id }, query: { policy } },
       })
       if (error) throw error
     },
@@ -126,7 +119,7 @@ export function useRestoreEmployeeMutation() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data, error } = await apiClient.POST('/api/v1/employees/{employee_id}/restore', {
-        params: { path: { employee_id: id }, header: authHeader() },
+        params: { path: { employee_id: id } },
       })
       if (error) throw error
       return data
@@ -139,7 +132,7 @@ export function useRestoreEmployeeMutation() {
 
 export async function fetchDeletionPreview(id: string, policy: DeletionPolicy) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/deletion-preview', {
-    params: { path: { employee_id: id }, query: { policy }, header: authHeader() },
+    params: { path: { employee_id: id }, query: { policy } },
   })
   if (error) throw error
   return data
@@ -147,7 +140,7 @@ export async function fetchDeletionPreview(id: string, policy: DeletionPolicy) {
 
 export async function fetchEmployee(id: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}', {
-    params: { path: { employee_id: id }, header: authHeader() },
+    params: { path: { employee_id: id } },
   })
   if (error) throw error
   return data

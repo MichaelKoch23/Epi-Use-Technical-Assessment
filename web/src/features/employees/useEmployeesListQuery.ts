@@ -1,14 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { getActorId, apiClient } from '@/lib/apiClient'
+import { apiClient } from '@/lib/apiClient'
 import { getErrorMessage } from '@/lib/apiError'
 import { employeeKeys, type EmployeeListFilters } from '@/lib/queryKeys'
 
 async function fetchEmployees(filters: EmployeeListFilters) {
   const { data, error } = await apiClient.GET('/api/v1/employees', {
-    params: {
-      query: filters,
-      header: { 'X-Actor-Id': getActorId() ?? '' },
-    },
+    params: { query: filters },
   })
   if (error) throw new Error(getErrorMessage(error, 'Failed to load employees'))
   return data
