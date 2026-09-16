@@ -64,7 +64,9 @@ class _EmployeeReadBase(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def avatar_url(self) -> str:
-        return resolve_avatar_url(avatar_override_url=self.avatar_override_url, email=self.email)
+        return resolve_avatar_url(
+            avatar_override_url=self.avatar_override_url, email=self.email
+        )
 
 
 class EmployeeRead(_EmployeeReadBase):

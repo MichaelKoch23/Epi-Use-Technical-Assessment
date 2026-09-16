@@ -160,6 +160,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hierarchy/roots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Roots
+         * @description Employees with no manager — the org chart's forest of starting
+         *     points (there's no single-root guarantee, §15 known limitations).
+         */
+        get: operations["get_roots_api_v1_hierarchy_roots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -935,6 +956,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_roots_api_v1_hierarchy_roots_get: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Temporary stand-in for a JWT subject (§9.1 not yet built): the id of an existing app_user row to act as. */
+                "X-Actor-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": (components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"])[];
                 };
             };
             /** @description Validation Error */

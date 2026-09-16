@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 export function AppShell() {
   return (
     <div className="min-h-svh bg-background">
-      <header className="flex h-14 items-center justify-between bg-brand-primary px-4 text-white">
+      <header className="flex h-14 items-center justify-between bg-brand-primary px-4 text-white print:hidden">
         <span className="font-display text-lg font-extrabold tracking-wide">EHM</span>
         <div className="flex items-center gap-3">
           <button
@@ -42,7 +42,7 @@ export function AppShell() {
       <div className="p-4">
         <nav
           aria-label="Primary"
-          className="mb-4 flex flex-wrap gap-1 rounded-md border border-border bg-card p-1"
+          className="mb-4 flex flex-wrap gap-1 rounded-md border border-border bg-card p-1 print:hidden"
         >
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <NavLink

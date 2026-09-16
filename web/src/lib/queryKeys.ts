@@ -25,3 +25,7 @@ export const employeeKeys = {
   deletionPreview: (id: string, policy: string) =>
     [...employeeKeys.detail(id), 'deletion-preview', policy] as const,
 }
+
+export const hierarchyKeys = {
+  roots: () => ['hierarchy', 'roots'] as const,
+}

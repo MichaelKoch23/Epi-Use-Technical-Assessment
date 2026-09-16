@@ -86,7 +86,9 @@ def to_employee_read(employee: Employee, principal: Principal) -> EmployeeReadAn
     return EmployeeReadRestricted.model_validate(employee)
 
 
-def to_employee_list_item(row: EmployeeListRow, principal: Principal) -> EmployeeListItemReadAny:
+def to_employee_list_item(
+    row: EmployeeListRow, principal: Principal
+) -> EmployeeListItemReadAny:
     base = to_employee_read(row.employee, principal)
     merged = {
         **base.model_dump(),

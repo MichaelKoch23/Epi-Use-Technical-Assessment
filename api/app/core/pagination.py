@@ -55,7 +55,9 @@ def employee_filter_params(
     max_salary: Decimal | None = Query(None, ge=0),
     min_birth_date: date | None = Query(None),
     max_birth_date: date | None = Query(None),
-    deleted: bool = Query(False, description="List soft-deleted employees instead of active ones"),
+    deleted: bool = Query(
+        False, description="List soft-deleted employees instead of active ones"
+    ),
 ) -> EmployeeListFilters:
     return EmployeeListFilters(
         q=q,

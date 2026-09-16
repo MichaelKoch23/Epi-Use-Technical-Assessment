@@ -184,7 +184,9 @@ class EmployeeRepository:
             raise ValueError("page_size must be between 1 and 500")
 
         conditions: list[ColumnElement[bool]] = [
-            Employee.deleted_at.is_not(None) if filters.deleted else Employee.deleted_at.is_(None)
+            Employee.deleted_at.is_not(None)
+            if filters.deleted
+            else Employee.deleted_at.is_(None)
         ]
         if filters.q:
             full_name = func.concat(Employee.first_name, " ", Employee.last_name)
@@ -235,7 +237,9 @@ class EmployeeRepository:
         rows = (await self._session.execute(list_stmt)).all()
         total = (await self._session.execute(count_stmt)).scalar_one()
         items = [
-            EmployeeListRow(employee=employee, manager_name=manager_name_, direct_report_count=count)
+            EmployeeListRow(
+                employee=employee, manager_name=manager_name_, direct_report_count=count
+            )
             for employee, manager_name_, count in rows
         ]
         return items, total
