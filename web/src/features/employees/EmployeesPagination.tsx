@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200]
 
 /** Windowed page numbers around `current`, with `null` standing in for an
- * ellipsis — first/last page are always shown so long lists stay jumpable. */
+ * ellipsis - first/last page are always shown so long lists stay jumpable. */
 function pageWindow(current: number, total: number): (number | null)[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
 

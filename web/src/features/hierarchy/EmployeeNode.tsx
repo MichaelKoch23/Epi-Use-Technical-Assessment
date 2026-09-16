@@ -20,7 +20,7 @@ export interface EmployeeNodeData extends Record<string, unknown> {
 
 export type EmployeeFlowNode = Node<EmployeeNodeData, 'employee'>
 
-/** The chart's node card — reuses `EmployeeAvatar` (the same component the
+/** The chart's node card - reuses `EmployeeAvatar` (the same component the
  * employee table renders) so an employee looks identical in both views. */
 export function EmployeeNode({ id, data, selected, dragging }: NodeProps<EmployeeFlowNode>) {
   const {

@@ -1,7 +1,7 @@
 """Orchestrates the org-structure dashboard (§ analytics): pulls the raw
 rows the repository exposes, applies the thresholds from `core.constants`,
 and hands the router a plain DTO. Knows nothing about HTTP or response
-schemas — that translation is the router's job (§3.4), same split as every
+schemas - that translation is the router's job (§3.4), same split as every
 other feature here."""
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ class BranchSummaryData:
 
 _CACHE_TTL_SECONDS = 60
 # Process-local cache keyed by role (§ analytics: "an in-process TTL cache
-# is correct at this scale" — Cloud Run instances being independent is
+# is correct at this scale" - Cloud Run instances being independent is
 # acceptable for a 60-second window). `clear_org_summary_cache` exists only
 # so tests that mutate data between calls aren't served a stale entry.
 _org_summary_cache: dict[str, tuple[float, OrgSummaryData]] = {}

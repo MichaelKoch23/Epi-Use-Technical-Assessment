@@ -1,6 +1,22 @@
-from functools import lru_cache
+"""Application settings, loaded from the environment (§9.4).
 
+The validators here exist so that a deployment which is misconfigured in
+a security-relevant way fails to boot, loudly, instead of serving traffic
+with a weak secret or a wildcard CORS policy that nobody notices until it
+matters.
+"""
+
+from functools import lru_cache
+from typing import Self
+
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# 32 bytes of entropy, hex-encoded, is 64 characters; this floor rejects
+# the "changeme"-class secrets that make HS256 tokens forgeable offline.
+MIN_JWT_SECRET_LENGTH = 32
+
+_WEAK_SECRETS = {"changeme", "secret", "dev", "development", "test", "password"}
 
 
 class Settings(BaseSettings):
@@ -15,6 +31,47 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DB_POOL_SIZE: int = 5
     PORT: int = 8080
+    # Cap on an uploaded import file, applied before the body is buffered
+    # into memory (see routers/imports.py).
+    MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() in {"production", "prod"}
+
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def _secret_must_be_strong(cls, value: str) -> str:
+        if len(value) < MIN_JWT_SECRET_LENGTH or value.lower() in _WEAK_SECRETS:
+            raise ValueError(
+                f"JWT_SECRET must be at least {MIN_JWT_SECRET_LENGTH} characters "
+                "of unguessable entropy (e.g. `openssl rand -hex 32`) - it is the "
+                "only thing standing between a forged token and hr_admin"
+            )
+        return value
+
+    @model_validator(mode="after")
+    def _cors_must_not_be_wildcard(self) -> Self:
+        # The app sends `allow_credentials=True`, and `*` with credentials
+        # is both rejected by browsers and, if it were honoured, would let
+        # any origin drive the API with a logged-in user's token.
+        if "*" in self.CORS_ORIGINS:
+            raise ValueError(
+                "CORS_ORIGINS must list explicit origins, not '*', because the "
+                "API is served with allow_credentials=True"
+            )
+        if self.is_production:
+            insecure = [
+                origin
+                for origin in self.CORS_ORIGINS
+                if origin.startswith("http://")
+                and not origin.startswith(("http://localhost", "http://127.0.0.1"))
+            ]
+            if insecure:
+                raise ValueError(
+                    f"CORS_ORIGINS contains plaintext origins in production: {insecure}"
+                )
+        return self
 
 
 @lru_cache

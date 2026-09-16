@@ -1,6 +1,6 @@
 """§9.1/§9.2: login/refresh/me and the `require_role` route dependency.
 
-Exercised at the router-function level, like the other tests here — the
+Exercised at the router-function level, like the other tests here - the
 app's `get_db` dependency binds to the real configured `DATABASE_URL`, not
 the ephemeral testcontainer these fixtures use (see test_hierarchy_roots.py
 for the full explanation)."""
@@ -18,8 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.passwords import hash_password
 from app.core.rate_limit import RateLimiter
 from app.core.security import Principal, require_role
-from app.core.tokens import create_access_token, create_refresh_token, decode_token
-from app.routers.auth import login, me, refresh
+from app.core.tokens import create_access_token, decode_token
+from app.routers.auth import login, logout, me, refresh
 from app.schemas.auth import LoginRequest, RefreshRequest
 
 
@@ -82,17 +82,95 @@ async def test_login_rejects_unknown_email(db_session: AsyncSession):
 
 async def test_refresh_issues_a_new_access_token(db_session: AsyncSession):
     user_id = await _create_user(
-        db_session, email="c@example.com", password="x", role="viewer"
+        db_session, email="c@example.com", password="pw", role="viewer"
     )
-    refresh_token = create_refresh_token(user_id)
+    issued = await login(
+        LoginRequest(email="c@example.com", password="pw"), session=db_session
+    )
 
     tokens = await refresh(
-        RefreshRequest(refresh_token=refresh_token), session=db_session
+        RefreshRequest(refresh_token=issued.refresh_token), session=db_session
     )
 
     payload = decode_token(tokens.access_token, expected_type="access")
     assert payload["sub"] == str(user_id)
     assert payload["role"] == "viewer"
+    # Rotation: the successor is a genuinely different token.
+    assert tokens.refresh_token != issued.refresh_token
+
+
+async def test_a_spent_refresh_token_is_rejected(db_session: AsyncSession):
+    """Rotation is only meaningful if the old token stops working - without
+    this, a captured token stays valid for its full seven days no matter how
+    many times the real client refreshes."""
+    await _create_user(
+        db_session, email="spent@example.com", password="pw", role="viewer"
+    )
+    issued = await login(
+        LoginRequest(email="spent@example.com", password="pw"), session=db_session
+    )
+    await refresh(
+        RefreshRequest(refresh_token=issued.refresh_token), session=db_session
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await refresh(
+            RefreshRequest(refresh_token=issued.refresh_token), session=db_session
+        )
+    assert exc_info.value.status_code == 401
+
+
+async def test_replaying_a_spent_token_revokes_the_whole_family(
+    db_session: AsyncSession,
+):
+    """Two parties holding one token cannot be told apart, so the safe
+    response to a replay is to end every live session for that user and
+    make them re-authenticate."""
+    await _create_user(
+        db_session, email="theft@example.com", password="pw", role="viewer"
+    )
+    first = await login(
+        LoginRequest(email="theft@example.com", password="pw"), session=db_session
+    )
+    second = await refresh(
+        RefreshRequest(refresh_token=first.refresh_token), session=db_session
+    )
+
+    # The attacker replays the stolen (already spent) first token.
+    with pytest.raises(HTTPException):
+        await refresh(
+            RefreshRequest(refresh_token=first.refresh_token), session=db_session
+        )
+
+    # The legitimate client's current token is now dead too.
+    with pytest.raises(HTTPException) as exc_info:
+        await refresh(
+            RefreshRequest(refresh_token=second.refresh_token), session=db_session
+        )
+    assert exc_info.value.status_code == 401
+
+
+async def test_logout_ends_the_session(db_session: AsyncSession):
+    """Clearing the browser's copy of a token is not logging out - the
+    server has to stop honouring it."""
+    user_id = await _create_user(
+        db_session, email="bye@example.com", password="pw", role="viewer"
+    )
+    issued = await login(
+        LoginRequest(email="bye@example.com", password="pw"), session=db_session
+    )
+
+    await logout(
+        RefreshRequest(refresh_token=issued.refresh_token),
+        session=db_session,
+        principal=Principal(id=user_id, role="viewer"),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await refresh(
+            RefreshRequest(refresh_token=issued.refresh_token), session=db_session
+        )
+    assert exc_info.value.status_code == 401
 
 
 async def test_refresh_rejects_an_access_token(db_session: AsyncSession):

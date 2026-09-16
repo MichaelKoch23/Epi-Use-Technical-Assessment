@@ -39,7 +39,7 @@ async function fetchExcludedIds(employeeId: string): Promise<Set<string>> {
  * Async manager search-and-select (§ shadcn component map: "Manager
  * picker: command; async search"). When `excludeEmployeeId` is set (editing
  * an existing employee), that employee and its descendants still appear in
- * the list — never silently missing — but are disabled with a reason,
+ * the list - never silently missing - but are disabled with a reason,
  * since assigning any of them would create a reporting cycle.
  */
 export function ManagerPicker({

@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, case, func, select, text
+from sqlalchemy import ColumnElement, case, func, or_, select, text
 from sqlalchemy.engine import Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, aliased
@@ -15,7 +15,7 @@ from sqlalchemy.orm import InstrumentedAttribute, aliased
 from app.models.employee import Employee
 
 # §6.3: sort is resolved against a static allow-list, never built from raw
-# user input — dynamic ORDER BY is the classic injection vector that bound
+# user input - dynamic ORDER BY is the classic injection vector that bound
 # parameters don't protect against, because identifiers can't be bound.
 SORTABLE_COLUMNS: dict[str, InstrumentedAttribute[Any]] = {
     "employee_number": Employee.employee_number,
@@ -49,7 +49,7 @@ class EmployeeListFilters:
 @dataclass(frozen=True, slots=True)
 class EmployeeListRow:
     """One row of a paged list: the employee plus fields that would
-    otherwise cost an extra query per row — the manager's display name and
+    otherwise cost an extra query per row - the manager's display name and
     direct-report count, both computed in the same statement (§below)."""
 
     employee: Employee
@@ -105,22 +105,45 @@ _ANCESTORS_SQL = text(
 )
 
 # The proposed manager must not already be inside the employee's own
-# subtree — walking down from `of_id` and testing whether `candidate_id`
+# subtree - walking down from `of_id` and testing whether `candidate_id`
 # is reachable. This is the pre-write half of cycle prevention; the
 # deferred constraint trigger (§5.2) is the authority that closes the
 # concurrency race this check alone cannot.
+# Unlike the two walks above, this one deliberately includes soft-deleted
+# rows: a deleted manager still sits between its reports and the root, so
+# ignoring it here would let a reassignment close a cycle through it.
+# It carries the same `NOT id = ANY(path)` guard and depth cap they do -
+# without them, a single pre-existing cycle turns this `UNION ALL` into a
+# non-terminating query that pins a connection until the statement timeout.
 _IS_DESCENDANT_SQL = text(
     """
     WITH RECURSIVE subtree AS (
-        SELECT id FROM employee WHERE id = :of_id
+        SELECT id, 0 AS depth, ARRAY[id] AS path
+        FROM employee WHERE id = :of_id
       UNION ALL
-        SELECT c.id FROM employee c JOIN subtree s ON c.manager_id = s.id
+        SELECT c.id, s.depth + 1, s.path || c.id
+        FROM employee c JOIN subtree s ON c.manager_id = s.id
+        WHERE NOT c.id = ANY(s.path)
+          AND s.depth < :max_depth
     )
     SELECT EXISTS (SELECT 1 FROM subtree WHERE id = :candidate_id) AS is_descendant
     """
 )
 
-# Columns of `employee` in the order SELECT * returns them — used to hydrate
+
+def _escape_like(value: str) -> str:
+    """Escape the LIKE metacharacters in a user-supplied search term.
+
+    `q` is a bound parameter, so this is not about SQL injection - it is
+    about the search meaning what the user typed. Unescaped, a search for
+    `50%` matches every name starting `50`, `a_b` matches `axb`, and a
+    lone backslash makes Postgres reject the pattern outright. The
+    matching `escape='\\'` on the `ilike()` call is what activates this.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+# Columns of `employee` in the order SELECT * returns them - used to hydrate
 # a detached Employee instance from a raw CTE row without touching the
 # session's identity map (these rows carry extra columns the ORM doesn't
 # know about, so a plain `select(Employee)` can't be used here).
@@ -136,7 +159,7 @@ def _row_to_employee(row: RowMapping) -> Employee:
 
 class EmployeeRepository:
     """Query construction for the `employee` table. Enforces no business
-    rules of its own — that's the service layer's job (§3.4)."""
+    rules of its own - that's the service layer's job (§3.4)."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -158,7 +181,7 @@ class EmployeeRepository:
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def get_any(self, id: uuid.UUID) -> Employee | None:
-        """Like `get`, but also returns soft-deleted rows — used by restore."""
+        """Like `get`, but also returns soft-deleted rows - used by restore."""
         stmt = select(Employee).where(Employee.id == id)
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
@@ -196,7 +219,9 @@ class EmployeeRepository:
         ]
         if filters.q:
             full_name = func.concat(Employee.first_name, " ", Employee.last_name)
-            conditions.append(full_name.ilike("%" + filters.q + "%"))
+            conditions.append(
+                full_name.ilike(f"%{_escape_like(filters.q)}%", escape="\\")
+            )
         if filters.position is not None:
             conditions.append(Employee.position == filters.position)
         if filters.manager_id is not None:
@@ -274,7 +299,12 @@ class EmployeeRepository:
     async def is_descendant(self, candidate_id: uuid.UUID, of_id: uuid.UUID) -> bool:
         result: Row[Any] = (
             await self._session.execute(
-                _IS_DESCENDANT_SQL, {"candidate_id": candidate_id, "of_id": of_id}
+                _IS_DESCENDANT_SQL,
+                {
+                    "candidate_id": candidate_id,
+                    "of_id": of_id,
+                    "max_depth": MAX_REPORTING_DEPTH,
+                },
             )
         ).one()
         return bool(result.is_descendant)
@@ -292,7 +322,7 @@ class EmployeeRepository:
         return (await self._session.execute(stmt)).scalars().all()
 
     async def get_names_by_ids(self, ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
-        """Display names for a batch of ids, including soft-deleted rows —
+        """Display names for a batch of ids, including soft-deleted rows -
         used to resolve a manager referenced from an audit snapshot, who may
         since have been deleted (§ audit timeline UI)."""
         if not ids:
@@ -307,13 +337,25 @@ class EmployeeRepository:
         self,
     ) -> Sequence[tuple[uuid.UUID, str, uuid.UUID | None]]:
         """`(id, employee_number, manager_id)` for every non-deleted employee,
-        in one query — the seed for the import service's whole-graph cycle
+        in one query - the seed for the import service's whole-graph cycle
         check (§ import validation), which needs the full existing reporting
         graph, not just the rows a file happens to touch."""
         stmt = select(Employee.id, Employee.employee_number, Employee.manager_id).where(
             Employee.deleted_at.is_(None)
         )
         return [tuple(row) for row in (await self._session.execute(stmt)).all()]
+
+    async def email_owners(self) -> dict[str, str]:
+        """`lower(email) -> employee_number` for every active employee, in
+        one query - the seed for the import service's duplicate-email
+        check, which has to tell "this row is keeping its own email" apart
+        from "this row is taking someone else's" (§ import validation).
+        Keyed the same way `uq_employee_email` indexes the column."""
+        stmt = select(Employee.email, Employee.employee_number).where(
+            Employee.deleted_at.is_(None)
+        )
+        rows = (await self._session.execute(stmt)).all()
+        return {email.lower(): number for email, number in rows}
 
     async def count_reports(self, id: uuid.UUID) -> int:
         stmt = (
@@ -322,3 +364,24 @@ class EmployeeRepository:
             .where(Employee.manager_id == id, Employee.deleted_at.is_(None))
         )
         return (await self._session.execute(stmt)).scalar_one()
+
+    async def search(self, q: str, *, limit: int = 8) -> Sequence[Employee]:
+        """Fuzzy match across name, employee number and position for the
+        command palette (§ FR-7) - a small, fast, unpaginated top-N read,
+        distinct from `list()`'s full paginated table query."""
+        pattern = f"%{_escape_like(q)}%"
+        full_name = func.concat(Employee.first_name, " ", Employee.last_name)
+        stmt = (
+            select(Employee)
+            .where(
+                Employee.deleted_at.is_(None),
+                or_(
+                    full_name.ilike(pattern, escape="\\"),
+                    Employee.employee_number.ilike(pattern, escape="\\"),
+                    Employee.position.ilike(pattern, escape="\\"),
+                ),
+            )
+            .order_by(Employee.last_name)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().all()

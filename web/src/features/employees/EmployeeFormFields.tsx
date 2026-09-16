@@ -9,12 +9,12 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-destructive">{message}</p>
 }
 
-/** Shared field set for the create and edit forms — everything
+/** Shared field set for the create and edit forms - everything
  * `EmployeeCreate`/`EmployeeUpdate` have in common. `manager_id` is only
  * rendered when present in the form's values (create only: the API
  * deliberately excludes it from `EmployeeUpdate`, since reassignment
  * carries its own cycle-prevention invariant and lives on its own
- * endpoint — see `PUT /employees/{id}/manager`). */
+ * endpoint - see `PUT /employees/{id}/manager`). */
 export function EmployeeFormFields({
   showManager,
   managerLabel,

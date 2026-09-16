@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import { InboxIcon } from 'lucide-react'
 
 /** The `empty-state` pattern from the brand style guide: an icon, a title
- * and a body explaining what was checked — an empty section with no
+ * and a body explaining what was checked - an empty section with no
  * explanation looks broken. */
 export function EmptyState({
   icon: Icon = InboxIcon,

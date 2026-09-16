@@ -36,7 +36,7 @@ import type { ChartEmployee } from './types'
 import { useOrgChartData } from './useOrgChartData'
 
 const nodeTypes = { employee: EmployeeNode }
-// Focus mode's default window below the selected employee (§7.3 — "N
+// Focus mode's default window below the selected employee (§7.3 - "N
 // levels of descendants"); the stepper next to "Exit focus" adjusts it.
 const DEFAULT_FOCUS_DEPTH = 2
 
@@ -71,7 +71,7 @@ function OrgChartCanvas() {
   const structuralNodes = useMemo<EmployeeFlowNode[]>(() => {
     // `visibleIds` is structural (which branches are collapsed) and can
     // include a root/expanded id slightly before its own subtree fetch has
-    // resolved — only build a node once its employee record has actually
+    // resolved - only build a node once its employee record has actually
     // loaded, so a node card is never rendered with `employee: undefined`.
     const loadedVisibleIds = new Set(
       [...orgData.visibleIds].filter((id) => orgData.employeesById.has(id))
@@ -193,7 +193,7 @@ function OrgChartCanvas() {
   )
 
   // `?focus={id}` (from the analytics anomaly panel and branch explorer,
-  // §chart-deep-link) selects and centers that employee on arrival — a
+  // §chart-deep-link) selects and centers that employee on arrival - a
   // ref rather than state so a later manual selection doesn't re-trigger
   // this on an unrelated re-render.
   const [searchParams] = useSearchParams()
@@ -258,7 +258,7 @@ function OrgChartCanvas() {
   )
 
   // Keyboard equivalent of drag-to-reassign (§ accessibility: "drag must
-  // never be the only path") — select a node, press M, pick from the
+  // never be the only path") - select a node, press M, pick from the
   // command palette.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

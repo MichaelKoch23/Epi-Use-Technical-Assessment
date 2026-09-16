@@ -1,5 +1,5 @@
 """The flagship test suite (§11): every way a reporting cycle can be
-attempted, and the concurrent case the database — not the service — is
+attempted, and the concurrent case the database - not the service - is
 what actually has to catch.
 """
 
@@ -109,13 +109,13 @@ async def test_concurrent_inverse_reassignment_exactly_one_fails(
     two separate transactions that each only ever touch their own row, so
     neither's in-transaction view sees the other's change. This bypasses
     `ReassignmentService` entirely (no `SELECT ... FOR UPDATE`, no
-    pre-check) to prove it's the deferred constraint trigger — not
-    application locking — that is the actual authority here.
+    pre-check) to prove it's the deferred constraint trigger - not
+    application locking - that is the actual authority here.
 
     Both UPDATEs are issued before either transaction commits, so both
     are genuinely in-flight at once; TX1 then commits first (succeeding,
     since B's committed state is still unrelated to A at that instant),
-    and only TX2's commit — now able to see TX1's committed change —
+    and only TX2's commit - now able to see TX1's committed change -
     finds the cycle and is rejected by `employee_no_cycle`.
     """
     a = await employee_factory()

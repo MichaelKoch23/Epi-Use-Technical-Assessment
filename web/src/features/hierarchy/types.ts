@@ -19,7 +19,7 @@ export interface ChartNodeData {
   depth: number
   childIds: string[]
   /** `undefined` until this node's own subtree has been fetched at least
-   * once — we don't know yet whether it has children to expand. */
+   * once - we don't know yet whether it has children to expand. */
   hasChildren: boolean | undefined
   expanded: boolean
   isRoot: boolean

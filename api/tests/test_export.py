@@ -1,5 +1,5 @@
 """§ export: `GET /exports/employees.csv` honours the same filters as the
-list endpoint, and — like every other employee-shaped response — never
+list endpoint, and - like every other employee-shaped response - never
 puts a salary value in front of a viewer."""
 
 from __future__ import annotations
@@ -94,3 +94,51 @@ async def test_export_resolves_manager_employee_number(
 
     report_line = next(line for line in text.splitlines() if "E-REP" in line)
     assert "E-MGR" in report_line
+
+
+async def test_export_neutralises_spreadsheet_formulas(
+    db_session, actor_id, employee_factory
+):
+    """CSV injection (CWE-1236): a field beginning `=`, `+`, `-` or `@` is
+    executed as a formula when the download is opened in Excel or
+    LibreOffice, so an employee record is enough to attack whoever exports
+    it. The value must survive intact, prefixed so it is read as text."""
+    payload = "=cmd|'/c calc'!A1"
+    await employee_factory(first_name=payload, position="@SUM(1+1)")
+    admin = Principal(id=actor_id, role="hr_admin")
+
+    response = await export_employees_csv(
+        filters=_DEFAULT_FILTERS,
+        sort_params=_DEFAULT_SORT,
+        session=db_session,
+        principal=admin,
+    )
+    text = await _csv_text(response)
+
+    assert f"'{payload}" in text
+    assert "'@SUM(1+1)" in text
+    # No cell is left starting with a bare formula character.
+    for line in text.splitlines()[1:]:
+        for cell in line.split(","):
+            assert not cell.startswith(("=", "+", "@")), cell
+
+
+async def test_viewer_cannot_use_salary_filters_on_the_export(
+    db_session, actor_id, employee_factory
+):
+    """The column being absent does not stop bisection - see
+    `require_salary_access`."""
+    import pytest
+    from fastapi import HTTPException
+
+    await employee_factory(salary=Decimal(900000))
+    viewer = Principal(id=uuid.uuid4(), role="viewer")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await export_employees_csv(
+            filters=EmployeeListFilters(min_salary=Decimal(500000)),
+            sort_params=_DEFAULT_SORT,
+            session=db_session,
+            principal=viewer,
+        )
+    assert exc_info.value.status_code == 403

@@ -33,7 +33,7 @@ class DuplicateEmailError(DomainError):
 
 class VersionConflictError(DomainError):
     """Raised when a write's `expected_version` no longer matches the
-    row's current `version` — another change landed first (§5.4)."""
+    row's current `version` - another change landed first (§5.4)."""
 
     def __init__(
         self, employee_id: uuid.UUID, expected_version: int, actual_version: int
@@ -50,7 +50,7 @@ class VersionConflictError(DomainError):
 class ReportingCycleError(DomainError):
     """Raised when a proposed manager assignment would create a reporting
     cycle. `chain` is the existing reporting path from the proposed
-    manager up to the employee being reassigned — the path that the
+    manager up to the employee being reassigned - the path that the
     assignment would close into a loop (§5.2, §6.4)."""
 
     def __init__(

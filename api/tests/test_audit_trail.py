@@ -1,5 +1,5 @@
 """§9.6: every mutating service writes its audit row inside the same unit
-of work as the change itself, so the two can never disagree — either both
+of work as the change itself, so the two can never disagree - either both
 commit or neither does. Also covers the read side's salary redaction
 (§9.3 extended to the audit trail): a viewer may see *that* salary
 changed, never the value.
@@ -7,9 +7,11 @@ changed, never the value.
 
 from __future__ import annotations
 
+import uuid
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.core.pagination import PageParams
@@ -103,10 +105,10 @@ async def test_failed_update_rolls_back_its_audit_row(
     """The required rollback test: a legitimate update flushes its audit
     row (uncommitted), then a second write in the SAME transaction hits a
     real database constraint the service layer never pre-checks
-    (`employee_salary_non_negative` — unlike `employee_number`/`email`,
+    (`employee_salary_non_negative` - unlike `employee_number`/`email`,
     salary has no application-level guard, only the DB's own CHECK
-    constraint, which only fires at flush). The whole transaction — the
-    first update's audit row included — must disappear on rollback."""
+    constraint, which only fires at flush). The whole transaction - the
+    first update's audit row included - must disappear on rollback."""
     employee = await employee_factory(position="Engineer")
     # Captured as a plain value: `db_session.rollback()` below expires the
     # ORM instance, and touching its attributes after that would trigger a
@@ -173,3 +175,38 @@ async def test_audit_endpoint_redacts_salary_for_viewer(
     admin_entry = next(e for e in admin_page.items if e.action == "employee.updated")
     assert admin_entry.salary_changed is True
     assert admin_entry.after is not None and admin_entry.after["salary"] == "70000"
+
+
+async def test_audit_pages_do_not_overlap_when_timestamps_tie(
+    db_session, actor_id, employee_factory
+):
+    """`occurred_at` defaults to `now()`, which is the *transaction* start
+    time, so every entry written by one request carries the same value.
+    Ordering on it alone leaves LIMIT/OFFSET free to return a given row on
+    two different pages - and to never return some other row at all."""
+    employee = await employee_factory()
+    service = EmployeeService(db_session)
+    for i in range(10):
+        await service.update(
+            employee.id,
+            expected_version=employee.version,
+            actor_id=actor_id,
+            position=f"Position {i}",
+        )
+    await db_session.commit()
+
+    distinct_timestamps = (
+        await db_session.execute(
+            text("SELECT count(DISTINCT occurred_at) FROM audit_log")
+        )
+    ).scalar_one()
+    assert distinct_timestamps < 11, "precondition: timestamps must actually tie"
+
+    audit = AuditService(db_session)
+    seen: list[uuid.UUID] = []
+    for page in (1, 2, 3):
+        rows, total = await audit.list_for_employee(employee.id, page=page, page_size=4)
+        seen.extend(row.entry.id for row in rows)
+
+    assert len(seen) == len(set(seen)), "the same entry appeared on two pages"
+    assert len(seen) == total, "paging through the feed skipped an entry"

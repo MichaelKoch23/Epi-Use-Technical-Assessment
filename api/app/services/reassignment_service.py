@@ -26,7 +26,7 @@ class ReassignmentService:
        moves on the same rows serialise instead of deadlocking.
     2. A pre-write subtree check giving a clear, actionable error.
     3. A deferred constraint trigger at COMMIT (`employee_no_cycle`),
-       which is the actual authority — it closes the race this service
+       which is the actual authority - it closes the race this service
        cannot see across processes.
     """
 
@@ -47,7 +47,7 @@ class ReassignmentService:
         # regardless of which argument each id came in as. Two concurrent,
         # opposite reassignments (A under B, B under A) then contend for
         # the same first lock instead of each holding one lock the other
-        # needs — a deadlock rather than a race.
+        # needs - a deadlock rather than a race.
         ids_to_lock = sorted(
             {employee_id} | ({new_manager_id} if new_manager_id else set())
         )
@@ -89,7 +89,7 @@ class ReassignmentService:
         self, employee_id: uuid.UUID, new_manager_id: uuid.UUID
     ) -> list[uuid.UUID]:
         """The existing reporting path from `new_manager_id` up to
-        `employee_id` — the path the proposed assignment would close into
+        `employee_id` - the path the proposed assignment would close into
         a loop, for a message like the one in §6.4."""
         chain = [new_manager_id]
         for ancestor in await self._repo.get_ancestors(new_manager_id):

@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { BarChart3, CircleUserRound, History, LogOutIcon, Network, Search, Table2, Upload } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +11,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/features/auth/useAuth'
+import { CommandPalette } from '@/features/search/CommandPalette'
 
 // Mirrors the "topbar-demo" / "nav-demo" patterns in the brand style
 // guide (docs/brand_style_guide.html, §Navigation): a primary-colour
 // topbar with the wordmark and utility actions, and a pill-shaped nav
-// bar below it whose active item is driven by aria-current="page" —
+// bar below it whose active item is driven by aria-current="page" -
 // which NavLink sets automatically.
 const NAV_ITEMS = [
   { to: '/chart', label: 'Org chart', icon: Network },
@@ -25,6 +27,21 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const { principal, logout } = useAuth()
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  // Cmd/Ctrl+K opens the command palette from anywhere in the app, the
+  // conventional shortcut for one - the topbar button is the discoverable
+  // path, this is the fast one.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        setPaletteOpen((open) => !open)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <div className="min-h-svh bg-background">
@@ -34,17 +51,18 @@ export function AppShell() {
           <button
             type="button"
             aria-label="Search"
+            onClick={() => setPaletteOpen(true)}
             className="grid size-9 place-items-center rounded-sm hover:bg-white/10"
           >
             <Search className="size-4" />
           </button>
-          <button
-            type="button"
+          <Link
+            to="/history"
             aria-label="Change history"
             className="grid size-9 place-items-center rounded-sm hover:bg-white/10"
           >
             <History className="size-4" />
-          </button>
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="Account"
@@ -100,6 +118,8 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   )
 }

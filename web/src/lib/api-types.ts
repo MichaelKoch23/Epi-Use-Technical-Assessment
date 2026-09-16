@@ -55,6 +55,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description End the session the presented refresh token belongs to.
+         *
+         *     Authenticated, so a token can only be revoked by its own holder, and
+         *     deliberately tolerant: a token that is already invalid still yields
+         *     204, because "this session is over" is the caller's goal and reporting
+         *     a failure would only tell an attacker which tokens are live.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me": {
         parameters: {
             query?: never;
@@ -225,7 +250,7 @@ export interface paths {
         };
         /**
          * Get Roots
-         * @description Employees with no manager — the org chart's forest of starting
+         * @description Employees with no manager - the org chart's forest of starting
          *     points (there's no single-root guarantee, §15 known limitations).
          */
         get: operations["get_roots_api_v1_hierarchy_roots_get"];
@@ -297,6 +322,40 @@ export interface paths {
         };
         /** Get Branch Summary */
         get: operations["get_branch_summary_api_v1_analytics_branch__employee_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Audit Log */
+        get: operations["list_audit_log_api_v1_audit_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -416,7 +475,7 @@ export interface components {
         };
         /**
          * CostSummaryRead
-         * @description Admin-only (§9.3) — never a field on the `*Restricted` schemas below,
+         * @description Admin-only (§9.3) - never a field on the `*Restricted` schemas below,
          *     so it's absent from a viewer's payload entirely, not null.
          */
         CostSummaryRead: {
@@ -492,7 +551,7 @@ export interface components {
         /**
          * EmployeeListItemRead
          * @description `EmployeeRead` plus fields only the list endpoint bothers to compute
-         *     (§list query in the repository) — a manager's display name in place of
+         *     (§list query in the repository) - a manager's display name in place of
          *     a bare id, and the row's own direct-report count.
          */
         EmployeeListItemRead: {
@@ -607,7 +666,7 @@ export interface components {
         };
         /**
          * EmployeeRead
-         * @description Full representation — `hr_admin` only (§9.3).
+         * @description Full representation - `hr_admin` only (§9.3).
          */
         EmployeeRead: {
             /**
@@ -658,7 +717,7 @@ export interface components {
         /**
          * EmployeeReadRestricted
          * @description `viewer` representation. `salary` is not a field here at all, so
-         *     it is absent from the serialised payload — never null, never masked.
+         *     it is absent from the serialised payload - never null, never masked.
          */
         EmployeeReadRestricted: {
             /**
@@ -706,9 +765,15 @@ export interface components {
         };
         /**
          * EmployeeUpdate
-         * @description Partial update — every field optional. `manager_id` deliberately
+         * @description Partial update - every field optional. `manager_id` deliberately
          *     absent: reassignment is `PUT /employees/{id}/manager` (§6.1), not a
          *     general PATCH field, because it carries its own invariant.
+         *
+         *     Every field that *is* here is `Optional` only in the "may be omitted"
+         *     sense - `exclude_unset=True` in the router means an omitted field is
+         *     never passed on. None of them accept an explicit `null` except
+         *     `avatar_override_url`, which is the one column that is genuinely
+         *     nullable.
          */
         EmployeeUpdate: {
             /** Employee Number */
@@ -729,6 +794,66 @@ export interface components {
             currency?: string | null;
             /** Avatar Override Url */
             avatar_override_url?: string | null;
+        };
+        /** GlobalAuditLogPage */
+        GlobalAuditLogPage: {
+            /** Items */
+            items: components["schemas"]["GlobalAuditLogRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /**
+         * GlobalAuditLogRead
+         * @description `AuditLogRead` plus which employee the entry is about - the
+         *     per-employee page already has that from context, but the global feed
+         *     behind the topbar's "Change history" button spans every employee at
+         *     once (§ global audit feed).
+         */
+        GlobalAuditLogRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** Actor Email */
+            actor_email: string;
+            /** Action */
+            action: string;
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Salary Changed */
+            salary_changed: boolean;
+            /** Manager Before Name */
+            manager_before_name?: string | null;
+            /** Manager After Name */
+            manager_after_name?: string | null;
+            /** Employee Name */
+            employee_name: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -794,7 +919,7 @@ export interface components {
         };
         /**
          * OrgSummaryRead
-         * @description `hr_admin` representation — includes the cost roll-up.
+         * @description `hr_admin` representation - includes the cost roll-up.
          */
         OrgSummaryRead: {
             /** Headcount */
@@ -821,7 +946,7 @@ export interface components {
         /**
          * OrgSummaryReadRestricted
          * @description `viewer` representation. `cost` is not a field here at all, so it's
-         *     absent from the serialised payload — never null, never masked.
+         *     absent from the serialised payload - never null, never masked.
          */
         OrgSummaryReadRestricted: {
             /** Headcount */
@@ -848,6 +973,29 @@ export interface components {
         RefreshRequest: {
             /** Refresh Token */
             refresh_token: string;
+        };
+        /**
+         * SearchResultRead
+         * @description A command-palette result. Deliberately lighter than `EmployeeRead` -
+         *     no salary concern applies here since the field was never selected in
+         *     the first place, not merely omitted from the response.
+         */
+        SearchResultRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Position */
+            position: string;
+            /** Employee Number */
+            employee_number: string;
+            /** Avatar Url */
+            avatar_url: string;
         };
         /** SingleReportAnomalyRead */
         SingleReportAnomalyRead: {
@@ -1006,6 +1154,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TokenPair"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -1552,6 +1731,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BranchSummaryRead"] | components["schemas"]["BranchSummaryReadRestricted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_v1_search_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResultRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_audit_log_api_v1_audit_get: {
+        parameters: {
+            query?: {
+                /** @description 1-indexed page number */
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GlobalAuditLogPage"];
                 };
             };
             /** @description Validation Error */

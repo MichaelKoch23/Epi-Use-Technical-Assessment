@@ -4,8 +4,12 @@ required to show before a destructive delete.
 
 from __future__ import annotations
 
+import pytest
+
+from app.core.exceptions import DuplicateEmailError, DuplicateEmployeeNumberError
 from app.repositories.employee_repository import EmployeeRepository
 from app.services.deletion_policy import Cascade, PromoteToRoot, Reparent, preview
+from app.services.employee_service import EmployeeService
 
 
 async def test_reparent_moves_reports_to_grandparent(
@@ -109,3 +113,50 @@ async def test_preview_does_not_write(db_session, actor_id, employee_factory):
     assert fresh_parent is not None and fresh_parent.deleted_at is None
     assert fresh_child is not None and fresh_child.deleted_at is None
     assert fresh_child.manager_id == parent.id
+
+
+async def test_restore_reports_a_number_clash_instead_of_crashing(
+    db_session, actor_id, employee_factory
+):
+    """`uq_employee_number` is a partial index (`WHERE deleted_at IS NULL`),
+    so soft-deleting an employee releases their number for reuse. Restoring
+    them afterwards collides, and the raw `IntegrityError` that Postgres
+    raises at flush would otherwise reach the client as a 500."""
+    original = await employee_factory(employee_number="E-REUSED")
+    service = EmployeeService(db_session)
+    await service.soft_delete(original.id, actor_id=actor_id)
+    await db_session.commit()
+
+    await employee_factory(employee_number="E-REUSED")  # number taken again
+
+    with pytest.raises(DuplicateEmployeeNumberError):
+        await service.restore(original.id, actor_id=actor_id)
+
+
+async def test_restore_reports_an_email_clash_instead_of_crashing(
+    db_session, actor_id, employee_factory
+):
+    original = await employee_factory(email="reused@example.com")
+    service = EmployeeService(db_session)
+    await service.soft_delete(original.id, actor_id=actor_id)
+    await db_session.commit()
+
+    await employee_factory(email="reused@example.com")
+
+    with pytest.raises(DuplicateEmailError):
+        await service.restore(original.id, actor_id=actor_id)
+
+
+async def test_restore_succeeds_when_nothing_took_the_identifiers(
+    db_session, actor_id, employee_factory
+):
+    """The guard must not block the ordinary case it was added for."""
+    employee = await employee_factory(employee_number="E-FREE")
+    service = EmployeeService(db_session)
+    await service.soft_delete(employee.id, actor_id=actor_id)
+    await db_session.commit()
+
+    restored = await service.restore(employee.id, actor_id=actor_id)
+    await db_session.commit()
+
+    assert restored.deleted_at is None

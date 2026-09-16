@@ -48,7 +48,7 @@ const FIELD_LABELS: Record<keyof EmployeeUpdateFormInput, string> = {
   avatar_override_url: 'Avatar URL',
 }
 
-/** Everything the edit form needs from an employee record — deliberately
+/** Everything the edit form needs from an employee record - deliberately
  * narrower than any one response schema so it accepts both the list row
  * (`EmployeeListItem`, passed in when the sheet opens) and the plain
  * `EmployeeRead`/`EmployeeReadRestricted` a conflict re-fetch returns. */
@@ -80,7 +80,7 @@ function toFormValues(employee: EditableEmployee): EmployeeUpdateFormInput {
 
 function displayValue(value: unknown, field: keyof EmployeeUpdateFormInput): string {
   if (field === 'birth_date') return formatDate(String(value))
-  if (value === '' || value == null) return '—'
+  if (value === '' || value == null) return '-'
   return String(value)
 }
 
@@ -109,7 +109,7 @@ export function EditEmployeeSheet({
   const reassignManager = useReassignManagerMutation()
 
   // Mirrors the parent's fully-controlled open state (no SheetTrigger of
-  // its own to fire `onOpenChange`) — every new employee to edit resets
+  // its own to fire `onOpenChange`) - every new employee to edit resets
   // the known version, manager and clears any conflict left over from a
   // previous edit session.
   useEffect(() => {
@@ -260,7 +260,7 @@ export function EditEmployeeSheet({
               </div>
               {changedFields.length === 0 ? (
                 <p className="text-muted-foreground">
-                  No overlapping fields differ — you can safely keep your changes.
+                  No overlapping fields differ - you can safely keep your changes.
                 </p>
               ) : (
                 changedFields.map((field) => (

@@ -9,7 +9,7 @@ export interface EmployeesFilterState {
   q: string
   position: string
   managerId: string
-  /** Not sent to the API — carried in the URL only so the manager chip and
+  /** Not sent to the API - carried in the URL only so the manager chip and
    * the filter popover can show a name without an extra lookup request. */
   managerName: string
   minSalary: string
@@ -68,7 +68,7 @@ function parseState(params: URLSearchParams): EmployeesViewState {
 
 /**
  * Filter/sort/page state lives entirely in the URL (§ shareable views, back
- * button) rather than component state — this hook is the only place that
+ * button) rather than component state - this hook is the only place that
  * reads or writes it, so the param names are defined once.
  */
 export function useEmployeesViewState() {
@@ -77,11 +77,11 @@ export function useEmployeesViewState() {
   // `setSearchParams`'s own functional-updater form hands back a `prev` that
   // can still be one write behind when two of this hook's setters fire in
   // quick succession (e.g. the debounced search commit followed shortly by
-  // a sort click) — react-router's internal location hasn't caught up to
+  // a sort click) - react-router's internal location hasn't caught up to
   // the just-committed navigation yet, so building off that `prev` silently
-  // drops the earlier write. Committing against this ref instead — updated
+  // drops the earlier write. Committing against this ref instead - updated
   // synchronously the moment *we* write, and re-synced from `searchParams`
-  // on every render — makes each call build on the last one this hook
+  // on every render - makes each call build on the last one this hook
   // actually made, not on a snapshot react-router hasn't settled yet.
   const paramsRef = useRef(searchParams)
   useEffect(() => {

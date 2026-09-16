@@ -46,8 +46,8 @@ const OUTCOME_META: Record<
 
 function rowDetail(row: ImportRowResult): string {
   if (row.outcome === 'blocked') return row.reason ?? 'Blocked'
-  if (row.outcome === 'will_update') return 'Employee number already exists — will be updated'
-  return 'New employee — will be created'
+  if (row.outcome === 'will_update') return 'Employee number already exists - will be updated'
+  return 'New employee - will be created'
 }
 
 function ImportRow({ row }: { row: ImportRowResult }) {
@@ -138,7 +138,7 @@ export function ImportPage() {
       <div>
         <h1 className="font-display text-2xl font-bold">Import</h1>
         <p className="text-muted-foreground">
-          Upload a CSV or XLSX file. It's always validated first — nothing is written until you
+          Upload a CSV or XLSX file. It's always validated first - nothing is written until you
           review the results and commit.
         </p>
       </div>
@@ -220,7 +220,7 @@ export function ImportPage() {
           </div>
           {result.blocked > 0 && !result.committed && (
             <p className="text-xs text-muted-foreground">
-              Fix the blocked rows and re-upload — a partial import isn't allowed, so nothing
+              Fix the blocked rows and re-upload - a partial import isn't allowed, so nothing
               commits until every row passes.
             </p>
           )}

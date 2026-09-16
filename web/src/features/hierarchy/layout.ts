@@ -4,7 +4,7 @@ import { Position, type Edge, type Node } from '@xyflow/react'
 export const NODE_WIDTH = 260
 export const NODE_HEIGHT = 92
 
-/** The chart's Dagre layout pass — spacing values from the brand style
+/** The chart's Dagre layout pass - spacing values from the brand style
  * guide (§ "Rendering the hierarchy"): a left-to-right layered tree with
  * 24px between siblings and 40px between ranks (generations). */
 export function layoutWithDagre<TNode extends Node>(nodes: TNode[], edges: Edge[]): TNode[] {

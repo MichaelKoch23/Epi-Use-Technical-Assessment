@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage'
+import { GlobalAuditPage } from '@/features/audit/GlobalAuditPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage'
 import { EmployeesListPage } from '@/features/employees/EmployeesListPage'
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
           { path: '/employees/:id', element: <EmployeeDetailPage /> },
           { path: '/analytics', element: <AnalyticsPage /> },
           { path: '/import', element: <ImportPage /> },
+          { path: '/history', element: <GlobalAuditPage /> },
           { path: '*', element: <Navigate to="/chart" replace /> },
         ],
       },

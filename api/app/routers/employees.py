@@ -1,6 +1,6 @@
-"""`/api/v1/employees/*` — §6.2 of the technical design, the employee-scoped
-rows of the endpoint table (hierarchy and auth are separate routers;
-analytics/import-export/search are not built yet)."""
+"""`/api/v1/employees/*` - §6.2 of the technical design, the employee-scoped
+rows of the endpoint table (hierarchy, auth, analytics, import/export,
+search and the global audit feed are separate routers)."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def _policy_for(name: DeletionPolicyName, session: AsyncSession) -> DeletionPoli
 
 
 def _parse_if_match(value: str) -> int:
-    """`If-Match: "<version>"` (§3.5) — a quoted integer version."""
+    """`If-Match: "<version>"` (§3.5) - a quoted integer version."""
     try:
         return int(value.strip('"'))
     except ValueError as exc:
@@ -106,15 +106,18 @@ def _strip_salary(snapshot: dict[str, Any] | None) -> dict[str, Any] | None:
     return {key: value for key, value in snapshot.items() if key != "salary"}
 
 
-def to_audit_log_read(
+def audit_log_fields(
     row: AuditLogRow,
     principal: Principal,
     manager_names: dict[uuid.UUID, str],
-) -> AuditLogRead:
-    """§9.3 extended to the audit trail: a viewer may see *that* salary
-    changed, never the values. `salary_changed` is computed from the raw
-    snapshots before any stripping, so it stays correct for a viewer whose
-    payload never contains the key at all."""
+) -> dict[str, Any]:
+    """The field set common to `AuditLogRead` and `GlobalAuditLogRead`
+    (§ global audit feed) - shared so the two response shapes can never
+    drift apart on the one thing that actually matters here: salary
+    redaction. §9.3 extended to the audit trail: a viewer may see *that*
+    salary changed, never the values. `salary_changed` is computed from
+    the raw snapshots before any stripping, so it stays correct for a
+    viewer whose payload never contains the key at all."""
     entry = row.entry
     before, after = entry.before, entry.after
     salary_changed = (
@@ -134,26 +137,39 @@ def to_audit_log_read(
         before = _strip_salary(before)
         after = _strip_salary(after)
 
-    return AuditLogRead(
-        id=entry.id,
-        employee_id=entry.employee_id,
-        actor_id=entry.actor_id,
-        actor_email=row.actor_email,
-        action=entry.action,
-        before=before,
-        after=after,
-        occurred_at=entry.occurred_at,
-        salary_changed=salary_changed,
-        manager_before_name=manager_before_name,
-        manager_after_name=manager_after_name,
-    )
+    return {
+        "id": entry.id,
+        "employee_id": entry.employee_id,
+        "actor_id": entry.actor_id,
+        "actor_email": row.actor_email,
+        "action": entry.action,
+        "before": before,
+        "after": after,
+        "occurred_at": entry.occurred_at,
+        "salary_changed": salary_changed,
+        "manager_before_name": manager_before_name,
+        "manager_after_name": manager_after_name,
+    }
 
 
-def _require_salary_access(
+def to_audit_log_read(
+    row: AuditLogRow,
+    principal: Principal,
+    manager_names: dict[uuid.UUID, str],
+) -> AuditLogRead:
+    return AuditLogRead(**audit_log_fields(row, principal, manager_names))
+
+
+def require_salary_access(
     principal: Principal, filters: EmployeeListFilters, sort: str
 ) -> None:
     """§9.3: salary-based filtering or sorting would let a viewer infer
-    the value by binary search, so both are rejected outright for them."""
+    the value by binary search, so both are rejected outright for them.
+
+    Public rather than module-private because the CSV export accepts the
+    identical filter/sort parameters and is subject to the identical
+    inference attack - the guard has to be the same one, not a second copy
+    that can drift away from this one."""
     if principal.is_admin:
         return
     if (
@@ -175,7 +191,7 @@ async def list_employees(
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
 ) -> EmployeePage:
-    _require_salary_access(principal, filters, sort_params.sort)
+    require_salary_access(principal, filters, sort_params.sort)
 
     repo = EmployeeRepository(session)
     items, total = await repo.list(

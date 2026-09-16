@@ -26,7 +26,7 @@ VIEWER = "viewer"
 def _clear_analytics_cache():
     """The org-summary cache is process-lifetime (§ analytics: a 60-second
     in-process TTL cache keyed by role), but this suite truncates the
-    database between tests — without this, a later test would be served an
+    database between tests - without this, a later test would be served an
     earlier test's cached result instead of fresh data."""
     clear_org_summary_cache()
     yield
@@ -157,7 +157,7 @@ async def test_unreachable_detection_after_manager_deleted_without_reparenting(
     leaf = await employee_factory(manager_id=mid_manager.id)
 
     # Soft-delete the manager directly (not via a `DeletionPolicy`, which
-    # would reparent `leaf`) so `leaf` is left pointing at a dead manager —
+    # would reparent `leaf`) so `leaf` is left pointing at a dead manager -
     # the only way this anomaly can occur (§ analytics).
     await EmployeeService(db_session).soft_delete(mid_manager.id, actor_id=actor_id)
     await db_session.commit()

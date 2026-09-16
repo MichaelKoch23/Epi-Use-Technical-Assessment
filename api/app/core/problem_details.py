@@ -1,6 +1,6 @@
 """A single exception handler mapping domain exceptions (`core.exceptions`)
 to RFC 9457 `application/problem+json` documents (§6.4). Registered once
-for the `DomainError` base class — Starlette walks the MRO of a raised
+for the `DomainError` base class - Starlette walks the MRO of a raised
 exception to find the most specific handler, so this one function catches
 every subclass without a handler per exception type."""
 

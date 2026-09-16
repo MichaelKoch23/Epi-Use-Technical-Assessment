@@ -4,7 +4,7 @@ import { formatCurrency } from '@/features/employees/format'
 import type { CostSummary } from '../types'
 
 /** Admin-only cost roll-up (§9.3). For a viewer `cost` is never present on
- * the response at all — this panel still renders, with the `.salary-locked`
+ * the response at all - this panel still renders, with the `.salary-locked`
  * treatment, so the viewer knows the data exists and that they can't see
  * it, rather than the panel silently disappearing. */
 export function CostPanel({
@@ -34,7 +34,7 @@ export function CostPanel({
       ) : restricted || !cost ? (
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground italic">
           <LockIcon className="size-3.5" aria-hidden="true" />
-          Restricted — the annual cost roll-up requires HR admin access
+          Restricted - the annual cost roll-up requires HR admin access
         </span>
       ) : (
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">

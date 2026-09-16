@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRightIcon, LockIcon } from 'lucide-react'
+import { Link } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { components } from '@/lib/api-types'
 import { employeeKeys } from '@/lib/queryKeys'
@@ -30,7 +31,7 @@ const FIELD_LABELS: Record<string, string> = {
 }
 
 // `version` changes on every write and `manager_id`/`deleted_at` are
-// already rendered by the dedicated reassignment/delete/restore actions —
+// already rendered by the dedicated reassignment/delete/restore actions -
 // showing them again in the generic field diff would be noise.
 const DIFF_IGNORED_FIELDS = new Set(['version', 'manager_id', 'deleted_at'])
 
@@ -43,7 +44,7 @@ function changedFields(before: Snapshot, after: Snapshot): string[] {
 }
 
 function formatFieldValue(field: string, value: unknown, currency: string): string {
-  if (value === null || value === undefined) return '—'
+  if (value === null || value === undefined) return '-'
   if (field === 'birth_date') return formatDate(String(value))
   if (field === 'salary') return formatCurrency(String(value), currency)
   return String(value)
@@ -59,7 +60,19 @@ function actionLabel(entry: AuditLogEntry, fields: string[]): string {
   return `${displayFields.join(', ')} updated`
 }
 
-function AuditEntry({ entry }: { entry: AuditLogEntry }) {
+/** Exported so the global change-history feed (§ global audit feed) can
+ * render the exact same entry, just with an employee name/link prefixed —
+ * the per-employee page already has that from context, the global one
+ * doesn't. */
+export function AuditEntry({
+  entry,
+  employeeName,
+  employeeId,
+}: {
+  entry: AuditLogEntry
+  employeeName?: string
+  employeeId?: string
+}) {
   const currency =
     (entry.after?.currency as string | undefined) ??
     (entry.before?.currency as string | undefined) ??
@@ -71,6 +84,17 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
     <li className="flex flex-col gap-1.5 border-b border-border py-3 last:border-none">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-semibold text-foreground">
+          {employeeName && employeeId && (
+            <>
+              <Link
+                to={`/employees/${employeeId}`}
+                className="text-brand-mid underline underline-offset-2"
+              >
+                {employeeName}
+              </Link>
+              <span className="font-normal text-muted-foreground"> — </span>
+            </>
+          )}
           {actionLabel(entry, fields)}
         </span>
         {entry.salary_changed && (
@@ -119,7 +143,7 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
 }
 
 /** `GET /employees/{id}/audit`, rendered per the style guide's audit-item
- * pattern (§ audit timeline). Open to every role — a viewer sees that
+ * pattern (§ audit timeline). Open to every role - a viewer sees that
  * salary changed, via `salary_changed` and the "Values restricted" tag,
  * never the value: the API never puts the key in `before`/`after` for
  * them in the first place, so there is nothing here to hide client-side. */

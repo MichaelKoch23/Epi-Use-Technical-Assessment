@@ -85,7 +85,7 @@ Three decisions shape the design, and the rest of this document justifies them:
 | FR-13 | RBAC dependency + response schema selection | `test_salary_redaction.py` |
 | FR-14 | `AuditLog` written inside the unit of work | `test_audit_trail.py` |
 | FR-15 | `POST /imports/employees`, `GET /exports/employees.csv` | `test_import.py`, `test_export.py` |
-| FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` — `cost` field-gated to `hr_admin` (§9.3), not endpoint-gated | `test_analytics.py` |
+| FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` - `cost` field-gated to `hr_admin` (§9.3), not endpoint-gated | `test_analytics.py` |
 
 ---
 
@@ -472,7 +472,7 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `PUT` | `/employees/{id}/manager` | Reassign reporting line | Admin |
 | `GET` | `/employees/{id}/subtree` | Descendants to `?depth=` | Viewer |
 | `GET` | `/employees/{id}/reporting-line` | Ancestor chain to the root | Viewer |
-| `GET` | `/employees/{id}/audit` | Change history for one employee | Admin |
+| `GET` | `/employees/{id}/audit` | Change history for one employee | Viewer (`salary` values field-gated to Admin, §9.3) |
 | `GET` | `/hierarchy/roots` | Employees with no manager | Viewer |
 | `GET` | `/hierarchy/tree` | Chart-shaped payload, lazily expandable | Viewer |
 | `GET` | `/analytics/org-summary` | Headcount, depth, span-of-control, anomalies | Viewer |
@@ -480,6 +480,7 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `POST` | `/imports/employees` | CSV/XLSX upload; `?dry_run=true` validates only | Admin |
 | `GET` | `/exports/employees.csv` | Full extract honouring current filters | Viewer |
 | `GET` | `/search` | Cross-entity quick search for the command palette | Viewer |
+| `GET` | `/audit` | Global change-history feed across every employee | Viewer (`salary` values field-gated to Admin, §9.3) |
 | `GET` | `/health` | Liveness and database reachability | Public |
 
 ### 6.3 List query contract
@@ -605,31 +606,44 @@ Gravatar also exposes a public profile API. When an administrator enters an emai
 
 ### 9.1 Authentication
 
-Email and password, with **Argon2id** hashing (memory-hard, and the current OWASP recommendation over bcrypt for new systems). Short-lived JWT access tokens (15 minutes) with rotating refresh tokens. Tokens are signed with HS256 using a secret held in Google Secret Manager and injected at container start; it is never committed to the repository and never baked into the image.
+Email and password, with **Argon2id** hashing (memory-hard, and the current OWASP recommendation over bcrypt for new systems). Tokens are signed with HS256 using a secret held in Google Secret Manager and injected at container start; it is never committed to the repository and never baked into the image. The application refuses to start if that secret is absent or shorter than 32 characters, so a misconfigured deployment fails loudly instead of serving traffic with a guessable signing key.
+
+The token pair is deliberately asymmetric:
+
+- **Access tokens** live 15 minutes and are verified *statelessly* - signature, expiry and type, with one lookup to load the current role. Nothing about them can be revoked, which is precisely why they are short.
+- **Refresh tokens** live seven days and are verified *statefully*, against a `refresh_token` row named by the token's `jti`. A signature can prove a token was minted here; only server-side state can answer whether it is still meant to work.
+
+That state is what makes rotation more than a word. Each refresh spends the presented token and issues a successor, chained through `replaced_by`. Presenting an **already spent** token means two parties hold the same credential and there is no way to tell which one is calling - so the whole chain is revoked and both are forced back through the password. A stolen refresh token therefore buys an attacker access only until the legitimate client's next refresh, rather than the remainder of the seven days. `POST /auth/logout` revokes the presented token for the same reason: clearing the browser's copy of a credential is not the same as ending the session, and only the second is a security property.
 
 ### 9.2 Authorisation
 
 Two roles, kept deliberately minimal:
 
-| Role | Read employees | Read salary | Write | Import/export | Audit log |
-|---|---|---|---|---|---|
-| `viewer` | ✓ | ✗ | ✗ | Export only | ✗ |
-| `hr_admin` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Role | Read employees | Read salary | Write | Import | Export | Audit log |
+|---|---|---|---|---|---|---|
+| `viewer` | ✓ | ✗ | ✗ | ✗ | ✓ (no salary column) | ✓ (salary values stripped) |
+| `hr_admin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-Authorisation is a route-level dependency, so an endpoint cannot be added without a policy decision being made explicitly.
+A viewer *can* read the change history. Knowing that a record was edited, by whom and when is an accountability property worth more than the small amount it reveals, and the salary values themselves are removed from those payloads by the same role check that removes them everywhere else - a viewer sees `salary_changed: true`, never the figures. This is a deliberate choice rather than an oversight, and it is recorded here because the two must not drift apart.
+
+Authorisation is a route-level dependency, so an endpoint cannot be added without a policy decision being made explicitly. `tests/test_api_contract.py` enumerates every route and drives it over real HTTP as an anonymous caller, as a forged-token caller and as a viewer, so "this route forgot its policy" is a test failure rather than a code review's responsibility.
 
 ### 9.3 Salary confidentiality
 
-Salary is the one field in this dataset with genuine confidentiality weight, and it is handled as a **field-level authorisation** concern rather than a UI concern. The API selects a different response schema by role: for a `viewer` the salary key is **absent from the payload**, not null and not masked. Nothing that reaches an unauthorised client ever contains the value, so no amount of inspecting network traffic reveals it. Salary-based filters and sorts are likewise rejected for viewers, since either would allow the value to be inferred by binary search.
+Salary is the one field in this dataset with genuine confidentiality weight, and it is handled as a **field-level authorisation** concern rather than a UI concern. The API selects a different response schema by role: for a `viewer` the salary key is **absent from the payload**, not null and not masked. Nothing that reaches an unauthorised client ever contains the value, so no amount of inspecting network traffic reveals it. Salary-based filters and sorts are likewise rejected for viewers, since either would allow the value to be inferred by binary search. That guard (`require_salary_access`) is applied by the CSV export as well as the list endpoint, and for exactly the same reason: the export accepts the identical `min_salary`/`max_salary`/`sort` parameters, so withholding the *column* while still answering "who earns more than X" would leak every figure in a handful of requests. One shared function rather than two copies, so the two endpoints cannot diverge.
 
 ### 9.4 Input handling
 
 - All request bodies are parsed and validated by Pydantic models at the boundary; unknown fields are rejected rather than ignored.
 - All database access goes through SQLAlchemy with bound parameters. Identifiers that cannot be bound - sort columns - are resolved through an allow-list (§6.3).
 - React escapes rendered content by default; `dangerouslySetInnerHTML` appears nowhere in the codebase.
-- Because the SPA and the API share an origin, CORS is disabled entirely in production rather than configured permissively. It is enabled only for `localhost` in development.
-- Rate limiting is applied to authentication endpoints to blunt credential stuffing.
-- Security headers (HSTS, `X-Content-Type-Options`, a restrictive CSP allowing `gravatar.com` as an image source) are set by application middleware, so they travel with the container rather than living in platform configuration that a redeployment elsewhere would lose.
+- Beyond presence and type, the write schemas bound every field: name and position lengths (the columns are `TEXT`, so without this one request can push arbitrary megabytes into a row), a salary ceiling matching `NUMERIC(12, 2)`, a birth date that must be past and after 1900, a three-letter currency, and an avatar URL restricted to absolute `http(s)`. These restate rules the database already enforces so that a bad input is a 422 naming the field rather than an `IntegrityError` surfacing as a 500.
+- Uploaded import files are read against a size cap rather than buffered whole, and the parsers bound row and field counts, so a small compressed workbook cannot expand into an out-of-memory condition.
+- CSV exports neutralise leading `=`, `+`, `-` and `@` so a crafted employee name cannot execute as a formula in whoever's spreadsheet opens the download (CSV injection, CWE-1236).
+- Because the SPA and the API share an origin, CORS is configured with an explicit origin allow-list rather than a wildcard; `*` is rejected at startup, since the API is served with `allow_credentials=True`. In production the list is the deployed origin only; in development it is `localhost`.
+- Rate limiting is applied to authentication endpoints to blunt credential stuffing. It keys on the client address as rewritten from `X-Forwarded-For` by uvicorn's `--proxy-headers`; without that the container sees only Cloud Run's ingress address and the limiter would collapse into a single global bucket - useless against one attacker and a denial of service against everyone else.
+- Security headers (HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a restrictive CSP allowing `https:` image sources for Gravatar and avatar overrides) are set by application middleware, so they travel with the container rather than living in platform configuration that a redeployment elsewhere would lose. The CSP matters more than usual here: the access token lives in the SPA's `localStorage`, so it is exactly as reachable as any script the page runs, and `script-src 'self'` is what keeps that set to none.
+- The interactive API docs (`/docs`, `/openapi.json`) are served in development only. They enumerate every route, parameter and schema, which is a convenience in development and a reconnaissance aid in production.
 
 ### 9.5 POPIA alignment
 
@@ -649,7 +663,9 @@ This is a design-level alignment, not a compliance certification - a distinction
 
 ### 9.6 Audit trail
 
-Every create, update, delete, restore and reassignment writes an `audit_log` row containing the actor, the action, and before/after JSON snapshots, inside the same transaction as the change itself. Either both commit or neither does, so the audit log cannot disagree with the data. It is exposed as a per-employee timeline in the UI.
+Every create, update, delete, restore and reassignment writes an `audit_log` row containing the actor, the action, and before/after JSON snapshots, inside the same transaction as the change itself. Either both commit or neither does, so the audit log cannot disagree with the data. It is exposed as a per-employee timeline and as a global feed in the UI.
+
+Both feeds order by `occurred_at DESC, id DESC`. The tiebreaker is load-bearing rather than cosmetic: `occurred_at` defaults to `now()`, which in PostgreSQL is the *transaction* start time, so every row written by one request - a cascade delete, a bulk import - carries a byte-identical timestamp. Ordering on the timestamp alone leaves tied rows in whatever order the executor returns them, and `LIMIT`/`OFFSET` then slices that inconsistently between requests: an entry appears on two pages while another is never shown at all. A unique tiebreaker makes the total order stable, and an index matching that exact ordering keeps the read from scanning a table that only ever grows.
 
 ---
 
@@ -750,20 +766,24 @@ With minimum instances set to zero, the first request after an idle period pays 
 
 ## 11. Testing strategy
 
-| Level | Tooling | Scope |
-|---|---|---|
-| Unit | pytest | Domain rules, deletion policies, Gravatar hashing, validators |
-| Integration | pytest + testcontainers (real PostgreSQL) | Repositories, recursive CTEs, constraints, triggers |
-| API contract | pytest + `httpx.AsyncClient` | Status codes, problem documents, RBAC, salary redaction |
-| Concurrency | pytest with parallel sessions | Cycle prevention and optimistic-lock conflicts |
-| Frontend unit | Vitest + Testing Library | Hooks, formatters, form validation |
-| End-to-end | Playwright | Login, create, reassign by drag, filter, delete, export |
+| Level | Tooling | Scope | Status |
+|---|---|---|---|
+| Unit | pytest | Domain rules, deletion policies, import validation, field validators | Implemented |
+| Integration | pytest + testcontainers (real PostgreSQL) | Repositories, recursive CTEs, constraints, triggers | Implemented |
+| API contract | pytest + `httpx.AsyncClient` over ASGI | Status codes, RBAC on every route, salary redaction, transport headers | Implemented |
+| Concurrency | pytest with parallel sessions | Cycle prevention and optimistic-lock conflicts | Implemented |
+| Frontend unit | Vitest + Testing Library | Analytics presentation components | Partial - thin relative to the backend |
+| End-to-end | Playwright | Login, create, reassign by drag, filter, delete, export | **Not implemented** |
 
 Integration tests run against real PostgreSQL rather than SQLite, because the behaviour under test - recursive CTEs, deferred constraint triggers, partial indexes, `NUMERIC` semantics - does not exist in SQLite. A test suite that passes against a database the application never uses tests the wrong thing.
 
+The last two rows are stated as they are rather than quietly omitted. There is no browser-level suite, so the drag-to-reassign interaction and the export download are covered by their API endpoints and by manual verification, not by an automated end-to-end path; and the frontend's own tests cover presentation components rather than the hooks that hold URL and query state. Both are the honest next pieces of work, and naming them is more useful to a reader than a table that implies coverage the repository does not contain.
+
+**The two-level split on the backend is deliberate, and was not free.** Most tests call a router *function* directly with a `Principal` passed in, which is fast and precise for business logic but bypasses FastAPI entirely - dependency wiring, `response_model` serialisation and status codes are all assumed rather than exercised. A route that simply forgot its `Depends(require_role(...))` looks identical from inside the function. The contract suite closes that by driving the real ASGI app, and it earns its keep: it is the level at which "every route rejects an anonymous caller" and "no endpoint accepts a salary filter from a viewer" can be asserted once, over the whole route table, instead of being re-checked by hand each time a route is added.
+
 The **cycle-prevention matrix** is treated as the flagship test: self-assignment, direct inversion (A↔B), indirect cycles at depths 2 through 5, reassignment to an unrelated branch (must succeed), reassignment to `NULL` (must succeed), and two concurrent inverse reassignments in separate transactions (exactly one must fail).
 
-Because the deployable unit is a container, the end-to-end suite runs against the actual production image - built once, tested, then promoted - rather than against a separately assembled test build.
+Because the deployable unit is a container, `scripts/check.sh` finishes by building the actual production image, so a change that passes every test but breaks the build is still caught before it is promoted.
 
 ---
 
@@ -843,9 +863,11 @@ Stated plainly, because a design document that claims no limitations is not desc
 3. **Two roles only.** Real HR access control is usually scoped to organisational units, so a manager sees their own branch. That needs subtree-scoped authorisation.
 4. **No multi-tenancy.** A single organisation is assumed.
 5. **Single-parent hierarchy.** Matrix reporting (a solid-line and a dotted-line manager) would require a separate edge table and turns the tree into a DAG, with correspondingly harder cycle rules.
-6. **Refresh tokens are not revocable before expiry** without a denylist store, which is acceptable at this scale but would not be in production.
+6. **Login rate limiting is in-process.** The counter lives in one container's memory, so it blunts a single attacker against a single instance but is not shared across Cloud Run instances the way the reporting-cycle invariant is shared at the database layer. A Redis-backed counter is the upgrade path. Refresh-token revocation, which had the same shape as a limitation, is now backed by the `refresh_token` table (§9.1) rather than left to expiry.
 7. **Audit log grows unbounded.** Partitioning by month and archiving would be needed at volume.
 8. **Data residency is outside South Africa** for this deployment, with the in-country path documented in §10.2 but not taken.
+9. **Access tokens cannot be revoked mid-life.** A role downgrade or a forced sign-out takes effect when the current 15-minute access token expires, not instantly. Making it instant means checking server state on every request, which is the cost the stateless-access/stateful-refresh split exists to avoid; 15 minutes is the chosen bound on that window.
+10. **No browser-level end-to-end suite** (§11).
 
 ---
 

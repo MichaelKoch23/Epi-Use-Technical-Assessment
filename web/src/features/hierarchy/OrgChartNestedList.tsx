@@ -38,7 +38,7 @@ function HierarchyBranch({
 }
 
 /**
- * The accessible, keyboard-navigable equivalent of the chart — a plain
+ * The accessible, keyboard-navigable equivalent of the chart - a plain
  * nested list, reachable from the chart toolbar, and also the print
  * layout (§ accessibility requirements: "It is not a fallback - it is a
  * supported view").
@@ -54,7 +54,7 @@ export function OrgChartNestedList({
 
   return (
     <div className={cn('org-chart-list', className)}>
-      <h2 className="font-display text-lg font-semibold">Org chart — list view</h2>
+      <h2 className="font-display text-lg font-semibold">Org chart - list view</h2>
       {isLoading && <p className="text-sm text-muted-foreground">Loading hierarchy…</p>}
       {isError && (
         <p role="alert" className="text-sm text-status-critical">

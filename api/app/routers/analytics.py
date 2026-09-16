@@ -1,4 +1,4 @@
-"""`/api/v1/analytics/*` — the org-structure dashboard (§ analytics). Both
+"""`/api/v1/analytics/*` - the org-structure dashboard (§ analytics). Both
 routes are viewer-accessible; the `cost` object is field-level gated
 (§9.3) rather than the endpoint being admin-only, the same pattern
 `to_employee_read` already applies everywhere else."""

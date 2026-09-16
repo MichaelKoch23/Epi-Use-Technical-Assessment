@@ -1,7 +1,7 @@
 """§5.4: concurrent edits must not silently overwrite one another. The
 router layer (not built yet) maps `VersionConflictError` to `409
 Conflict`; this test is the service-layer guarantee that error is built
-on — two writes that both read the same version, the second of which
+on - two writes that both read the same version, the second of which
 must be rejected rather than clobbering the first.
 """
 

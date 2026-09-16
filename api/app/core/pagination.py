@@ -1,5 +1,5 @@
 """Pagination, sorting and filtering as FastAPI dependencies. `PageParams`
-is generic — any list endpoint can depend on it. `EmployeeSortParams` and
+is generic - any list endpoint can depend on it. `EmployeeSortParams` and
 `EmployeeFilterParams` are `employee`-specific (the sortable-column
 allow-list and filter fields are resource-specific) but follow the same
 shape, so another resource's router can add its own pair the same way."""

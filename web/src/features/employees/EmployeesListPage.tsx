@@ -73,7 +73,7 @@ export function EmployeesListPage() {
 
   // Tracks the last value *this component* pushed into the URL, so the
   // sync-back effect below can tell "the URL caught up with what I just
-  // typed" (ignore — `state.q` update lags a render behind `applyFilters`,
+  // typed" (ignore - `state.q` update lags a render behind `applyFilters`,
   // and treating that echo as external would overwrite a newer local edit)
   // from "the URL changed for some other reason, e.g. the back button"
   // (apply it).

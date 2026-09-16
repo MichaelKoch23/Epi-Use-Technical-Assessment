@@ -148,11 +148,11 @@ export async function fetchEmployee(id: string) {
   return data
 }
 
-/** `GET /exports/employees.csv` — a plain `fetch` with the bearer token
+/** `GET /exports/employees.csv` - a plain `fetch` with the bearer token
  * attached by hand, same as the import upload, since the response is a
  * file download rather than JSON the generated client expects. Honours
  * whatever filters/sort are currently applied on the list page, minus
- * pagination — the export is always the full filtered set. */
+ * pagination - the export is always the full filtered set. */
 export async function exportEmployeesCsv(filters: EmployeeListFilters): Promise<void> {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(filters)) {

@@ -11,7 +11,7 @@ async function fetchReportingLine(id: string) {
   return data
 }
 
-/** `/employees/{id}/reporting-line`, rendered root-first as a breadcrumb —
+/** `/employees/{id}/reporting-line`, rendered root-first as a breadcrumb -
  * the ancestor chain above a selected employee. Also used as the "expand
  * ancestors" data source for search and focus mode. */
 export function ReportingLineBreadcrumb({

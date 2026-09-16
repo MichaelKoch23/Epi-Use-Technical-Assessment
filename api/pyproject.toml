@@ -31,7 +31,7 @@ dev = [
 [tool.ruff.lint]
 # B008 ("function call in default argument") flags FastAPI's own
 # Depends()/Query()/Header()/Body() dependency-injection idiom, which is
-# inherently a call in a default — not the mutable-default-argument bug
+# inherently a call in a default - not the mutable-default-argument bug
 # the rule exists for. Ignored project-wide since every router uses it.
 ignore = ["B008"]
 

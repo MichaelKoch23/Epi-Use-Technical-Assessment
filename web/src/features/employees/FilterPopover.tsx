@@ -8,7 +8,7 @@ import { ManagerPicker } from './ManagerPicker'
 import type { EmployeesFilterState } from './useEmployeesViewState'
 
 // The popover never touches `q` (the search bar owns that field), so its
-// draft excludes it — applying the draft as a whole must not be able to
+// draft excludes it - applying the draft as a whole must not be able to
 // clobber a search the user has already typed or cleared elsewhere.
 type PopoverFilterState = Omit<EmployeesFilterState, 'q'>
 
@@ -46,7 +46,7 @@ export function FilterPopover({
       open={open}
       onOpenChange={(next) => {
         // Reset the draft from the applied filters right as it opens,
-        // rather than in an effect — this is the event that should own it.
+        // rather than in an effect - this is the event that should own it.
         if (next) setDraft(toPopoverState(filters))
         setOpen(next)
       }}

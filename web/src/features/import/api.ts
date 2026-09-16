@@ -6,7 +6,7 @@ export type ImportResult = components['schemas']['ImportResult']
 export type ImportRowResult = components['schemas']['ImportRowResult']
 
 /** `POST /imports/employees` takes `multipart/form-data`, which the
- * generated `openapi-fetch` client handles awkwardly — a plain `fetch`
+ * generated `openapi-fetch` client handles awkwardly - a plain `fetch`
  * with the bearer token attached by hand is the same fallback
  * `apiClient.ts` itself already uses for `/auth/refresh`. */
 export async function importEmployees(file: File, dryRun: boolean): Promise<ImportResult> {
@@ -30,7 +30,7 @@ function csvCell(value: string | null | undefined): string {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
-/** A client-built CSV of just the blocked rows — the same report a dry
+/** A client-built CSV of just the blocked rows - the same report a dry
  * run's "download error report" button offers, so a user can fix their
  * source file without re-reading the whole dry-run table row by row. */
 export function blockedRowsToCsv(rows: ImportRowResult[]): string {

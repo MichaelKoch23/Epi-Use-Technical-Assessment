@@ -15,7 +15,7 @@ import { EmptyState } from './EmptyState'
 
 type Anomalies = OrgSummary['anomalies']
 
-// Entries beyond this are hidden behind "and N more" — the panel never
+// Entries beyond this are hidden behind "and N more" - the panel never
 // shows more than `anomalies.*` already contains (itself capped server-side
 // at `ANOMALY_LIST_LIMIT`, §1.3), just fewer of them at once.
 const INLINE_LIMIT = 5

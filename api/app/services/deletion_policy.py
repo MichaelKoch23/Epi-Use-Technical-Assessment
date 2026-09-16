@@ -27,7 +27,7 @@ class DeletionPolicy(Protocol):
     silently by the UI without the caller having seen `affected` first."""
 
     async def affected(self, employee_id: uuid.UUID) -> Sequence[Employee]:
-        """Employees this policy would touch, without writing anything —
+        """Employees this policy would touch, without writing anything -
         the preview a destructive delete requires before confirmation."""
         ...
 
@@ -46,7 +46,26 @@ class _BaseDeletionPolicy:
         self._employees = EmployeeService(session)
 
     async def _get_or_raise(self, employee_id: uuid.UUID) -> Employee:
+        """Read-only lookup, for `affected()`'s preview."""
         employee = await self._repo.get(employee_id)
+        if employee is None:
+            raise EmployeeNotFound(employee_id)
+        return employee
+
+    async def _lock_or_raise(self, employee_id: uuid.UUID) -> Employee:
+        """The same lookup, but taking the row lock first - for `apply()`.
+
+        Deletion reads the target's direct reports and then soft-deletes
+        the target, and the two steps are not atomic on their own under
+        READ COMMITTED. A reassignment committing in that gap points a
+        fresh report at a manager this transaction is about to delete:
+        the report stays active but is no longer reachable from any root,
+        so it vanishes from the org chart while still appearing in the
+        list. Locking the target makes the concurrent reassignment - which
+        takes the same lock in `ReassignmentService` - wait and then fail
+        its own `deleted_at IS NULL` check instead.
+        """
+        employee = await self._repo.get_for_update(employee_id)
         if employee is None:
             raise EmployeeNotFound(employee_id)
         return employee
@@ -88,7 +107,7 @@ class Reparent(_BaseDeletionPolicy):
     async def apply(
         self, employee_id: uuid.UUID, *, actor_id: uuid.UUID
     ) -> DeletionResult:
-        target = await self._get_or_raise(employee_id)
+        target = await self._lock_or_raise(employee_id)
         reports = await self._repo.get_direct_reports(employee_id)
 
         await self._reassign_reports(reports, target.manager_id, actor_id=actor_id)
@@ -107,7 +126,7 @@ class PromoteToRoot(_BaseDeletionPolicy):
     async def apply(
         self, employee_id: uuid.UUID, *, actor_id: uuid.UUID
     ) -> DeletionResult:
-        await self._get_or_raise(employee_id)
+        await self._lock_or_raise(employee_id)
         reports = await self._repo.get_direct_reports(employee_id)
 
         await self._reassign_reports(reports, None, actor_id=actor_id)
@@ -116,7 +135,7 @@ class PromoteToRoot(_BaseDeletionPolicy):
 
 
 class Cascade(_BaseDeletionPolicy):
-    """The entire subtree — the employee and every descendant — is
+    """The entire subtree - the employee and every descendant - is
     soft-deleted. The UI must show `affected` and get explicit
     confirmation before calling `apply` with this policy (§5.3)."""
 
@@ -128,6 +147,7 @@ class Cascade(_BaseDeletionPolicy):
     async def apply(
         self, employee_id: uuid.UUID, *, actor_id: uuid.UUID
     ) -> DeletionResult:
+        await self._lock_or_raise(employee_id)
         subtree = await self.affected(employee_id)
         deleted = [
             await self._employees.soft_delete(employee.id, actor_id=actor_id)
@@ -138,6 +158,6 @@ class Cascade(_BaseDeletionPolicy):
 
 async def preview(employee_id: uuid.UUID, policy: DeletionPolicy) -> Sequence[Employee]:
     """The affected employees for `policy` applied to `employee_id`,
-    without writing anything — the confirmation step the UI shows before
+    without writing anything - the confirmation step the UI shows before
     a destructive delete (§5.3)."""
     return await policy.affected(employee_id)

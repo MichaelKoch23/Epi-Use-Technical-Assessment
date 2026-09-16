@@ -11,7 +11,7 @@ export interface HierarchyTreeNode {
 
 /**
  * The full hierarchy, independent of whatever the interactive chart has
- * lazily loaded or the user has collapsed — the nested-list view is a
+ * lazily loaded or the user has collapsed - the nested-list view is a
  * first-class equivalent (§ accessibility: "not a fallback"), so it fetches
  * each root's entire subtree rather than being gated by chart state.
  */

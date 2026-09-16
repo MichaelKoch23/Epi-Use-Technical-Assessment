@@ -20,7 +20,7 @@ function AvatarImage({ avatarUrl, fallback }: { avatarUrl: string; fallback: str
 
 /**
  * Renders whatever `avatarUrl` the API resolved (uploaded override, else a
- * Gravatar image — see `avatars.py`), falling back to initials on
+ * Gravatar image - see `avatars.py`), falling back to initials on
  * `--brand-steel` if that URL 404s. Decorative (`alt=""`): the name always
  * sits next to the avatar, so a failed load never leaves a broken image.
  */

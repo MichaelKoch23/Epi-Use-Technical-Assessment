@@ -10,7 +10,7 @@ export type EmployeeListFilters = NonNullable<
 /**
  * `list` takes the whole filter object as part of the key, so changing
  * any filter, sort or page is a cache lookup rather than a manual
- * refetch — the query invalidation model described in §7.2.
+ * refetch - the query invalidation model described in §7.2.
  */
 export const employeeKeys = {
   all: ['employees'] as const,
@@ -33,4 +33,13 @@ export const hierarchyKeys = {
 export const analyticsKeys = {
   orgSummary: () => ['analytics', 'org-summary'] as const,
   branch: (employeeId: string) => ['analytics', 'branch', employeeId] as const,
+}
+
+export const searchKeys = {
+  results: (q: string) => ['search', q] as const,
+}
+
+export const globalAuditKeys = {
+  all: ['audit', 'global'] as const,
+  page: (page: number) => [...globalAuditKeys.all, page] as const,
 }

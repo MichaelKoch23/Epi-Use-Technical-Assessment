@@ -1,7 +1,7 @@
 """Principal resolution for the API layer (§9.1/§9.2).
 
 `get_current_principal` verifies a JWT access token (`POST /auth/login`
-issues it) and loads the `app_user` row it names — a role change takes
+issues it) and loads the `app_user` row it names - a role change takes
 effect the moment that token expires, rather than being cached for its
 lifetime. `require_role` is the route-level authorisation dependency
 (§9.2): "an endpoint cannot be added without a policy decision being

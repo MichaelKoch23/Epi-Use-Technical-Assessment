@@ -1,6 +1,6 @@
 """`GET /hierarchy/roots` powers the org chart's initial fetch (§7.3): the
 forest of employees with no manager. Exercised at the router-function level,
-like the other service/repository tests here — the app's own `get_db`
+like the other service/repository tests here - the app's own `get_db`
 dependency binds to the real configured `DATABASE_URL`, not the ephemeral
 testcontainer these fixtures use, so hitting the endpoint over HTTP would
 talk to the wrong database entirely."""

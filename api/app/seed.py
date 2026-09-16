@@ -4,7 +4,7 @@ Usage:
     uv run python -m app.seed [--employees 250] [--reset]
 
 Every row is written through `EmployeeService`, the same path the API
-uses — no data is inserted directly, so uniqueness, the version column
+uses - no data is inserted directly, so uniqueness, the version column
 and the audit trail are all exercised exactly as they would be for a
 real request (Appendix A: "no data is mocked, hardcoded or read from
 local files at runtime").
@@ -32,7 +32,7 @@ from app.services.employee_service import EmployeeService
 
 SEED_ACTOR_EMAIL = "seed@employee.example.com"
 
-# Real, loggable-in demo accounts (§9 — "these go in the submission
+# Real, loggable-in demo accounts (§9 - "these go in the submission
 # email"), distinct from `SEED_ACTOR_EMAIL` above, which only exists to
 # satisfy the audit log's actor FK for synthetic seed data and was never
 # meant to be a real login.
@@ -212,7 +212,7 @@ async def _ensure_seed_actor(session: AsyncSession) -> uuid.UUID:
 
 async def _ensure_demo_accounts(session: AsyncSession) -> None:
     """Create (or repassword) the two accounts named in the submission
-    email — safe to re-run: an existing row just gets its hash refreshed
+    email - safe to re-run: an existing row just gets its hash refreshed
     rather than erroring on the unique email constraint."""
     for email, password, role in DEMO_ACCOUNTS:
         existing = (
@@ -305,7 +305,7 @@ async def seed(target: int, *, reset: bool) -> None:
                         total += 1
 
             await session.commit()
-            print(f"  {dept['exec_title']} branch done — {total} employees so far")
+            print(f"  {dept['exec_title']} branch done - {total} employees so far")
 
         print(f"seed complete: {total} employees (target was ~{target})")
 

@@ -51,7 +51,7 @@ class AnomaliesRead(BaseModel):
 
 
 class CostSummaryRead(BaseModel):
-    """Admin-only (§9.3) — never a field on the `*Restricted` schemas below,
+    """Admin-only (§9.3) - never a field on the `*Restricted` schemas below,
     so it's absent from a viewer's payload entirely, not null."""
 
     total_annual: Decimal
@@ -76,14 +76,14 @@ class _OrgSummaryBase(BaseModel):
 
 
 class OrgSummaryRead(_OrgSummaryBase):
-    """`hr_admin` representation — includes the cost roll-up."""
+    """`hr_admin` representation - includes the cost roll-up."""
 
     cost: CostSummaryRead
 
 
 class OrgSummaryReadRestricted(_OrgSummaryBase):
     """`viewer` representation. `cost` is not a field here at all, so it's
-    absent from the serialised payload — never null, never masked."""
+    absent from the serialised payload - never null, never masked."""
 
 
 OrgSummaryReadAny = OrgSummaryRead | OrgSummaryReadRestricted

@@ -81,7 +81,6 @@ export function SummaryStatGrid({
           label="Maximum depth"
           value={String(data.max_depth)}
           meta={maxDepthCaution ? 'Deeper than usual' : undefined}
-          caution={maxDepthCaution}
         />
         <StatCard
           label="Avg. span of control"

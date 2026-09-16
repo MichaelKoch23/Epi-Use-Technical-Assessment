@@ -17,7 +17,7 @@ from app.models.employee import Employee
 
 @dataclass(frozen=True, slots=True)
 class AuditLogRow:
-    """One audit entry plus the actor's email — resolved in the same
+    """One audit entry plus the actor's email - resolved in the same
     query rather than pushed onto the caller, mirroring how
     `EmployeeRepository.list` already merges a manager's display name onto
     each row instead of leaving that join to the router."""
@@ -54,9 +54,20 @@ def snapshot_employee(employee: Employee) -> dict[str, Any]:
     }
 
 
+# `occurred_at` defaults to `now()`, which in Postgres is the *transaction*
+# start time - so every audit row a single request writes (a cascade delete,
+# a bulk import) carries a byte-identical timestamp. Ordering on it alone
+# leaves tied rows in whatever order the executor happens to return, which
+# LIMIT/OFFSET then slices inconsistently between two requests: the same
+# entry shows up on page 1 and page 2, and some other entry is never shown
+# at all. `id` is the unique tiebreaker that makes the total order stable.
+def _newest_first() -> tuple[Any, Any]:
+    return AuditLog.occurred_at.desc(), AuditLog.id.desc()
+
+
 class AuditService:
     """Writes `audit_log` rows. Every method here only adds to the
-    session it was given and flushes — it never opens or commits a
+    session it was given and flushes - it never opens or commits a
     transaction of its own, so the audit row lives or dies with whatever
     change the caller is making in the same unit of work (§9.6)."""
 
@@ -93,13 +104,33 @@ class AuditService:
             .where(AuditLog.employee_id == employee_id)
         )
         list_stmt = (
-            base.order_by(AuditLog.occurred_at.desc())
+            base.order_by(*_newest_first())
             .limit(page_size)
             .offset((page - 1) * page_size)
         )
         count_stmt = select(func.count()).select_from(
             select(AuditLog.id).where(AuditLog.employee_id == employee_id).subquery()
         )
+
+        rows = (await self._session.execute(list_stmt)).all()
+        total = (await self._session.execute(count_stmt)).scalar_one()
+        items = [AuditLogRow(entry=entry, actor_email=email) for entry, email in rows]
+        return items, total
+
+    async def list_all(
+        self, *, page: int = 1, page_size: int = 50
+    ) -> tuple[Sequence[AuditLogRow], int]:
+        """Change history across every employee, newest first - the feed
+        behind the topbar's "Change history" button (§ global audit feed)."""
+        base = select(AuditLog, AppUser.email).join(
+            AppUser, AppUser.id == AuditLog.actor_id
+        )
+        list_stmt = (
+            base.order_by(*_newest_first())
+            .limit(page_size)
+            .offset((page - 1) * page_size)
+        )
+        count_stmt = select(func.count()).select_from(AuditLog)
 
         rows = (await self._session.execute(list_stmt)).all()
         total = (await self._session.execute(count_stmt)).scalar_one()

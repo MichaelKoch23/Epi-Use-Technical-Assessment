@@ -5,38 +5,61 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field
 
 from app.core.avatars import resolve_avatar_url
+from app.schemas.fields import (
+    AvatarOverrideUrl,
+    BirthDate,
+    Currency,
+    Email,
+    EmployeeNumber,
+    PersonName,
+    Position,
+    Salary,
+)
 
 
 class EmployeeCreate(BaseModel):
-    employee_number: str
-    first_name: str
-    last_name: str
-    email: str
-    birth_date: date
-    position: str
-    salary: Decimal = Field(ge=0)
-    currency: str = "ZAR"
+    # `extra="forbid"` so a typo'd or renamed field is a 422 naming the
+    # unknown key, rather than a silently ignored write the caller
+    # believes succeeded.
+    model_config = ConfigDict(extra="forbid")
+
+    employee_number: EmployeeNumber
+    first_name: PersonName
+    last_name: PersonName
+    email: Email
+    birth_date: BirthDate
+    position: Position
+    salary: Salary
+    currency: Currency = "ZAR"
     manager_id: uuid.UUID | None = None
-    avatar_override_url: str | None = None
+    avatar_override_url: AvatarOverrideUrl = None
 
 
 class EmployeeUpdate(BaseModel):
-    """Partial update — every field optional. `manager_id` deliberately
+    """Partial update - every field optional. `manager_id` deliberately
     absent: reassignment is `PUT /employees/{id}/manager` (§6.1), not a
-    general PATCH field, because it carries its own invariant."""
+    general PATCH field, because it carries its own invariant.
 
-    employee_number: str | None = None
-    first_name: str | None = None
-    last_name: str | None = None
-    email: str | None = None
-    birth_date: date | None = None
-    position: str | None = None
-    salary: Decimal | None = Field(default=None, ge=0)
-    currency: str | None = None
-    avatar_override_url: str | None = None
+    Every field that *is* here is `Optional` only in the "may be omitted"
+    sense - `exclude_unset=True` in the router means an omitted field is
+    never passed on. None of them accept an explicit `null` except
+    `avatar_override_url`, which is the one column that is genuinely
+    nullable."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    employee_number: EmployeeNumber | None = None
+    first_name: PersonName | None = None
+    last_name: PersonName | None = None
+    email: Email | None = None
+    birth_date: BirthDate | None = None
+    position: Position | None = None
+    salary: Salary | None = None
+    currency: Currency | None = None
+    avatar_override_url: AvatarOverrideUrl = None
 
 
 class ManagerReassignRequest(BaseModel):
@@ -70,14 +93,14 @@ class _EmployeeReadBase(BaseModel):
 
 
 class EmployeeRead(_EmployeeReadBase):
-    """Full representation — `hr_admin` only (§9.3)."""
+    """Full representation - `hr_admin` only (§9.3)."""
 
     salary: Decimal
 
 
 class EmployeeReadRestricted(_EmployeeReadBase):
     """`viewer` representation. `salary` is not a field here at all, so
-    it is absent from the serialised payload — never null, never masked."""
+    it is absent from the serialised payload - never null, never masked."""
 
 
 EmployeeReadAny = EmployeeRead | EmployeeReadRestricted
@@ -85,7 +108,7 @@ EmployeeReadAny = EmployeeRead | EmployeeReadRestricted
 
 class EmployeeListItemRead(EmployeeRead):
     """`EmployeeRead` plus fields only the list endpoint bothers to compute
-    (§list query in the repository) — a manager's display name in place of
+    (§list query in the repository) - a manager's display name in place of
     a bare id, and the row's own direct-report count."""
 
     manager_name: str | None
@@ -124,11 +147,11 @@ class AuditLogRead(BaseModel):
     after: dict[str, Any] | None
     occurred_at: datetime
     # True/False whenever `before`/`after` are both present and their raw
-    # `salary` values differ — computed before any role-based redaction, so
+    # `salary` values differ - computed before any role-based redaction, so
     # a viewer who never sees the values themselves can still see *that* a
     # change happened (§9.3 extended to the audit trail).
     salary_changed: bool
-    # Only populated for `employee.reassigned` entries — `before`/`after`
+    # Only populated for `employee.reassigned` entries - `before`/`after`
     # only carry a bare `manager_id` UUID, which isn't renderable as a
     # human diff on its own (§ audit timeline UI).
     manager_before_name: str | None = None
@@ -137,6 +160,22 @@ class AuditLogRead(BaseModel):
 
 class AuditLogPage(BaseModel):
     items: list[AuditLogRead]
+    total: int
+    page: int
+    page_size: int
+
+
+class GlobalAuditLogRead(AuditLogRead):
+    """`AuditLogRead` plus which employee the entry is about - the
+    per-employee page already has that from context, but the global feed
+    behind the topbar's "Change history" button spans every employee at
+    once (§ global audit feed)."""
+
+    employee_name: str
+
+
+class GlobalAuditLogPage(BaseModel):
+    items: list[GlobalAuditLogRead]
     total: int
     page: int
     page_size: int

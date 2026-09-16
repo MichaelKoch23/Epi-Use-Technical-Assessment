@@ -18,7 +18,7 @@ function depthFillToken(depth: number): (typeof DEPTH_FILL_TOKENS)[number] {
 
 /** Depth distribution, coloured with the same per-depth tokens the org
  * chart itself uses, so this chart reads against it (§ analytics
- * charts). No charting library — the `sp-bar` pattern from the style
+ * charts). No charting library - the `sp-bar` pattern from the style
  * guide, same as `SpanDistributionChart`. */
 export function DepthDistributionChart({
   data,
