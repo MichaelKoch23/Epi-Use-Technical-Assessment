@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,7 @@ from app.core.exceptions import (
     VersionConflictError,
 )
 from app.models.employee import Employee
+from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.employee_repository import EmployeeRepository
 from app.services.audit_service import AuditService, snapshot_employee
 
@@ -18,6 +20,7 @@ class ReassignmentService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._repo = EmployeeRepository(session)
+        self._assignments = AssignmentRepository(session)
         self._audit = AuditService(session)
 
     async def reassign_manager(
@@ -28,6 +31,7 @@ class ReassignmentService:
         expected_version: int,
         actor_id: uuid.UUID,
     ) -> Employee:
+        await self._assignments.sync_effective()
         ids_to_lock = sorted(
             {employee_id} | ({new_manager_id} if new_manager_id else set())
         )
@@ -56,6 +60,15 @@ class ReassignmentService:
         after = snapshot_employee(employee)
 
         await self._session.flush()
+        # This is the immediate, present-day path. The edge is recorded from today
+        # so the temporal history stays complete whichever endpoint made the move.
+        await self._assignments.set_edge(
+            employee_id,
+            new_manager_id,
+            effective_from=datetime.now(UTC).date(),
+            reason=None,
+            created_by=actor_id,
+        )
         await self._audit.record(
             employee_id=employee.id,
             actor_id=actor_id,

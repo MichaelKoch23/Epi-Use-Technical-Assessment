@@ -1,4 +1,5 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -10,7 +11,8 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.problem_details import install_exception_handlers
-from app.db.session import engine
+from app.db.session import async_session_factory, engine
+from app.repositories.assignment_repository import AssignmentRepository
 from app.routers.analytics import router as analytics_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
@@ -24,8 +26,25 @@ from app.routers.search import router as search_router
 
 _IS_PRODUCTION = settings.ENVIRONMENT.lower() in {"production", "prod"}
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Bring the effective-manager cache up to date before serving traffic.
+
+    Scheduled assignments become current by date, not by a job, so any that fell
+    due while the process was down are applied here.
+    """
+    async with async_session_factory() as session:
+        touched = await AssignmentRepository(session).sync_effective()
+        await session.commit()
+    if touched:
+        print(f"applied {touched} scheduled assignment(s) on startup")
+    yield
+
+
 app = FastAPI(
     title="Employee Hierarchy API",
+    lifespan=lifespan,
     docs_url=None if _IS_PRODUCTION else "/docs",
     redoc_url=None if _IS_PRODUCTION else "/redoc",
     openapi_url=None if _IS_PRODUCTION else "/openapi.json",

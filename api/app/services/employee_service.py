@@ -14,6 +14,7 @@ from app.core.exceptions import (
     VersionConflictError,
 )
 from app.models.employee import Employee
+from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.employee_repository import EmployeeRepository
 from app.services.audit_service import AuditService, snapshot_employee
 
@@ -31,6 +32,7 @@ class EmployeeService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._repo = EmployeeRepository(session)
+        self._assignments = AssignmentRepository(session)
         self._audit = AuditService(session)
 
     async def create(
@@ -48,6 +50,7 @@ class EmployeeService:
         avatar_override_url: str | None = None,
         actor_id: uuid.UUID,
     ) -> Employee:
+        await self._assignments.sync_effective()
         if await self._repo.get_by_employee_number(employee_number) is not None:
             raise DuplicateEmployeeNumberError(employee_number)
         if await self._repo.get_by_email(email) is not None:
@@ -67,6 +70,17 @@ class EmployeeService:
         )
         self._session.add(employee)
         await self._session.flush()
+
+        # Open the employee's first assignment run so employee_assignment is the
+        # complete record of the reporting edge, not only of moves made through
+        # the effective-dating endpoints.
+        await self._assignments.set_edge(
+            employee.id,
+            manager_id,
+            effective_from=datetime.now(UTC).date(),
+            reason="Employee created",
+            created_by=actor_id,
+        )
 
         await self._audit.record(
             employee_id=employee.id,
@@ -93,6 +107,7 @@ class EmployeeService:
         currency: str | _UnsetType = UNSET,
         avatar_override_url: str | None | _UnsetType = UNSET,
     ) -> Employee:
+        await self._assignments.sync_effective()
         employee = await self._repo.get(employee_id)
         if employee is None:
             raise EmployeeNotFound(employee_id)
@@ -144,6 +159,7 @@ class EmployeeService:
     async def soft_delete(
         self, employee_id: uuid.UUID, *, actor_id: uuid.UUID
     ) -> Employee:
+        await self._assignments.sync_effective()
         employee = await self._repo.get(employee_id)
         if employee is None:
             raise EmployeeNotFound(employee_id)
@@ -164,6 +180,7 @@ class EmployeeService:
         return employee
 
     async def restore(self, employee_id: uuid.UUID, *, actor_id: uuid.UUID) -> Employee:
+        await self._assignments.sync_effective()
         employee = await self._repo.get_any(employee_id)
         if employee is None:
             raise EmployeeNotFound(employee_id)

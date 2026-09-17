@@ -4,11 +4,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.core.exceptions import (
+    AssignmentNotFound,
+    AssignmentOverlapError,
     DomainError,
     DuplicateEmailError,
     DuplicateEmployeeNumberError,
+    EffectiveDateBeforeFirstAssignmentError,
     EmployeeNotFound,
     ReportingCycleError,
+    ScheduledAssignmentInForceError,
     VersionConflictError,
 )
 
@@ -38,6 +42,25 @@ _PROBLEMS: list[tuple[type[DomainError], int, str, str]] = [
         "reporting-cycle",
         "Reassignment would create a reporting cycle",
     ),
+    (AssignmentNotFound, 404, "assignment-not-found", "Assignment not found"),
+    (
+        ScheduledAssignmentInForceError,
+        422,
+        "scheduled-assignment-superseded",
+        "The assignment is already in force",
+    ),
+    (
+        AssignmentOverlapError,
+        409,
+        "assignment-overlap",
+        "An assignment already covers that date",
+    ),
+    (
+        EffectiveDateBeforeFirstAssignmentError,
+        422,
+        "effective-date-before-first-assignment",
+        "Effective date precedes the first recorded assignment",
+    ),
 ]
 _DEFAULT = (500, "internal-error", "An unexpected error occurred")
 
@@ -58,6 +81,10 @@ def _field_errors(exc: DomainError) -> list[dict[str, str]]:
         return [{"field": "email", "code": "duplicate"}]
     if isinstance(exc, VersionConflictError):
         return [{"field": "version", "code": "conflict"}]
+    if isinstance(exc, EffectiveDateBeforeFirstAssignmentError):
+        return [{"field": "effective_from", "code": "before_first_assignment"}]
+    if isinstance(exc, AssignmentOverlapError):
+        return [{"field": "effective_from", "code": "overlap"}]
     return []
 
 

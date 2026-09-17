@@ -12,13 +12,30 @@ from typing import TypedDict
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import DomainError
 from app.core.passwords import hash_password
 from app.db.session import async_session_factory
 from app.models.app_user import AppUser
 from app.models.employee import Employee
+from app.services.assignment_service import AssignmentService
 from app.services.employee_service import EmployeeService
 
 SEED_ACTOR_EMAIL = "seed@employee.example.com"
+
+# Temporal shape of the generated data. Without a spread of dates every as-of
+# view returns the same tree and the feature reads as broken rather than new.
+HISTORY_DAYS = 548  # eighteen months
+HISTORICAL_MOVES = 30
+FUTURE_MOVES = 3
+
+MOVE_REASONS = [
+    "Team restructure",
+    "Promotion",
+    "Department transfer",
+    "Manager departure",
+    "Project realignment",
+    "Span of control rebalance",
+]
 
 DEMO_ACCOUNTS = [
     ("admin@epiuse-demo.com", "EpiUse-Admin-2026!", "hr_admin"),
@@ -207,8 +224,96 @@ async def _ensure_demo_accounts(session: AsyncSession) -> None:
 
 
 async def _reset(session: AsyncSession) -> None:
-    await session.execute(text("TRUNCATE TABLE audit_log, employee"))
+    await session.execute(
+        text("TRUNCATE TABLE audit_log, employee_assignment, employee")
+    )
     await session.commit()
+
+
+def _child_start(manager_start: date, spread: int, floor: date) -> date:
+    """A start date at or after the manager's, so the org grows downward."""
+    return min(manager_start + timedelta(days=random.randint(0, spread)), floor)
+
+
+async def _backdate_initial_assignments(
+    session: AsyncSession, starts: dict[uuid.UUID, date]
+) -> None:
+    """Spread the opening assignment runs across the history window.
+
+    EmployeeService.create opens every run at today; rewriting valid_from here is
+    what makes a tree read at a past date differ from today's.
+    """
+    await session.execute(
+        text(
+            "UPDATE employee_assignment SET valid_from = :valid_from"
+            " WHERE employee_id = :employee_id"
+        ),
+        [
+            {"employee_id": employee_id, "valid_from": start}
+            for employee_id, start in starts.items()
+        ],
+    )
+    await session.commit()
+
+
+async def _generate_moves(
+    session: AsyncSession,
+    *,
+    by_band: dict[str, list[Employee]],
+    starts: dict[uuid.UUID, date],
+    actor_id: uuid.UUID,
+    today: date,
+) -> tuple[int, int]:
+    """Reassign people through the real service, so every row is one it would write."""
+    service = AssignmentService(session)
+    # An IC moves between managers, a manager between directors, and so on.
+    ladder = [("ic", "manager"), ("manager", "director"), ("director", "exec")]
+
+    async def attempt(effective_from_window: tuple[int, int]) -> bool:
+        band, manager_band = random.choice(ladder)
+        if not by_band[band] or len(by_band[manager_band]) < 2:
+            return False
+        mover = random.choice(by_band[band])
+        new_manager = random.choice(by_band[manager_band])
+        if new_manager.id == mover.manager_id or new_manager.id == mover.id:
+            return False
+
+        low, high = effective_from_window
+        earliest = max(starts[mover.id], starts[new_manager.id]) + timedelta(days=1)
+        effective_from = today + timedelta(days=random.randint(low, high))
+        effective_from = max(effective_from, earliest)
+        if effective_from <= starts[mover.id]:
+            return False
+
+        try:
+            await service.reassign(
+                mover.id,
+                new_manager.id,
+                effective_from=effective_from,
+                reason=random.choice(MOVE_REASONS),
+                actor_id=actor_id,
+            )
+        except DomainError:
+            await session.rollback()
+            return False
+        await session.commit()
+        return True
+
+    historical = 0
+    for _ in range(HISTORICAL_MOVES * 6):
+        if historical >= HISTORICAL_MOVES:
+            break
+        if await attempt((-HISTORY_DAYS + 200, -30)):
+            historical += 1
+
+    scheduled = 0
+    for _ in range(FUTURE_MOVES * 10):
+        if scheduled >= FUTURE_MOVES:
+            break
+        if await attempt((14, 90)):
+            scheduled += 1
+
+    return historical, scheduled
 
 
 async def seed(target: int, *, reset: bool) -> None:
@@ -229,6 +334,13 @@ async def seed(target: int, *, reset: bool) -> None:
         remaining = max(target - base, managers_total)
         ics_per_manager = max(1, round(remaining / managers_total))
 
+        today = datetime.now(UTC).date()
+        floor = today - timedelta(days=45)
+        starts: dict[uuid.UUID, date] = {}
+        by_band: dict[str, list[Employee]] = {
+            band: [] for band in ("ceo", "exec", "director", "manager", "ic")
+        }
+
         ceo = await _create(
             service,
             position="Chief Executive Officer",
@@ -238,6 +350,8 @@ async def seed(target: int, *, reset: bool) -> None:
         )
         await session.commit()
         total = 1
+        starts[ceo.id] = today - timedelta(days=HISTORY_DAYS)
+        by_band["ceo"].append(ceo)
         print(f"CEO: {ceo.first_name} {ceo.last_name}")
 
         for dept in DEPARTMENTS:
@@ -249,6 +363,8 @@ async def seed(target: int, *, reset: bool) -> None:
                 actor_id=actor_id,
             )
             total += 1
+            starts[executive.id] = _child_start(starts[ceo.id], 90, floor)
+            by_band["exec"].append(executive)
 
             for _ in range(directors_per_exec):
                 director = await _create(
@@ -259,6 +375,8 @@ async def seed(target: int, *, reset: bool) -> None:
                     actor_id=actor_id,
                 )
                 total += 1
+                starts[director.id] = _child_start(starts[executive.id], 90, floor)
+                by_band["director"].append(director)
 
                 for _ in range(managers_per_director):
                     manager = await _create(
@@ -269,9 +387,11 @@ async def seed(target: int, *, reset: bool) -> None:
                         actor_id=actor_id,
                     )
                     total += 1
+                    starts[manager.id] = _child_start(starts[director.id], 90, floor)
+                    by_band["manager"].append(manager)
 
                     for _ in range(ics_per_manager):
-                        await _create(
+                        ic = await _create(
                             service,
                             position=random.choice(dept["ic_titles"]),
                             band="ic",
@@ -279,9 +399,26 @@ async def seed(target: int, *, reset: bool) -> None:
                             actor_id=actor_id,
                         )
                         total += 1
+                        starts[ic.id] = _child_start(starts[manager.id], 120, floor)
+                        by_band["ic"].append(ic)
 
             await session.commit()
             print(f"  {dept['exec_title']} branch done - {total} employees so far")
+
+        await _backdate_initial_assignments(session, starts)
+        print(
+            "opening assignments spread from "
+            f"{min(starts.values()).isoformat()} to {max(starts.values()).isoformat()}"
+        )
+
+        historical, scheduled = await _generate_moves(
+            session,
+            by_band=by_band,
+            starts=starts,
+            actor_id=actor_id,
+            today=today,
+        )
+        print(f"generated {historical} historical and {scheduled} scheduled moves")
 
         print(f"seed complete: {total} employees (target was ~{target})")
 

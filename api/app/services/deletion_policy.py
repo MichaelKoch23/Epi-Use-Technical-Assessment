@@ -3,12 +3,14 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Protocol, runtime_checkable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EmployeeNotFound
 from app.models.employee import Employee
+from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.employee_repository import EmployeeRepository
 from app.services.audit_service import AuditService, snapshot_employee
 from app.services.employee_service import EmployeeService
@@ -33,6 +35,7 @@ class _BaseDeletionPolicy:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._repo = EmployeeRepository(session)
+        self._assignments = AssignmentRepository(session)
         self._employees = EmployeeService(session)
 
     async def _get_or_raise(self, employee_id: uuid.UUID) -> Employee:
@@ -55,11 +58,20 @@ class _BaseDeletionPolicy:
         actor_id: uuid.UUID,
     ) -> None:
         audit = AuditService(self._session)
+        today = datetime.now(UTC).date()
         for report in reports:
             before = snapshot_employee(report)
             report.manager_id = new_manager_id
             report.version += 1
             after = snapshot_employee(report)
+            await self._session.flush()
+            await self._assignments.set_edge(
+                report.id,
+                new_manager_id,
+                effective_from=today,
+                reason="Manager deleted",
+                created_by=actor_id,
+            )
             await audit.record(
                 employee_id=report.id,
                 actor_id=actor_id,
