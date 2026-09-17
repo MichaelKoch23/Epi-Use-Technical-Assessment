@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { EmployeeAvatar } from '@/components/employee-avatar'
 import { useAuth } from '@/features/auth/useAuth'
 import { ReportingLineBreadcrumb } from '@/features/hierarchy/ReportingLineBreadcrumb'
+import { todayIso } from '@/features/hierarchy/useAsOf'
 import { getErrorMessage } from '@/lib/apiError'
 import { employeeKeys } from '@/lib/queryKeys'
 import { AuditTimeline } from './AuditTimeline'
@@ -52,6 +53,7 @@ export function EmployeeDetailPage() {
         <ReportingLineBreadcrumb
           employeeId={id}
           employeeName={fullName}
+          asOf={todayIso()}
           onSelect={(managerId) => navigate(`/employees/${managerId}`)}
         />
       )}

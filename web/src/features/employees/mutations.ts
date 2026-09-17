@@ -183,7 +183,7 @@ export function fileBody(file: File) {
 
 function invalidateAvatarViews(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
-  void queryClient.invalidateQueries({ queryKey: hierarchyKeys.roots() })
+  void queryClient.invalidateQueries({ queryKey: hierarchyKeys.all })
   void queryClient.invalidateQueries({ queryKey: profileKeys.me() })
 }
 

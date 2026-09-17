@@ -11,9 +11,15 @@ export const employeeKeys = {
   list: (filters: EmployeeListFilters) => [...employeeKeys.lists(), filters] as const,
   details: () => [...employeeKeys.all, 'detail'] as const,
   detail: (id: string) => [...employeeKeys.details(), id] as const,
-  subtree: (id: string, depth?: number) =>
-    [...employeeKeys.detail(id), 'subtree', depth] as const,
-  reportingLine: (id: string) => [...employeeKeys.detail(id), 'reporting-line'] as const,
+  // asOf is a required argument on every hierarchy-shaped key, so a call site
+  // cannot silently reuse present-day data under a past-date banner - the
+  // compiler refuses to let you omit it.
+  subtree: (id: string, asOf: string, depth?: number) =>
+    [...employeeKeys.detail(id), 'subtree', asOf, depth] as const,
+  reportingLine: (id: string, asOf: string) =>
+    [...employeeKeys.detail(id), 'reporting-line', asOf] as const,
+  assignmentHistory: (id: string) =>
+    [...employeeKeys.detail(id), 'assignment-history'] as const,
   auditLog: (id: string, page?: number) => [...employeeKeys.detail(id), 'audit', page] as const,
   deletionPreview: (id: string, policy: string) =>
     [...employeeKeys.detail(id), 'deletion-preview', policy] as const,
@@ -24,7 +30,12 @@ export const profileKeys = {
 }
 
 export const hierarchyKeys = {
-  roots: () => ['hierarchy', 'roots'] as const,
+  all: ['hierarchy'] as const,
+  roots: (asOf: string) => [...hierarchyKeys.all, 'roots', asOf] as const,
+  tree: (asOf: string, rootId?: string, depth?: number) =>
+    [...hierarchyKeys.all, 'tree', asOf, rootId, depth] as const,
+  scheduled: () => [...hierarchyKeys.all, 'scheduled'] as const,
+  diff: (from: string, to: string) => [...hierarchyKeys.all, 'diff', from, to] as const,
 }
 
 export const analyticsKeys = {

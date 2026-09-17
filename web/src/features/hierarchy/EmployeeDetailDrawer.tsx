@@ -7,6 +7,7 @@ import { DeleteEmployeeDialog } from '@/features/employees/DeleteEmployeeDialog'
 import { EditEmployeeSheet } from '@/features/employees/EditEmployeeSheet'
 import { formatCurrency, formatDate } from '@/features/employees/format'
 import type { EmployeeListItem } from '@/features/employees/types'
+import { AssignmentHistoryTimeline } from './AssignmentHistoryTimeline'
 import { ReportingLineBreadcrumb } from './ReportingLineBreadcrumb'
 import { hasSalary, type ChartEmployee } from './types'
 
@@ -30,6 +31,7 @@ export function EmployeeDetailDrawer({
   onOpenChange,
   onSelectAncestor,
   canEdit,
+  asOf,
 }: {
   employee: ChartEmployee | null
   managerName: string | null
@@ -38,6 +40,7 @@ export function EmployeeDetailDrawer({
   onOpenChange: (open: boolean) => void
   onSelectAncestor: (id: string) => void
   canEdit: boolean
+  asOf: string
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -57,6 +60,7 @@ export function EmployeeDetailDrawer({
                 <ReportingLineBreadcrumb
                   employeeId={employee.id}
                   employeeName={`${employee.first_name} ${employee.last_name}`}
+                  asOf={asOf}
                   onSelect={onSelectAncestor}
                 />
               </SheetHeader>
@@ -107,6 +111,8 @@ export function EmployeeDetailDrawer({
                     </div>
                   )}
                 </dl>
+
+                <AssignmentHistoryTimeline employeeId={employee.id} />
               </div>
 
               {canEdit && (

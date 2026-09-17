@@ -25,14 +25,19 @@ import { apiClient } from '@/lib/apiClient'
 import { getErrorMessage } from '@/lib/apiError'
 import { triggerDownload } from '@/lib/download'
 import { cn } from '@/lib/utils'
+import { AsOfBanner } from './AsOfBanner'
+import { AsOfControl } from './AsOfControl'
 import { ChartSearch } from './ChartSearch'
 import { EmployeeDetailDrawer } from './EmployeeDetailDrawer'
 import { EmployeeNode, type EmployeeFlowNode, type EmployeeNodeData } from './EmployeeNode'
 import { layoutWithDagre, NODE_HEIGHT, NODE_WIDTH } from './layout'
+import { MovePreviewDialog, type PendingMove } from './MovePreviewDialog'
 import { OrgChartNestedList } from './OrgChartNestedList'
 import { ReassignManagerPalette } from './ReassignManagerPalette'
 import { ReportingLineBreadcrumb } from './ReportingLineBreadcrumb'
+import { ScheduledChangesPanel } from './ScheduledChangesPanel'
 import type { ChartEmployee } from './types'
+import { useAsOf } from './useAsOf'
 import { useOrgChartData } from './useOrgChartData'
 
 const nodeTypes = { employee: EmployeeNode }
@@ -55,14 +60,20 @@ function buildEdges(visibleIds: Set<string>, childrenByManager: Map<string, Set<
 }
 
 function OrgChartCanvas() {
-  const orgData = useOrgChartData()
-  const { canEdit } = useAuth()
+  const asOfState = useAsOf()
+  const { asOf, isToday } = asOfState
+  const orgData = useOrgChartData(asOf)
+  const { canEdit: canEditRole } = useAuth()
+  // Editing what looks like the present while reading the past is the failure
+  // mode this whole view invites, so writes are off unless as_of is today.
+  const canEdit = canEditRole && isToday
   const { getIntersectingNodes, setCenter, getZoom } = useReactFlow<EmployeeFlowNode>()
 
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focusDepth, setFocusDepth] = useState(DEFAULT_FOCUS_DEPTH)
   const [paletteEmployeeId, setPaletteEmployeeId] = useState<string | null>(null)
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [pendingCenterId, setPendingCenterId] = useState<string | null>(null)
 
@@ -230,17 +241,49 @@ function OrgChartCanvas() {
         return
       }
 
+      // Snap the node back and let the preview carry the decision; nothing is
+      // written until the move is confirmed in the modal.
+      setNodes(structuralNodes)
+      setPendingMove({
+        employeeId: node.id,
+        employeeName: `${employee.first_name} ${employee.last_name}`,
+        newManagerId: targetId,
+        newManagerName: `${target.first_name} ${target.last_name}`,
+      })
+    },
+    [getIntersectingNodes, orgData, setNodes, structuralNodes]
+  )
+
+  const confirmMove = useCallback(
+    async ({ effectiveFrom, reason }: { effectiveFrom: string; reason: string }) => {
+      if (!pendingMove) return
       try {
-        await orgData.reassign({ employeeId: node.id, newManagerId: targetId })
-        toast.success(
-          `${employee.first_name} ${employee.last_name} now reports to ${target.first_name} ${target.last_name}`
-        )
+        const result = await orgData.reassign({
+          employeeId: pendingMove.employeeId,
+          newManagerId: pendingMove.newManagerId,
+          effectiveFrom,
+          reason: reason || undefined,
+        })
+        setPendingMove(null)
+        const cancelled = result?.cancelled.length ?? 0
+        const cancelledNote =
+          cancelled > 0
+            ? ` ${cancelled} scheduled change${cancelled === 1 ? ' was' : 's were'} cancelled.`
+            : ''
+        if (result?.in_force_now) {
+          toast.success(
+            `${pendingMove.employeeName} now reports to ${pendingMove.newManagerName}.${cancelledNote}`
+          )
+        } else {
+          toast.success(
+            `${pendingMove.employeeName} will report to ${pendingMove.newManagerName} from ${effectiveFrom}.${cancelledNote}`
+          )
+        }
       } catch (error) {
-        setNodes(structuralNodes)
         toast.error(getErrorMessage(error, 'Failed to reassign manager'))
       }
     },
-    [getIntersectingNodes, orgData, setNodes, structuralNodes]
+    [orgData, pendingMove]
   )
 
   useEffect(() => {
@@ -264,17 +307,17 @@ function OrgChartCanvas() {
   }, [paletteEmployeeId, orgData])
 
   const handlePaletteSelect = useCallback(
-    async (managerId: string | null, managerLabel: string) => {
+    (managerId: string | null, managerLabel: string) => {
       if (!paletteEmployeeId) return
       const employee = orgData.employeesById.get(paletteEmployeeId)
       setPaletteEmployeeId(null)
       if (!employee) return
-      try {
-        await orgData.reassign({ employeeId: paletteEmployeeId, newManagerId: managerId })
-        toast.success(`${employee.first_name} ${employee.last_name} now reports to ${managerLabel}`)
-      } catch (error) {
-        toast.error(getErrorMessage(error, 'Failed to reassign manager'))
-      }
+      setPendingMove({
+        employeeId: paletteEmployeeId,
+        employeeName: `${employee.first_name} ${employee.last_name}`,
+        newManagerId: managerId,
+        newManagerName: managerLabel,
+      })
     },
     [paletteEmployeeId, orgData]
   )
@@ -362,11 +405,15 @@ function OrgChartCanvas() {
         </div>
       </div>
 
+      <AsOfControl state={asOfState} />
+      <AsOfBanner state={asOfState} />
+
       {selectedEmployee && (
         <div className="flex items-center justify-between gap-4 print:hidden">
           <ReportingLineBreadcrumb
             employeeId={selectedEmployee.id}
             employeeName={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
+            asOf={asOf}
             onSelect={(id) => {
               const ancestor = orgData.employeesById.get(id)
               if (ancestor) void selectEmployee(ancestor)
@@ -412,13 +459,16 @@ function OrgChartCanvas() {
       </div>
 
       <div className={cn(viewMode === 'list' ? 'block' : 'hidden', 'print:block')}>
-        <OrgChartNestedList onSelect={selectEmployee} />
+        <OrgChartNestedList onSelect={selectEmployee} asOf={asOf} />
       </div>
+
+      <ScheduledChangesPanel state={asOfState} canEdit={canEdit} />
 
       <EmployeeDetailDrawer
         employee={selectedEmployee}
         managerName={selectedManagerName}
         directReportCount={selectedDirectReportCount}
+        asOf={asOf}
         open={Boolean(selectedEmployee)}
         onOpenChange={(open) => !open && setSelectedId(null)}
         onSelectAncestor={(id) => {
@@ -434,6 +484,13 @@ function OrgChartCanvas() {
         employee={paletteEmployee}
         excludedIds={paletteExcludedIds}
         onSelect={handlePaletteSelect}
+      />
+
+      <MovePreviewDialog
+        move={pendingMove}
+        onOpenChange={(open) => !open && setPendingMove(null)}
+        onConfirm={(args) => void confirmMove(args)}
+        isSubmitting={orgData.isReassigning}
       />
     </div>
   )

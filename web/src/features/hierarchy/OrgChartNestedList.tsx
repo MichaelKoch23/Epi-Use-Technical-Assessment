@@ -39,12 +39,14 @@ function HierarchyBranch({
 
 export function OrgChartNestedList({
   onSelect,
+  asOf,
   className,
 }: {
   onSelect: (employee: ChartEmployee) => void
+  asOf: string
   className?: string
 }) {
-  const { tree, isLoading, isError } = useFullHierarchy()
+  const { tree, isLoading, isError } = useFullHierarchy(asOf)
 
   return (
     <div className={cn('org-chart-list', className)}>

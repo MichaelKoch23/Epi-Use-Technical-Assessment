@@ -7,23 +7,25 @@ import type { ChartEmployee } from './types'
 const INITIAL_DEPTH = 2
 const EXPAND_DEPTH = 1
 
-export async function fetchRoots(): Promise<ChartEmployee[]> {
-  const { data, error } = await apiClient.GET('/api/v1/hierarchy/roots')
-  if (error) throw error
-  return data.items
-}
-
-export async function fetchSubtree(id: string, depth?: number) {
-  const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/subtree', {
-    params: { path: { employee_id: id }, query: { depth } },
+export async function fetchRoots(asOf: string): Promise<ChartEmployee[]> {
+  const { data, error } = await apiClient.GET('/api/v1/hierarchy/roots', {
+    params: { query: { as_of: asOf } },
   })
   if (error) throw error
   return data.items
 }
 
-async function fetchReportingLine(id: string) {
+export async function fetchSubtree(id: string, asOf: string, depth?: number) {
+  const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/subtree', {
+    params: { path: { employee_id: id }, query: { depth, as_of: asOf } },
+  })
+  if (error) throw error
+  return data.items
+}
+
+async function fetchReportingLine(id: string, asOf: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/reporting-line', {
-    params: { path: { employee_id: id } },
+    params: { path: { employee_id: id }, query: { as_of: asOf } },
   })
   if (error) throw error
   return data.items
@@ -38,24 +40,27 @@ export class ChartVersionConflict extends Error {
   }
 }
 
-export function useOrgChartData() {
+export function useOrgChartData(asOf: string) {
   const queryClient = useQueryClient()
 
-  const rootsQuery = useQuery({ queryKey: hierarchyKeys.roots(), queryFn: fetchRoots })
+  const rootsQuery = useQuery({
+    queryKey: hierarchyKeys.roots(asOf),
+    queryFn: () => fetchRoots(asOf),
+  })
   const roots = useMemo(() => rootsQuery.data ?? [], [rootsQuery.data])
 
   const rootSubtrees = useQueries({
     queries: roots.map((root) => ({
-      queryKey: employeeKeys.subtree(root.id, INITIAL_DEPTH),
-      queryFn: () => fetchSubtree(root.id, INITIAL_DEPTH),
+      queryKey: employeeKeys.subtree(root.id, asOf, INITIAL_DEPTH),
+      queryFn: () => fetchSubtree(root.id, asOf, INITIAL_DEPTH),
     })),
   })
 
   const [pendingExpandIds, setPendingExpandIds] = useState<Set<string>>(new Set())
   const expandQueries = useQueries({
     queries: [...pendingExpandIds].map((id) => ({
-      queryKey: employeeKeys.subtree(id, EXPAND_DEPTH),
-      queryFn: () => fetchSubtree(id, EXPAND_DEPTH),
+      queryKey: employeeKeys.subtree(id, asOf, EXPAND_DEPTH),
+      queryFn: () => fetchSubtree(id, asOf, EXPAND_DEPTH),
     })),
   })
 
@@ -183,7 +188,7 @@ export function useOrgChartData() {
       next.set(employee.id, employee)
       return next
     })
-    const ancestors = await fetchReportingLine(employee.id)
+    const ancestors = await fetchReportingLine(employee.id, asOf)
     const rootFirst = [...ancestors].reverse()
     setExtraEmployees((prev) => {
       const next = new Map(prev)
@@ -197,7 +202,7 @@ export function useOrgChartData() {
       return next
     })
     return rootFirst.map(({ employee: ancestor }) => ancestor.id)
-  }, [])
+  }, [asOf])
 
   const getDescendantIds = useCallback(
     (id: string, maxDepth = Infinity): string[] => {
@@ -222,7 +227,7 @@ export function useOrgChartData() {
       const promises = [...targets].map((id) =>
         queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) })
       )
-      promises.push(queryClient.invalidateQueries({ queryKey: hierarchyKeys.roots() }))
+      promises.push(queryClient.invalidateQueries({ queryKey: hierarchyKeys.all }))
       return Promise.all(promises)
     },
     [queryClient]
@@ -232,9 +237,13 @@ export function useOrgChartData() {
     mutationFn: async ({
       employeeId,
       newManagerId,
+      effectiveFrom,
+      reason,
     }: {
       employeeId: string
       newManagerId: string | null
+      effectiveFrom?: string
+      reason?: string
     }) => {
       const employee = employeesById.get(employeeId)
       if (!employee) throw new Error('Unknown employee')
@@ -245,7 +254,11 @@ export function useOrgChartData() {
             path: { employee_id: employeeId },
             header: { 'If-Match': `"${employee.version}"` },
           },
-          body: { manager_id: newManagerId },
+          body: {
+            manager_id: newManagerId,
+            effective_from: effectiveFrom ?? null,
+            reason: reason ?? null,
+          },
         }
       )
       if (error) {
@@ -256,9 +269,12 @@ export function useOrgChartData() {
       }
       return data
     },
-    onMutate: async ({ employeeId, newManagerId }) => {
+    onMutate: async ({ employeeId, newManagerId, effectiveFrom }) => {
       const previousManagerId = employeesById.get(employeeId)?.manager_id ?? null
-      setManagerOverrides((prev) => new Map(prev).set(employeeId, newManagerId))
+      // Only an immediate move changes what the chart shows today.
+      if (!effectiveFrom || effectiveFrom <= asOf) {
+        setManagerOverrides((prev) => new Map(prev).set(employeeId, newManagerId))
+      }
       return { previousManagerId }
     },
     onError: (_error, { employeeId }) => {
@@ -268,13 +284,18 @@ export function useOrgChartData() {
         return next
       })
     },
-    onSuccess: async (_data, { employeeId, newManagerId }, context) => {
+    onSuccess: async (data, { employeeId, newManagerId }, context) => {
       await invalidateAround([context?.previousManagerId ?? null, newManagerId])
+      void queryClient.invalidateQueries({ queryKey: hierarchyKeys.scheduled() })
+      void queryClient.invalidateQueries({
+        queryKey: employeeKeys.assignmentHistory(employeeId),
+      })
       setManagerOverrides((prev) => {
         const next = new Map(prev)
         next.delete(employeeId)
         return next
       })
+      return data
     },
   })
 

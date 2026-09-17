@@ -3,9 +3,9 @@ import { ChevronRightIcon } from 'lucide-react'
 import { apiClient } from '@/lib/apiClient'
 import { employeeKeys } from '@/lib/queryKeys'
 
-async function fetchReportingLine(id: string) {
+async function fetchReportingLine(id: string, asOf: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/reporting-line', {
-    params: { path: { employee_id: id } },
+    params: { path: { employee_id: id }, query: { as_of: asOf } },
   })
   if (error) throw error
   return data.items
@@ -14,15 +14,17 @@ async function fetchReportingLine(id: string) {
 export function ReportingLineBreadcrumb({
   employeeId,
   employeeName,
+  asOf,
   onSelect,
 }: {
   employeeId: string
   employeeName: string
+  asOf: string
   onSelect: (id: string) => void
 }) {
   const { data } = useQuery({
-    queryKey: employeeKeys.reportingLine(employeeId),
-    queryFn: () => fetchReportingLine(employeeId),
+    queryKey: employeeKeys.reportingLine(employeeId, asOf),
+    queryFn: () => fetchReportingLine(employeeId, asOf),
   })
 
   const ancestors = data ? [...data].reverse() : []

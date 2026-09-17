@@ -9,6 +9,7 @@ import { DepthDistributionChart } from './components/DepthDistributionChart'
 import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { SpanDistributionChart } from './components/SpanDistributionChart'
+import { StructureDiffPanel } from './components/StructureDiffPanel'
 import { SummaryStatGrid } from './components/SummaryStatGrid'
 import { hasCost } from './types'
 import { useOrgSummary } from './useOrgSummary'
@@ -68,6 +69,8 @@ export function AnalyticsPage() {
       )}
 
       <BranchExplorer />
+
+      <StructureDiffPanel />
     </div>
   )
 }

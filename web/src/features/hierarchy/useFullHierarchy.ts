@@ -9,14 +9,17 @@ export interface HierarchyTreeNode {
   children: HierarchyTreeNode[]
 }
 
-export function useFullHierarchy() {
-  const rootsQuery = useQuery({ queryKey: hierarchyKeys.roots(), queryFn: fetchRoots })
+export function useFullHierarchy(asOf: string) {
+  const rootsQuery = useQuery({
+    queryKey: hierarchyKeys.roots(asOf),
+    queryFn: () => fetchRoots(asOf),
+  })
   const roots = useMemo(() => rootsQuery.data ?? [], [rootsQuery.data])
 
   const subtreeQueries = useQueries({
     queries: roots.map((root) => ({
-      queryKey: employeeKeys.subtree(root.id, undefined),
-      queryFn: () => fetchSubtree(root.id),
+      queryKey: employeeKeys.subtree(root.id, asOf, undefined),
+      queryFn: () => fetchSubtree(root.id, asOf),
     })),
   })
 
