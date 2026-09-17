@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
+from datetime import date
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
@@ -11,6 +12,7 @@ from app.core.exceptions import EmployeeNotFound
 from app.core.pagination import (
     EmployeeSortParams,
     PageParams,
+    as_of_param,
     employee_filter_params,
     employee_sort_params,
     page_params,
@@ -19,10 +21,28 @@ from app.core.security import Principal, get_current_principal, require_role
 from app.core.uploads import read_capped
 from app.db.session import get_db
 from app.models.employee import Employee
+from app.repositories.assignment_repository import (
+    AssignmentHistoryRow,
+    AssignmentRepository,
+)
 from app.repositories.employee_repository import (
     EmployeeListFilters,
     EmployeeListRow,
     EmployeeRepository,
+)
+from app.schemas.assignment import (
+    AsOfHierarchy,
+    AssignmentHistoryItemRead,
+    AssignmentHistoryRead,
+    CancelledAssignmentRead,
+    CostDeltaRead,
+    ManagerReassignRead,
+    MoveAffectedRead,
+    MovePreviewRead,
+    MovePreviewReadAny,
+    MovePreviewReadRestricted,
+    MovePreviewRequest,
+    PersonRefRead,
 )
 from app.schemas.employee import (
     AuditLogPage,
@@ -39,6 +59,12 @@ from app.schemas.employee import (
     EmployeeUpdate,
     ManagerReassignRequest,
 )
+from app.services.assignment_service import (
+    AssignmentService,
+    CancelledAssignment,
+    MovePreview,
+)
+from app.services.assignment_service import today as today_date
 from app.services.audit_service import AuditLogRow, AuditService
 from app.services.avatar_service import MAX_AVATAR_BYTES, AvatarService
 from app.services.deletion_policy import (
@@ -49,7 +75,6 @@ from app.services.deletion_policy import (
     preview,
 )
 from app.services.employee_service import EmployeeService
-from app.services.reassignment_service import ReassignmentService
 
 router = APIRouter(prefix="/api/v1/employees", tags=["employees"])
 
@@ -146,6 +171,108 @@ def to_audit_log_read(
     manager_names: dict[uuid.UUID, str],
 ) -> AuditLogRead:
     return AuditLogRead(**audit_log_fields(row, principal, manager_names))
+
+
+def _to_cancelled_read(
+    row: CancelledAssignment, manager_names: dict[uuid.UUID, str]
+) -> CancelledAssignmentRead:
+    return CancelledAssignmentRead(
+        id=row.id,
+        manager_id=row.manager_id,
+        manager_name=(
+            manager_names.get(row.manager_id) if row.manager_id is not None else None
+        ),
+        effective_from=row.valid_from,
+        reason=row.reason,
+    )
+
+
+async def _manager_names_for(
+    session: AsyncSession, rows: list[CancelledAssignment]
+) -> dict[uuid.UUID, str]:
+    ids = [row.manager_id for row in rows if row.manager_id is not None]
+    return await EmployeeRepository(session).get_names_by_ids(ids)
+
+
+def _to_history_item_read(
+    row: AssignmentHistoryRow, today: date
+) -> AssignmentHistoryItemRead:
+    a = row.assignment
+    return AssignmentHistoryItemRead(
+        id=a.id,
+        manager_id=a.manager_id,
+        manager_name=row.manager_name,
+        valid_from=a.valid_from,
+        valid_to=a.valid_to,
+        reason=a.reason,
+        created_by_email=row.created_by_email,
+        created_at=a.created_at,
+        in_force=a.valid_from <= today and (a.valid_to is None or a.valid_to > today),
+        scheduled=a.valid_from > today,
+    )
+
+
+def _person_ref(employee: Employee) -> PersonRefRead:
+    return PersonRefRead(
+        id=employee.id,
+        name=f"{employee.first_name} {employee.last_name}",
+        position=employee.position,
+    )
+
+
+async def _to_move_preview_read(
+    session: AsyncSession, preview: MovePreview, principal: Principal
+) -> MovePreviewReadAny:
+    repo = EmployeeRepository(session)
+    names = await repo.get_names_by_ids(preview.blocked_chain)
+    manager_names = await _manager_names_for(session, preview.supersedes)
+
+    fields: dict[str, Any] = {
+        "as_of": preview.as_of,
+        "employee": _person_ref(preview.employee),
+        "affected": [
+            MoveAffectedRead(
+                id=row.employee.id,
+                name=f"{row.employee.first_name} {row.employee.last_name}",
+                position=row.employee.position,
+                depth=row.depth,
+            )
+            for row in preview.subtree
+        ],
+        "headcount": preview.headcount,
+        "current_manager": (
+            _person_ref(preview.current_manager)
+            if preview.current_manager is not None
+            else None
+        ),
+        "new_manager": (
+            _person_ref(preview.new_manager)
+            if preview.new_manager is not None
+            else None
+        ),
+        "depth_change": preview.depth_change,
+        "blocked": preview.blocked,
+        "blocked_chain": preview.blocked_chain,
+        "blocked_chain_names": [
+            names.get(step, "Unknown employee") for step in preview.blocked_chain
+        ],
+        "blocked_at": preview.blocked_at,
+        "supersedes": [
+            _to_cancelled_read(row, manager_names) for row in preview.supersedes
+        ],
+    }
+    # Omit the key entirely for a viewer, exactly as EmployeeReadRestricted does.
+    if principal.is_admin:
+        assert preview.cost is not None
+        return MovePreviewRead(
+            **fields,
+            cost_delta=CostDeltaRead(
+                leaving=preview.cost.leaving,
+                arriving=preview.cost.arriving,
+                currency=preview.cost.currency,
+            ),
+        )
+    return MovePreviewReadRestricted(**fields)
 
 
 def require_salary_access(
@@ -329,62 +456,113 @@ async def deletion_preview(
     return [to_employee_read(e, principal) for e in affected]
 
 
-@router.put("/{employee_id}/manager", response_model=EmployeeReadAny)
+@router.put("/{employee_id}/manager", response_model=ManagerReassignRead)
 async def reassign_manager(
     employee_id: uuid.UUID,
     body: ManagerReassignRequest,
     if_match: str = Header(..., alias="If-Match"),
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(require_role("hr_admin")),
-) -> EmployeeReadAny:
-    service = ReassignmentService(session)
-    employee = await service.reassign_manager(
+) -> ManagerReassignRead:
+    service = AssignmentService(session)
+    result = await service.reassign(
         employee_id,
         body.manager_id,
+        effective_from=body.effective_from,
+        reason=body.reason,
         expected_version=_parse_if_match(if_match),
         actor_id=principal.id,
     )
+    employee = await EmployeeRepository(session).get(employee_id)
+    assert employee is not None
+    manager_names = await _manager_names_for(session, result.cancelled)
     await session.commit()
-    return to_employee_read(employee, principal)
+    return ManagerReassignRead(
+        employee=to_employee_read(employee, principal),
+        assignment_id=result.assignment.id,
+        effective_from=result.assignment.valid_from,
+        in_force_now=result.in_force_now,
+        reason=result.assignment.reason,
+        cancelled=[_to_cancelled_read(row, manager_names) for row in result.cancelled],
+    )
 
 
-@router.get("/{employee_id}/subtree", response_model=list[EmployeeHierarchyNode])
+@router.post("/{employee_id}/move-preview", response_model=MovePreviewReadAny)
+async def move_preview(
+    employee_id: uuid.UUID,
+    body: MovePreviewRequest,
+    session: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+) -> MovePreviewReadAny:
+    preview = await AssignmentService(session).preview_move(
+        employee_id,
+        body.new_manager_id,
+        as_of=body.as_of,
+        include_cost=principal.is_admin,
+    )
+    return await _to_move_preview_read(session, preview, principal)
+
+
+@router.get("/{employee_id}/assignment-history", response_model=AssignmentHistoryRead)
+async def get_assignment_history(
+    employee_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db),
+    _principal: Principal = Depends(get_current_principal),
+) -> AssignmentHistoryRead:
+    rows = await AssignmentService(session).get_assignment_history(employee_id)
+    today = today_date()
+    return AssignmentHistoryRead(
+        employee_id=employee_id,
+        as_of=today,
+        items=[_to_history_item_read(row, today) for row in rows],
+    )
+
+
+@router.get("/{employee_id}/subtree", response_model=AsOfHierarchy)
 async def get_subtree(
     employee_id: uuid.UUID,
     depth: int | None = Query(None, ge=1, le=1000),
+    as_of: date = Depends(as_of_param),
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
-) -> list[EmployeeHierarchyNode]:
-    repo = EmployeeRepository(session)
-    if await repo.get(employee_id) is None:
+) -> AsOfHierarchy:
+    if await EmployeeRepository(session).get(employee_id) is None:
         raise EmployeeNotFound(employee_id)
 
-    rows = await repo.get_subtree(employee_id, max_depth=depth)
-    return [
-        EmployeeHierarchyNode(
-            employee=to_employee_read(row.employee, principal), depth=row.depth
-        )
-        for row in rows
-    ]
+    rows = await AssignmentRepository(session).get_subtree(
+        employee_id, as_of, max_depth=depth
+    )
+    return AsOfHierarchy(
+        as_of=as_of,
+        items=[
+            EmployeeHierarchyNode(
+                employee=to_employee_read(row.employee, principal), depth=row.depth
+            )
+            for row in rows
+        ],
+    )
 
 
-@router.get("/{employee_id}/reporting-line", response_model=list[EmployeeHierarchyNode])
+@router.get("/{employee_id}/reporting-line", response_model=AsOfHierarchy)
 async def get_reporting_line(
     employee_id: uuid.UUID,
+    as_of: date = Depends(as_of_param),
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
-) -> list[EmployeeHierarchyNode]:
-    repo = EmployeeRepository(session)
-    if await repo.get(employee_id) is None:
+) -> AsOfHierarchy:
+    if await EmployeeRepository(session).get(employee_id) is None:
         raise EmployeeNotFound(employee_id)
 
-    rows = await repo.get_ancestors(employee_id)
-    return [
-        EmployeeHierarchyNode(
-            employee=to_employee_read(row.employee, principal), depth=row.depth
-        )
-        for row in rows
-    ]
+    rows = await AssignmentRepository(session).get_ancestors(employee_id, as_of)
+    return AsOfHierarchy(
+        as_of=as_of,
+        items=[
+            EmployeeHierarchyNode(
+                employee=to_employee_read(row.employee, principal), depth=row.depth
+            )
+            for row in rows
+        ],
+    )
 
 
 @router.get("/{employee_id}/audit", response_model=AuditLogPage)

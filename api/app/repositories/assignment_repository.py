@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import func, select, text
@@ -385,6 +386,18 @@ class AssignmentRepository:
             total_annual=row.total_annual,
             currency=row.currency or "ZAR",
         )
+
+    async def get_salary_total(
+        self, employee_ids: Sequence[uuid.UUID]
+    ) -> tuple[Decimal, str]:
+        if not employee_ids:
+            return Decimal(0), "ZAR"
+        stmt = select(
+            func.coalesce(func.sum(Employee.salary), 0),
+            func.coalesce(func.min(Employee.currency), "ZAR"),
+        ).where(Employee.id.in_(employee_ids), Employee.deleted_at.is_(None))
+        total, currency = (await self._session.execute(stmt)).one()
+        return Decimal(total), currency
 
     async def get(self, assignment_id: uuid.UUID) -> EmployeeAssignment | None:
         stmt = select(EmployeeAssignment).where(EmployeeAssignment.id == assignment_id)

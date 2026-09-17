@@ -212,6 +212,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employees/{employee_id}/move-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Preview */
+        post: operations["move_preview_api_v1_employees__employee_id__move_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{employee_id}/assignment-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Assignment History */
+        get: operations["get_assignment_history_api_v1_employees__employee_id__assignment_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees/{employee_id}/subtree": {
         parameters: {
             query?: never;
@@ -272,6 +306,74 @@ export interface paths {
         };
         /** Get Roots */
         get: operations["get_roots_api_v1_hierarchy_roots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hierarchy/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tree */
+        get: operations["get_tree_api_v1_hierarchy_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hierarchy/scheduled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scheduled */
+        get: operations["get_scheduled_api_v1_hierarchy_scheduled_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hierarchy/scheduled/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel Scheduled */
+        delete: operations["cancel_scheduled_api_v1_hierarchy_scheduled__assignment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hierarchy/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Structure Diff */
+        get: operations["get_structure_diff_api_v1_hierarchy_diff_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -449,6 +551,73 @@ export interface components {
             /** Unreachable */
             unreachable: components["schemas"]["UnreachableAnomalyRead"][];
         };
+        /** AsOfEmployees */
+        AsOfEmployees: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Items */
+            items: (components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"])[];
+        };
+        /** AsOfHierarchy */
+        AsOfHierarchy: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Items */
+            items: components["schemas"]["EmployeeHierarchyNode"][];
+        };
+        /** AssignmentHistoryItemRead */
+        AssignmentHistoryItemRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Manager Id */
+            manager_id: string | null;
+            /** Manager Name */
+            manager_name: string | null;
+            /**
+             * Valid From
+             * Format: date
+             */
+            valid_from: string;
+            /** Valid To */
+            valid_to: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Created By Email */
+            created_by_email: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** In Force */
+            in_force: boolean;
+            /** Scheduled */
+            scheduled: boolean;
+        };
+        /** AssignmentHistoryRead */
+        AssignmentHistoryRead: {
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Items */
+            items: components["schemas"]["AssignmentHistoryItemRead"][];
+        };
         /** AuditLogPage */
         AuditLogPage: {
             /** Items */
@@ -553,6 +722,34 @@ export interface components {
             /** Average Span Of Control */
             average_span_of_control: number;
         };
+        /** CancelledAssignmentRead */
+        CancelledAssignmentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Manager Id */
+            manager_id: string | null;
+            /** Manager Name */
+            manager_name: string | null;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Reason */
+            reason: string | null;
+        };
+        /** CostDeltaRead */
+        CostDeltaRead: {
+            /** Leaving */
+            leaving: string;
+            /** Arriving */
+            arriving: string;
+            /** Currency */
+            currency: string;
+        };
         /** CostSummaryRead */
         CostSummaryRead: {
             /** Total Annual */
@@ -587,6 +784,13 @@ export interface components {
             depth: number;
             /** Count */
             count: number;
+        };
+        /** DiffCostRead */
+        DiffCostRead: {
+            /** Total Moved */
+            total_moved: string;
+            /** Currency */
+            currency: string;
         };
         /** EmployeeCreate */
         EmployeeCreate: {
@@ -943,10 +1147,58 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** ManagerChangeRead */
+        ManagerChangeRead: {
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /** Employee Name */
+            employee_name: string;
+            /** From Manager Id */
+            from_manager_id: string | null;
+            /** From Manager Name */
+            from_manager_name: string | null;
+            /** To Manager Id */
+            to_manager_id: string | null;
+            /** To Manager Name */
+            to_manager_name: string | null;
+            /** Subtree Size */
+            subtree_size: number;
+        };
+        /**
+         * ManagerReassignRead
+         * @description The outcome of a reassignment, which may not have taken effect yet.
+         */
+        ManagerReassignRead: {
+            /** Employee */
+            employee: components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"];
+            /**
+             * Assignment Id
+             * Format: uuid
+             */
+            assignment_id: string;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** In Force Now */
+            in_force_now: boolean;
+            /** Reason */
+            reason: string | null;
+            /** Cancelled */
+            cancelled: components["schemas"]["CancelledAssignmentRead"][];
+        };
         /** ManagerReassignRequest */
         ManagerReassignRequest: {
             /** Manager Id */
             manager_id: string | null;
+            /** Effective From */
+            effective_from?: string | null;
+            /** Reason */
+            reason?: string | null;
         };
         /** MeResponse */
         MeResponse: {
@@ -965,6 +1217,82 @@ export interface components {
             can_view_salary: boolean;
             /** Can Edit */
             can_edit: boolean;
+        };
+        /** MoveAffectedRead */
+        MoveAffectedRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+            /** Depth */
+            depth: number;
+        };
+        /** MovePreviewRead */
+        MovePreviewRead: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            employee: components["schemas"]["PersonRefRead"];
+            /** Affected */
+            affected: components["schemas"]["MoveAffectedRead"][];
+            /** Headcount */
+            headcount: number;
+            current_manager: components["schemas"]["PersonRefRead"] | null;
+            new_manager: components["schemas"]["PersonRefRead"] | null;
+            /** Depth Change */
+            depth_change: number;
+            /** Blocked */
+            blocked: boolean;
+            /** Blocked Chain */
+            blocked_chain?: string[];
+            /** Blocked Chain Names */
+            blocked_chain_names?: string[];
+            /** Blocked At */
+            blocked_at?: string | null;
+            /** Supersedes */
+            supersedes: components["schemas"]["CancelledAssignmentRead"][];
+            cost_delta: components["schemas"]["CostDeltaRead"];
+        };
+        /** MovePreviewReadRestricted */
+        MovePreviewReadRestricted: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            employee: components["schemas"]["PersonRefRead"];
+            /** Affected */
+            affected: components["schemas"]["MoveAffectedRead"][];
+            /** Headcount */
+            headcount: number;
+            current_manager: components["schemas"]["PersonRefRead"] | null;
+            new_manager: components["schemas"]["PersonRefRead"] | null;
+            /** Depth Change */
+            depth_change: number;
+            /** Blocked */
+            blocked: boolean;
+            /** Blocked Chain */
+            blocked_chain?: string[];
+            /** Blocked Chain Names */
+            blocked_chain_names?: string[];
+            /** Blocked At */
+            blocked_at?: string | null;
+            /** Supersedes */
+            supersedes: components["schemas"]["CancelledAssignmentRead"][];
+        };
+        /** MovePreviewRequest */
+        MovePreviewRequest: {
+            /** New Manager Id */
+            new_manager_id?: string | null;
+            /** As Of */
+            as_of?: string | null;
         };
         /** OrgSummaryRead */
         OrgSummaryRead: {
@@ -1010,6 +1338,18 @@ export interface components {
             /** Span Distribution */
             span_distribution: components["schemas"]["SpanCountRead"][];
             anomalies: components["schemas"]["AnomaliesRead"];
+        };
+        /** PersonRefRead */
+        PersonRefRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
         };
         /** ProfileEmployee */
         ProfileEmployee: {
@@ -1083,6 +1423,51 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** ScheduledAssignmentRead */
+        ScheduledAssignmentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /** Employee Name */
+            employee_name: string;
+            /** Employee Position */
+            employee_position: string;
+            /** Manager Id */
+            manager_id: string | null;
+            /** Manager Name */
+            manager_name: string | null;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Reason */
+            reason: string | null;
+            /** Created By Email */
+            created_by_email: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ScheduledAssignmentsRead */
+        ScheduledAssignmentsRead: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Items */
+            items: components["schemas"]["ScheduledAssignmentRead"][];
+        };
         /** SearchResultRead */
         SearchResultRead: {
             /**
@@ -1121,6 +1506,73 @@ export interface components {
             direct_reports: number;
             /** Manager Count */
             manager_count: number;
+        };
+        /** StructureDiffRead */
+        StructureDiffRead: {
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+            /** Manager Changes */
+            manager_changes: components["schemas"]["ManagerChangeRead"][];
+            /** Branch Moves */
+            branch_moves: components["schemas"]["ManagerChangeRead"][];
+            /** Became Root */
+            became_root: components["schemas"]["ManagerChangeRead"][];
+            /** Stopped Being Root */
+            stopped_being_root: components["schemas"]["ManagerChangeRead"][];
+            /** Max Depth From */
+            max_depth_from: number;
+            /** Max Depth To */
+            max_depth_to: number;
+            /** Max Depth Change */
+            max_depth_change: number;
+            /** Average Span From */
+            average_span_from: number;
+            /** Average Span To */
+            average_span_to: number;
+            /** Average Span Change */
+            average_span_change: number;
+            cost: components["schemas"]["DiffCostRead"];
+        };
+        /** StructureDiffReadRestricted */
+        StructureDiffReadRestricted: {
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+            /** Manager Changes */
+            manager_changes: components["schemas"]["ManagerChangeRead"][];
+            /** Branch Moves */
+            branch_moves: components["schemas"]["ManagerChangeRead"][];
+            /** Became Root */
+            became_root: components["schemas"]["ManagerChangeRead"][];
+            /** Stopped Being Root */
+            stopped_being_root: components["schemas"]["ManagerChangeRead"][];
+            /** Max Depth From */
+            max_depth_from: number;
+            /** Max Depth To */
+            max_depth_to: number;
+            /** Max Depth Change */
+            max_depth_change: number;
+            /** Average Span From */
+            average_span_from: number;
+            /** Average Span To */
+            average_span_to: number;
+            /** Average Span Change */
+            average_span_change: number;
         };
         /** TokenPair */
         TokenPair: {
@@ -1676,7 +2128,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"];
+                    "application/json": components["schemas"]["ManagerReassignRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_preview_api_v1_employees__employee_id__move_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MovePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovePreviewRead"] | components["schemas"]["MovePreviewReadRestricted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_assignment_history_api_v1_employees__employee_id__assignment_history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentHistoryRead"];
                 };
             };
             /** @description Validation Error */
@@ -1694,6 +2212,8 @@ export interface operations {
         parameters: {
             query?: {
                 depth?: number | null;
+                /** @description View the organisation as at this date (default: today) */
+                as_of?: string | null;
             };
             header?: never;
             path: {
@@ -1709,7 +2229,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeHierarchyNode"][];
+                    "application/json": components["schemas"]["AsOfHierarchy"];
                 };
             };
             /** @description Validation Error */
@@ -1725,7 +2245,10 @@ export interface operations {
     };
     get_reporting_line_api_v1_employees__employee_id__reporting_line_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View the organisation as at this date (default: today) */
+                as_of?: string | null;
+            };
             header?: never;
             path: {
                 employee_id: string;
@@ -1740,7 +2263,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeHierarchyNode"][];
+                    "application/json": components["schemas"]["AsOfHierarchy"];
                 };
             };
             /** @description Validation Error */
@@ -1791,6 +2314,72 @@ export interface operations {
     };
     get_roots_api_v1_hierarchy_roots_get: {
         parameters: {
+            query?: {
+                /** @description View the organisation as at this date (default: today) */
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsOfEmployees"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tree_api_v1_hierarchy_tree_get: {
+        parameters: {
+            query?: {
+                root_id?: string | null;
+                depth?: number | null;
+                /** @description View the organisation as at this date (default: today) */
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsOfHierarchy"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scheduled_api_v1_hierarchy_scheduled_get: {
+        parameters: {
             query?: never;
             header?: never;
             path?: never;
@@ -1804,7 +2393,68 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"])[];
+                    "application/json": components["schemas"]["ScheduledAssignmentsRead"];
+                };
+            };
+        };
+    };
+    cancel_scheduled_api_v1_hierarchy_scheduled__assignment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_structure_diff_api_v1_hierarchy_diff_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StructureDiffRead"] | components["schemas"]["StructureDiffReadRestricted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

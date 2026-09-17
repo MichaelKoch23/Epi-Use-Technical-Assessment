@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Literal
 
 from fastapi import HTTPException, Query
 
 from app.repositories.employee_repository import SORTABLE_COLUMNS, EmployeeListFilters
+
+
+def as_of_param(
+    as_of: date | None = Query(
+        None, description="View the organisation as at this date (default: today)"
+    ),
+) -> date:
+    """Resolve the as-of date once, so every handler echoes the same value back."""
+    return as_of or datetime.now(UTC).date()
 
 
 @dataclass(frozen=True, slots=True)

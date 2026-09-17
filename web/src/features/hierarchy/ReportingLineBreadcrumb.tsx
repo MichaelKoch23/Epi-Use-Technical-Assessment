@@ -8,7 +8,7 @@ async function fetchReportingLine(id: string) {
     params: { path: { employee_id: id } },
   })
   if (error) throw error
-  return data
+  return data.items
 }
 
 export function ReportingLineBreadcrumb({

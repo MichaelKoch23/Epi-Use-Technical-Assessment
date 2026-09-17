@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from app.core.security import Principal
 from app.routers.hierarchy import get_roots
+
+TODAY = datetime.now(UTC).date()
 
 
 async def test_roots_returns_only_employees_without_a_manager(
@@ -13,9 +16,10 @@ async def test_roots_returns_only_employees_without_a_manager(
     await employee_factory(manager_id=root.id)
 
     principal = Principal(id=actor_id, role="hr_admin")
-    roots = await get_roots(session=db_session, principal=principal)
+    response = await get_roots(as_of=TODAY, session=db_session, principal=principal)
 
-    assert {r.id for r in roots} == {root.id}
+    assert response.as_of == TODAY
+    assert {r.id for r in response.items} == {root.id}
 
 
 async def test_roots_excludes_soft_deleted_employees(
@@ -28,6 +32,6 @@ async def test_roots_excludes_soft_deleted_employees(
     await db_session.commit()
 
     principal = Principal(id=actor_id, role="hr_admin")
-    roots = await get_roots(session=db_session, principal=principal)
+    response = await get_roots(as_of=TODAY, session=db_session, principal=principal)
 
-    assert roots == []
+    assert response.items == []

@@ -16,6 +16,7 @@ from app.schemas.fields import (
     EmployeeNumber,
     PersonName,
     Position,
+    ReassignReason,
     Salary,
 )
 
@@ -50,7 +51,13 @@ class EmployeeUpdate(BaseModel):
 
 
 class ManagerReassignRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     manager_id: uuid.UUID | None
+    # A past date is permitted - corrections are legitimate - but the service
+    # refuses one that precedes the employee's first recorded assignment.
+    effective_from: date | None = None
+    reason: ReassignReason = None
 
 
 class _EmployeeReadBase(BaseModel):

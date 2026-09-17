@@ -30,7 +30,7 @@ async function fetchExcludedIds(employeeId: string): Promise<Set<string>> {
     params: { path: { employee_id: employeeId } },
   })
   if (error) return new Set([employeeId])
-  return new Set([employeeId, ...data.map((node) => node.employee.id)])
+  return new Set([employeeId, ...data.items.map((node) => node.employee.id)])
 }
 
 export function ManagerPicker({

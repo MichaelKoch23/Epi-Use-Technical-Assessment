@@ -14,6 +14,7 @@ from app.core.exceptions import (
     EmployeeNotFound,
     ReportingCycleError,
     ScheduledAssignmentInForceError,
+    VersionConflictError,
 )
 from app.models.employee import Employee
 from app.models.employee_assignment import EmployeeAssignment
@@ -99,6 +100,8 @@ class StructureDiff:
     max_depth_to: int
     average_span_from: float
     average_span_to: float
+    moved_salary: Decimal
+    currency: str
 
 
 def _average_span(edges: dict[uuid.UUID, uuid.UUID | None]) -> float:
@@ -133,6 +136,7 @@ class AssignmentService:
         *,
         effective_from: date | None = None,
         reason: str | None = None,
+        expected_version: int | None = None,
         actor_id: uuid.UUID,
     ) -> ReassignResult:
         effective_from = effective_from or today()
@@ -140,6 +144,11 @@ class AssignmentService:
 
         locked = await self._lock(employee_id, new_manager_id)
         employee = locked[employee_id]
+
+        # The If-Match lock is checked after the row is held, so a concurrent
+        # writer cannot slip in between the read and the decision.
+        if expected_version is not None and employee.version != expected_version:
+            raise VersionConflictError(employee_id, expected_version, employee.version)
 
         earliest = await self._assignments.get_earliest_valid_from(employee_id)
         if earliest is not None and effective_from < earliest:
@@ -348,6 +357,7 @@ class AssignmentService:
 
         trees_from = await self._assignments.get_tree(from_date)
         trees_to = await self._assignments.get_tree(to_date)
+        moved_salary, currency = await self._assignments.get_salary_total(changed)
 
         return StructureDiff(
             from_date=from_date,
@@ -370,6 +380,8 @@ class AssignmentService:
             max_depth_to=max((row.depth for row in trees_to), default=0),
             average_span_from=_average_span(edges_from),
             average_span_to=_average_span(edges_to),
+            moved_salary=moved_salary,
+            currency=currency,
         )
 
     async def get_assignment_history(

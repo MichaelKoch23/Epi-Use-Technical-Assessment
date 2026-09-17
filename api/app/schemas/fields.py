@@ -67,6 +67,11 @@ Currency = Annotated[
     StringConstraints(strip_whitespace=True, to_upper=True, pattern=_CURRENCY_RE),
 ]
 
+ReassignReason = Annotated[
+    str | None,
+    StringConstraints(strip_whitespace=True, max_length=500),
+]
+
 AvatarOverrideUrl = Annotated[
     str | None,
     StringConstraints(strip_whitespace=True, max_length=2048),

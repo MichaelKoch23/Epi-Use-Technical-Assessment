@@ -10,7 +10,7 @@ const EXPAND_DEPTH = 1
 export async function fetchRoots(): Promise<ChartEmployee[]> {
   const { data, error } = await apiClient.GET('/api/v1/hierarchy/roots')
   if (error) throw error
-  return data
+  return data.items
 }
 
 export async function fetchSubtree(id: string, depth?: number) {
@@ -18,7 +18,7 @@ export async function fetchSubtree(id: string, depth?: number) {
     params: { path: { employee_id: id }, query: { depth } },
   })
   if (error) throw error
-  return data
+  return data.items
 }
 
 async function fetchReportingLine(id: string) {
@@ -26,7 +26,7 @@ async function fetchReportingLine(id: string) {
     params: { path: { employee_id: id } },
   })
   if (error) throw error
-  return data
+  return data.items
 }
 
 export class ChartVersionConflict extends Error {
