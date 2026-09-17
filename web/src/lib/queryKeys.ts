@@ -15,6 +15,7 @@ export type EmployeeListFilters = NonNullable<
 export const employeeKeys = {
   all: ['employees'] as const,
   lists: () => [...employeeKeys.all, 'list'] as const,
+  positions: () => [...employeeKeys.all, 'positions'] as const,
   list: (filters: EmployeeListFilters) => [...employeeKeys.lists(), filters] as const,
   details: () => [...employeeKeys.all, 'detail'] as const,
   detail: (id: string) => [...employeeKeys.details(), id] as const,
@@ -24,6 +25,10 @@ export const employeeKeys = {
   auditLog: (id: string, page?: number) => [...employeeKeys.detail(id), 'audit', page] as const,
   deletionPreview: (id: string, policy: string) =>
     [...employeeKeys.detail(id), 'deletion-preview', policy] as const,
+}
+
+export const profileKeys = {
+  me: () => ['profile'] as const,
 }
 
 export const hierarchyKeys = {

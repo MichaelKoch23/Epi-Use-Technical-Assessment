@@ -8,7 +8,7 @@ import uuid
 from collections.abc import Callable
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EmployeeNotFound
@@ -20,6 +20,7 @@ from app.core.pagination import (
     page_params,
 )
 from app.core.security import Principal, get_current_principal, require_role
+from app.core.uploads import read_capped
 from app.db.session import get_db
 from app.models.employee import Employee
 from app.repositories.employee_repository import (
@@ -43,6 +44,7 @@ from app.schemas.employee import (
     ManagerReassignRequest,
 )
 from app.services.audit_service import AuditLogRow, AuditService
+from app.services.avatar_service import MAX_AVATAR_BYTES, AvatarService
 from app.services.deletion_policy import (
     Cascade,
     DeletionPolicy,
@@ -221,6 +223,15 @@ async def create_employee(
     return EmployeeRead.model_validate(employee)
 
 
+# Declared before `/{employee_id}` so "positions" isn't parsed as an id.
+@router.get("/positions", response_model=list[str])
+async def list_positions(
+    session: AsyncSession = Depends(get_db),
+    _principal: Principal = Depends(get_current_principal),
+) -> list[str]:
+    return list(await EmployeeRepository(session).list_positions())
+
+
 @router.get("/{employee_id}", response_model=EmployeeReadAny)
 async def get_employee(
     employee_id: uuid.UUID,
@@ -251,6 +262,63 @@ async def update_employee(
     )
     await session.commit()
     return to_employee_read(employee, principal)
+
+
+async def _set_avatar(
+    session: AsyncSession,
+    employee_id: uuid.UUID,
+    new_url: str | None,
+    *,
+    if_match: str,
+    principal: Principal,
+) -> EmployeeReadAny:
+    """Swap an employee's override URL through the normal update path, so
+    a photo change is version-checked and lands in the audit trail like
+    any other edit, then drop the image it replaced."""
+    repo = EmployeeRepository(session)
+    current = await repo.get(employee_id)
+    if current is None:
+        raise EmployeeNotFound(employee_id)
+    previous_url = current.avatar_override_url
+
+    employee = await EmployeeService(session).update(
+        employee_id,
+        expected_version=_parse_if_match(if_match),
+        actor_id=principal.id,
+        avatar_override_url=new_url,
+    )
+    if previous_url != new_url:
+        await AvatarService(session).discard_if_unused(previous_url)
+    await session.commit()
+    return to_employee_read(employee, principal)
+
+
+@router.put("/{employee_id}/avatar", response_model=EmployeeReadAny)
+async def upload_employee_avatar(
+    employee_id: uuid.UUID,
+    file: UploadFile = File(...),
+    if_match: str = Header(..., alias="If-Match"),
+    session: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(require_role("hr_admin")),
+) -> EmployeeReadAny:
+    raw = await read_capped(file, MAX_AVATAR_BYTES, what="Image")
+    url = await AvatarService(session).store(raw)
+    return await _set_avatar(
+        session, employee_id, url, if_match=if_match, principal=principal
+    )
+
+
+@router.delete("/{employee_id}/avatar", response_model=EmployeeReadAny)
+async def remove_employee_avatar(
+    employee_id: uuid.UUID,
+    if_match: str = Header(..., alias="If-Match"),
+    session: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(require_role("hr_admin")),
+) -> EmployeeReadAny:
+    """Clear the override, falling back to the employee's Gravatar."""
+    return await _set_avatar(
+        session, employee_id, None, if_match=if_match, principal=principal
+    )
 
 
 @router.delete("/{employee_id}", status_code=204)

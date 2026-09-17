@@ -1,6 +1,6 @@
 # User Guide
 
-Employee Hierarchy Management System — a guide for the people who use it day to day.
+Employee Hierarchy Management System - a guide for the people who use it day to day.
 
 This guide assumes no technical background. For how the system is built and why, see [TECHNICAL-DESIGN.md](TECHNICAL-DESIGN.md).
 
@@ -16,7 +16,7 @@ This guide assumes no technical background. For how the system is built and why,
 6. [Employee details](#6-employee-details)
 7. [Adding, editing and removing employees](#7-adding-editing-and-removing-employees)
 8. [Changing who someone reports to](#8-changing-who-someone-reports-to)
-9. [Profile pictures (Gravatar)](#9-profile-pictures-gravatar)
+9. [Profile pictures and your profile page](#9-profile-pictures-and-your-profile-page)
 10. [Exporting to a spreadsheet](#10-exporting-to-a-spreadsheet)
 11. [Importing from a spreadsheet](#11-importing-from-a-spreadsheet)
 12. [Analytics](#12-analytics)
@@ -33,12 +33,12 @@ Two demo accounts are available:
 
 | Account | Email | Role |
 |---|---|---|
-| Administrator | `admin@epiuse-demo.com` | `hr_admin` — full access |
-| Read-only | `viewer@epiuse-demo.com` | `viewer` — can look, cannot change |
+| Administrator | `admin@epiuse-demo.com` | `hr_admin` - full access |
+| Read-only | `viewer@epiuse-demo.com` | `viewer` - can look, cannot change |
 
 Passwords are supplied separately with the submission.
 
-**If sign-in fails**, the message is deliberately the same whether the email is unknown or the password is wrong — this prevents anyone from using the login form to discover which email addresses have accounts. Check both.
+**If sign-in fails**, the message is deliberately the same whether the email is unknown or the password is wrong - this prevents anyone from using the login form to discover which email addresses have accounts. Check both.
 
 **After several failed attempts in a row** the system will briefly refuse further tries. Wait a minute and try again.
 
@@ -61,7 +61,7 @@ Passwords are supplied separately with the submission.
 
 If you are signed in as a viewer, buttons that would change data are simply not shown.
 
-**A note on salaries.** For a read-only user, salary is not merely hidden in the interface — it is never sent to your browser at all. You will also find that sorting or filtering by salary is refused rather than silently ignored, because being able to ask "show me everyone earning over R500 000" would reveal the figures just as surely as displaying them.
+**A note on salaries.** For a read-only user, salary is not merely hidden in the interface - it is never sent to your browser at all. You will also find that sorting or filtering by salary is refused rather than silently ignored, because being able to ask "show me everyone earning over R500 000" would reveal the figures just as surely as displaying them.
 
 ---
 
@@ -69,10 +69,10 @@ If you are signed in as a viewer, buttons that would change data are simply not 
 
 The bar across the top of every page contains:
 
-- **Org chart**, **Employees**, **Analytics**, **Import** — the main sections.
-- **Search** (magnifying glass) — jump to any person from anywhere. Keyboard shortcut: **Ctrl + K** (**⌘ + K** on a Mac). Start typing a name, an employee number or a job title; press **Enter** on a result to open that person.
-- **Change history** (clock icon) — every change made in the system.
-- **Account menu** — your signed-in identity and the sign-out option.
+- **Org chart**, **Employees**, **Analytics**, **Import** - the main sections.
+- **Search** (magnifying glass) - jump to any person from anywhere. Keyboard shortcut: **Ctrl + K** (**⌘ + K** on a Mac). Start typing a name, an employee number or a job title; press **Enter** on a result to open that person.
+- **Change history** (clock icon) - every change made in the system.
+- **Account menu** (your picture, top right) - your signed-in identity, **Your profile**, and **Sign out**.
 
 Signing in takes you to the org chart by default.
 
@@ -98,17 +98,17 @@ The search box on the chart finds a person and scrolls the chart to them, expand
 
 ### Viewing someone's details
 
-Clicking a card opens a side panel with their details, their reporting line up to the top of the organisation, and — for administrators — buttons to edit, reassign or delete.
+Clicking a card opens a side panel with their details, their reporting line up to the top of the organisation, and - for administrators - buttons to edit, reassign or delete.
 
 ### Saving a picture of the chart
 
-**Export PNG** saves the current view as an image file, for slide decks or printing. What you see is what you get, so set up the view — focus, zoom, expanded branches — before exporting.
+**Export PNG** saves the current view as an image file, for slide decks or printing. What you see is what you get, so set up the view - focus, zoom, expanded branches - before exporting.
 
 ---
 
 ## 5. The employee table
 
-A sortable, filterable list — the right tool when you want to compare people rather than see the shape of the organisation.
+A sortable, filterable list - the right tool when you want to compare people rather than see the shape of the organisation.
 
 ### Sorting
 
@@ -118,8 +118,8 @@ Click any column heading to sort by it. Click again to reverse the direction.
 
 **Filters** opens a panel where you can narrow by:
 
-- **Name** — partial matches are fine.
-- **Position**
+- **Name** - partial matches are fine.
+- **Position** - pick from a list of every job title currently in use.
 - **Manager**
 - **Salary range** (administrators only)
 - **Date of birth range**
@@ -128,7 +128,7 @@ Active filters appear as removable chips above the table; click the **×** on on
 
 ### Deleted employees
 
-A **Deleted** toggle lists people who have been removed. Deletion in this system is reversible — nothing is erased — so anyone here can be restored. See [§7](#7-adding-editing-and-removing-employees).
+A **Deleted** toggle lists people who have been removed. Deletion in this system is reversible - nothing is erased - so anyone here can be restored. See [§7](#7-adding-editing-and-removing-employees).
 
 ### Your view is shareable
 
@@ -140,11 +140,11 @@ The filters, sort order and page you are looking at are all recorded in the brow
 
 Clicking a row in the table, or a card in the chart, opens that person's page:
 
-- Their photograph, name, job title and employee number.
+- Their photograph, name, job title and employee number. Administrators can upload or change the photograph here ([§9](#9-profile-pictures-and-your-profile-page)).
 - Date of birth, email address, and salary (administrators only).
 - Their manager, and their direct reports.
-- Their **reporting line** — the chain of managers from them to the top of the organisation.
-- Their **change history** — every modification to this record, most recent first, with who made it and when.
+- Their **reporting line** - the chain of managers from them to the top of the organisation.
+- Their **change history** - every modification to this record, most recent first, with who made it and when.
 
 ---
 
@@ -154,7 +154,7 @@ Clicking a row in the table, or a card in the chart, opens that person's page:
 
 ### Adding
 
-**Add employee** on the employee table opens a form. Required: employee number, first and last name, email address, date of birth, position and salary. Optionally choose a manager — leave it empty for someone at the top of the organisation, such as the CEO.
+**Add employee** on the employee table opens a form. Required: employee number, first and last name, email address, date of birth, position and salary. Optionally choose a manager - leave it empty for someone at the top of the organisation, such as the CEO.
 
 Fields are checked as you type, so problems are flagged before you submit:
 
@@ -175,7 +175,7 @@ If someone else changed that record while you had the form open, saving will sto
 
 | Option | Effect |
 |---|---|
-| **Reparent** *(default)* | Direct reports move up to the deleted person's own manager. The chain stays intact — usually what you want. |
+| **Reparent** *(default)* | Direct reports move up to the deleted person's own manager. The chain stays intact - usually what you want. |
 | **Promote to root** | Direct reports become top-level, with no manager. |
 | **Cascade delete** | The person **and everyone beneath them** are deleted. Use with care; the preview lists every affected person. |
 
@@ -197,23 +197,38 @@ One case to be aware of: if their employee number or email address was reassigne
 
 ### Two rules the system enforces
 
-**Nobody can be their own manager**, and **reporting lines cannot form a loop** — if Thabo reports to Naledi, Naledi cannot be made to report to Thabo, directly or through anyone in between. Attempting it is refused with a message naming the chain that would have been created.
+**Nobody can be their own manager**, and **reporting lines cannot form a loop** - if Thabo reports to Naledi, Naledi cannot be made to report to Thabo, directly or through anyone in between. Attempting it is refused with a message naming the chain that would have been created.
 
 This is enforced by the database itself, not only by the interface, so it holds even if two people make conflicting changes at the same moment.
 
-**Someone can have no manager.** That is how the CEO — or any top-level person — is represented. Leave the manager field empty.
+**Someone can have no manager.** That is how the CEO - or any top-level person - is represented. Leave the manager field empty.
 
 ---
 
-## 9. Profile pictures (Gravatar)
+## 9. Profile pictures and your profile page
 
-Profile pictures come from [Gravatar](https://gravatar.com), a free service that links a picture to an email address.
+Everyone's picture is chosen in this order - the first one that exists is shown:
 
-To give an employee a photograph, that person registers their **work email address** at gravatar.com and uploads an image there. It then appears throughout this system automatically — nothing needs to be done here.
+1. **An uploaded photo.**
+2. **Their [Gravatar](https://gravatar.com)** - a free service that links a picture to an email address. A person who registers their **work email address** at gravatar.com and adds an image there appears with it here automatically.
+3. **Their initials**, when there is no picture.
 
-Where there is no Gravatar, the system shows the person's initials.
+### Uploading a photo for an employee
 
-An administrator can also set a specific image by entering its web address in the **Avatar URL** field when editing an employee. This overrides Gravatar. The address must begin with `http://` or `https://`.
+*Administrators only.* Open the employee's page and click **Upload photo** (or click the picture itself). Choose a JPEG, PNG, WebP or GIF of up to 5 MB. The photo is cropped to a square and appears everywhere that person is shown - the table, the org chart and search. **Change photo** replaces it and **Remove** goes back to their Gravatar or initials.
+
+A photo change is recorded in the employee's change history like any other edit.
+
+An administrator can instead point to an image elsewhere on the web by entering its address in the **Avatar URL** field when editing an employee. The address must begin with `http://` or `https://`.
+
+### Your profile page
+
+Choose **Your profile** from the account menu. It shows:
+
+- **Your picture**, with **Upload photo** / **Change photo** / **Remove**. Any signed-in user can change their own picture.
+- **Profile picture** - which of the three sources above is currently in use, and whether a Gravatar exists for your email address (with a link to create one if not).
+- **Access** - your role and what it allows you to do.
+- **Your employee record** - if an employee has the same email address as your account, their job title, employee number, manager and direct reports are shown, each linking to that person's page.
 
 ---
 
@@ -250,13 +265,13 @@ The first row must be column headings. The columns are:
 | `currency` | No | Three letters; defaults to `ZAR` |
 | `manager_employee_number` | No | The manager's **employee number**, not their name |
 
-The simplest way to start is to **export first** ([§10](#10-exporting-to-a-spreadsheet)) and edit the file you get back — the columns already match.
+The simplest way to start is to **export first** ([§10](#10-exporting-to-a-spreadsheet)) and edit the file you get back - the columns already match.
 
 To make someone top-level, leave `manager_employee_number` empty. This is treated as an instruction ("reports to nobody"), so it will clear an existing manager.
 
 ### Importing
 
-1. Choose your file. The system checks it immediately and shows a **preview** — every row marked as *will create*, *will update*, or *blocked* with the reason.
+1. Choose your file. The system checks it immediately and shows a **preview** - every row marked as *will create*, *will update*, or *blocked* with the reason.
 2. Review the preview. Nothing has been written at this stage.
 3. If you are satisfied, confirm the import.
 
@@ -273,14 +288,14 @@ Rows are blocked for reasons such as: a missing required field, an unreadable da
 A dashboard describing the shape of the organisation.
 
 - **Headcount**, number of top-level people, managers and individual contributors.
-- **Span of control** — how many people managers have reporting to them, on average and as a distribution.
-- **Depth** — how many layers the organisation has, and how people are spread across them.
-- **Payroll cost** — total, average and median salary. *Administrators only.*
-- **Anomalies** — things worth a look rather than errors:
-  - *Wide spans* — managers with an unusually large number of direct reports.
-  - *Single-report managers* — managers with exactly one report, often a sign of an unnecessary layer.
-  - *Deep chains* — people a long way from the top.
-  - *Unreachable* — active employees not connected to any top-level person. This should normally be empty; if it is not, someone's manager has been removed without their reports being moved, and they will be missing from the org chart.
+- **Span of control** - how many people managers have reporting to them, on average and as a distribution.
+- **Depth** - how many layers the organisation has, and how people are spread across them.
+- **Payroll cost** - total, average and median salary. *Administrators only.*
+- **Anomalies** - things worth a look rather than errors:
+  - *Wide spans* - managers with an unusually large number of direct reports.
+  - *Single-report managers* - managers with exactly one report, often a sign of an unnecessary layer.
+  - *Deep chains* - people a long way from the top.
+  - *Unreachable* - active employees not connected to any top-level person. This should normally be empty; if it is not, someone's manager has been removed without their reports being moved, and they will be missing from the org chart.
 
 **Branch explorer** shows the same figures for one department: pick a person and see the totals for everyone beneath them.
 
@@ -292,7 +307,7 @@ The clock icon in the top bar opens a record of **every** change made in the sys
 
 Each entry shows the before and after values. Read-only users see that a salary changed without seeing the figures.
 
-The history is written as part of the change itself, so it cannot disagree with the data — a change can never be made without being recorded.
+The history is written as part of the change itself, so it cannot disagree with the data - a change can never be made without being recorded.
 
 ---
 

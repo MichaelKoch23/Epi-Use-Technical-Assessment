@@ -1,9 +1,19 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { SlidersHorizontalIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { apiClient } from '@/lib/apiClient'
+import { employeeKeys } from '@/lib/queryKeys'
 import { ManagerPicker } from './ManagerPicker'
 import type { EmployeesFilterState } from './useEmployeesViewState'
 
@@ -20,6 +30,12 @@ const EMPTY_DRAFT: PopoverFilterState = {
   maxSalary: '',
   minBirthDate: '',
   maxBirthDate: '',
+}
+
+async function fetchPositions() {
+  const { data, error } = await apiClient.GET('/api/v1/employees/positions')
+  if (error) return []
+  return data
 }
 
 function toPopoverState(filters: EmployeesFilterState): PopoverFilterState {
@@ -40,6 +56,19 @@ export function FilterPopover({
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<PopoverFilterState>(() => toPopoverState(filters))
+  const { data: positions = [] } = useQuery({
+    queryKey: employeeKeys.positions(),
+    queryFn: fetchPositions,
+    // Fetched with the page rather than on open, so the list is already
+    // there when the dropdown is clicked; positions rarely change.
+    staleTime: 5 * 60 * 1000,
+  })
+  // Keep an applied position selectable even if nobody holds it any more
+  // (e.g. it came in via a shared URL), so the trigger still shows it.
+  const positionOptions =
+    draft.position && !positions.includes(draft.position)
+      ? [draft.position, ...positions]
+      : positions
 
   return (
     <Popover
@@ -66,12 +95,22 @@ export function FilterPopover({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="filter-position">Position</Label>
-          <Input
-            id="filter-position"
-            placeholder="e.g. Software Engineer"
-            value={draft.position}
-            onChange={(e) => setDraft((d) => ({ ...d, position: e.target.value }))}
-          />
+          <Select
+            value={draft.position || null}
+            onValueChange={(value) => setDraft((d) => ({ ...d, position: value ?? '' }))}
+          >
+            <SelectTrigger id="filter-position" className="w-full">
+              <SelectValue placeholder="Any position" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} className="max-h-72">
+              <SelectItem value={null}>Any position</SelectItem>
+              {positionOptions.map((position) => (
+                <SelectItem key={position} value={position}>
+                  {position}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1.5">

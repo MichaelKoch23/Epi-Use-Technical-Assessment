@@ -1,4 +1,4 @@
-"""`GET /audit` — the global change-history feed behind the topbar's
+"""`GET /audit` - the global change-history feed behind the topbar's
 "Change history" button (§ global audit feed), spanning every employee
 rather than one. Exercised at the router-function level, like the other
 tests here (see test_hierarchy_roots.py for why)."""

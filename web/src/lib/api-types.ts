@@ -115,6 +115,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employees/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Positions */
+        get: operations["list_positions_api_v1_employees_positions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees/{employee_id}": {
         parameters: {
             query?: never;
@@ -132,6 +149,27 @@ export interface paths {
         head?: never;
         /** Update Employee */
         patch: operations["update_employee_api_v1_employees__employee_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/employees/{employee_id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload Employee Avatar */
+        put: operations["upload_employee_avatar_api_v1_employees__employee_id__avatar_put"];
+        post?: never;
+        /**
+         * Remove Employee Avatar
+         * @description Clear the override, falling back to the employee's Gravatar.
+         */
+        delete: operations["remove_employee_avatar_api_v1_employees__employee_id__avatar_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/employees/{employee_id}/restore": {
@@ -364,6 +402,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_api_v1_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload Profile Avatar
+         * @description Any signed-in user may set their *own* photo - it is not employee
+         *     data, so it isn't gated on `hr_admin` like the employee equivalent.
+         */
+        put: operations["upload_profile_avatar_api_v1_profile_avatar_put"];
+        post?: never;
+        /** Remove Profile Avatar */
+        delete: operations["remove_profile_avatar_api_v1_profile_avatar_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/avatars/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Avatar */
+        get: operations["get_avatar_api_v1_avatars__image_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -433,6 +527,16 @@ export interface components {
         };
         /** Body_import_employees_api_v1_imports_employees_post */
         Body_import_employees_api_v1_imports_employees_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_upload_employee_avatar_api_v1_employees__employee_id__avatar_put */
+        Body_upload_employee_avatar_api_v1_employees__employee_id__avatar_put: {
+            /** File */
+            file: string;
+        };
+        /** Body_upload_profile_avatar_api_v1_profile_avatar_put */
+        Body_upload_profile_avatar_api_v1_profile_avatar_put: {
             /** File */
             file: string;
         };
@@ -912,6 +1016,8 @@ export interface components {
             email: string;
             /** Role */
             role: string;
+            /** Avatar Url */
+            avatar_url: string;
             /** Can View Salary */
             can_view_salary: boolean;
             /** Can Edit */
@@ -968,6 +1074,76 @@ export interface components {
             /** Span Distribution */
             span_distribution: components["schemas"]["SpanCountRead"][];
             anomalies: components["schemas"]["AnomaliesRead"];
+        };
+        /**
+         * ProfileEmployee
+         * @description The employee record whose email matches the signed-in account.
+         */
+        ProfileEmployee: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Position */
+            position: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Employee Number */
+            employee_number: string;
+            /** Email */
+            email: string;
+            /**
+             * Joined At
+             * Format: date-time
+             */
+            joined_at: string;
+            manager: components["schemas"]["ProfilePerson"] | null;
+            /** Direct Reports */
+            direct_reports: components["schemas"]["ProfilePerson"][];
+        };
+        /** ProfilePerson */
+        ProfilePerson: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Position */
+            position: string;
+            /** Avatar Url */
+            avatar_url: string;
+        };
+        /** ProfileResponse */
+        ProfileResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Role */
+            role: string;
+            /** Can View Salary */
+            can_view_salary: boolean;
+            /** Can Edit */
+            can_edit: boolean;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Gravatar Url */
+            gravatar_url: string;
+            /** Has Uploaded Avatar */
+            has_uploaded_avatar: boolean;
+            employee: components["schemas"]["ProfileEmployee"] | null;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -1296,6 +1472,26 @@ export interface operations {
             };
         };
     };
+    list_positions_api_v1_employees_positions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
     get_employee_api_v1_employees__employee_id__get: {
         parameters: {
             query?: never;
@@ -1374,6 +1570,76 @@ export interface operations {
                 "application/json": components["schemas"]["EmployeeUpdate"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_employee_avatar_api_v1_employees__employee_id__avatar_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_employee_avatar_api_v1_employees__employee_id__avatar_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRead"] | components["schemas"]["EmployeeReadRestricted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_employee_avatar_api_v1_employees__employee_id__avatar_delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -1795,6 +2061,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GlobalAuditLogPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_api_v1_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+        };
+    };
+    upload_profile_avatar_api_v1_profile_avatar_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_profile_avatar_api_v1_profile_avatar_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_profile_avatar_api_v1_profile_avatar_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+        };
+    };
+    get_avatar_api_v1_avatars__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": unknown;
                 };
             };
             /** @description Validation Error */

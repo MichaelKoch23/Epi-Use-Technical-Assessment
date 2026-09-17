@@ -3,7 +3,7 @@ import { apiClient } from '@/lib/apiClient'
 import type { components } from '@/lib/api-types'
 import { getAccessToken } from '@/lib/auth'
 import { triggerDownload } from '@/lib/download'
-import { employeeKeys, type EmployeeListFilters } from '@/lib/queryKeys'
+import { employeeKeys, hierarchyKeys, profileKeys, type EmployeeListFilters } from '@/lib/queryKeys'
 
 type EmployeeCreate = components['schemas']['EmployeeCreate']
 type EmployeeUpdate = components['schemas']['EmployeeUpdate']
@@ -175,4 +175,60 @@ export async function fetchAuditLog(id: string, page: number) {
   })
   if (error) throw error
   return data
+}
+
+/** The generated types describe a multipart body as `{ file: string }`;
+ * the serializer swaps in real `FormData`, which openapi-fetch sends with
+ * the browser's own multipart boundary. */
+export function fileBody(file: File) {
+  return {
+    body: { file: file.name },
+    bodySerializer: () => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return formData
+    },
+  }
+}
+
+function invalidateAvatarViews(queryClient: ReturnType<typeof useQueryClient>) {
+  // Avatars appear in the list, detail, org chart, search and profile.
+  void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
+  void queryClient.invalidateQueries({ queryKey: hierarchyKeys.roots() })
+  void queryClient.invalidateQueries({ queryKey: profileKeys.me() })
+}
+
+export function useEmployeeAvatarMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      version,
+      file,
+    }: {
+      id: string
+      version: number
+      /** A file to upload, or `null` to remove the current photo. */
+      file: File | null
+    }) => {
+      const params = {
+        path: { employee_id: id },
+        header: { 'If-Match': `"${version}"` },
+      }
+      const { data, error, response } = file
+        ? await apiClient.PUT('/api/v1/employees/{employee_id}/avatar', {
+            params,
+            ...fileBody(file),
+          })
+        : await apiClient.DELETE('/api/v1/employees/{employee_id}/avatar', { params })
+      if (error) {
+        if (response.status === 409) {
+          throw new VersionConflict(id, 'This employee changed since it was loaded - refresh and try again')
+        }
+        throw error
+      }
+      return data
+    },
+    onSuccess: () => invalidateAvatarViews(queryClient),
+  })
 }

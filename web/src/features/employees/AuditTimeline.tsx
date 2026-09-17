@@ -61,7 +61,7 @@ function actionLabel(entry: AuditLogEntry, fields: string[]): string {
 }
 
 /** Exported so the global change-history feed (§ global audit feed) can
- * render the exact same entry, just with an employee name/link prefixed —
+ * render the exact same entry, just with an employee name/link prefixed -
  * the per-employee page already has that from context, the global one
  * doesn't. */
 export function AuditEntry({
@@ -92,7 +92,7 @@ export function AuditEntry({
               >
                 {employeeName}
               </Link>
-              <span className="font-normal text-muted-foreground"> — </span>
+              <span className="font-normal text-muted-foreground"> - </span>
             </>
           )}
           {actionLabel(entry, fields)}

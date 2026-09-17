@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.avatars import resolve_avatar_url
 from app.core.passwords import hash_password, verify_password
 from app.core.rate_limit import login_rate_limiter
 from app.core.security import Principal, get_current_principal
@@ -144,6 +145,9 @@ async def me(
         id=user.id,
         email=user.email,
         role=user.role,
+        avatar_url=resolve_avatar_url(
+            avatar_override_url=user.avatar_override_url, email=user.email
+        ),
         can_view_salary=principal.is_admin,
         can_edit=principal.is_admin,
     )

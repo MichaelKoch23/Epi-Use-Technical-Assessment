@@ -365,6 +365,17 @@ class EmployeeRepository:
         )
         return (await self._session.execute(stmt)).scalar_one()
 
+    async def list_positions(self) -> Sequence[str]:
+        """Distinct positions held by active employees, for the list page's
+        position filter dropdown."""
+        stmt = (
+            select(Employee.position)
+            .where(Employee.deleted_at.is_(None))
+            .distinct()
+            .order_by(Employee.position)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
+
     async def search(self, q: str, *, limit: int = 8) -> Sequence[Employee]:
         """Fuzzy match across name, employee number and position for the
         command palette (§ FR-7) - a small, fast, unpaginated top-N read,

@@ -1,8 +1,8 @@
-"""`/api/v1/audit` — the global change-history feed behind the topbar's
+"""`/api/v1/audit` - the global change-history feed behind the topbar's
 "Change history" button (§ global audit feed): the same per-record audit
 trail `/employees/{id}/audit` exposes, but across every employee at once
 rather than scoped to one. Open to any authenticated role, same as the
-per-employee endpoint — salary values are still stripped for a viewer by
+per-employee endpoint - salary values are still stripped for a viewer by
 `audit_log_fields`."""
 
 from __future__ import annotations

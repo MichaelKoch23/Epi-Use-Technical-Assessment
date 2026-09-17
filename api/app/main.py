@@ -13,10 +13,12 @@ from app.db.session import engine
 from app.routers.analytics import router as analytics_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
+from app.routers.avatars import router as avatars_router
 from app.routers.employees import router as employees_router
 from app.routers.exports import router as exports_router
 from app.routers.hierarchy import router as hierarchy_router
 from app.routers.imports import router as imports_router
+from app.routers.profile import router as profile_router
 from app.routers.search import router as search_router
 
 # The interactive docs are a development affordance, not something the
@@ -105,6 +107,8 @@ app.include_router(exports_router)
 app.include_router(analytics_router)
 app.include_router(search_router)
 app.include_router(audit_router)
+app.include_router(profile_router)
+app.include_router(avatars_router)
 
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

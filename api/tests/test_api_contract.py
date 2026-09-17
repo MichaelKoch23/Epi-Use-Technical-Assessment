@@ -41,6 +41,12 @@ PROTECTED_ROUTES = [
     ("POST", "/api/v1/imports/employees"),
     ("GET", "/api/v1/search?q=a"),
     ("GET", "/api/v1/audit"),
+    ("GET", "/api/v1/employees/positions"),
+    ("PUT", "/api/v1/employees/00000000-0000-0000-0000-000000000000/avatar"),
+    ("DELETE", "/api/v1/employees/00000000-0000-0000-0000-000000000000/avatar"),
+    ("GET", "/api/v1/profile"),
+    ("PUT", "/api/v1/profile/avatar"),
+    ("DELETE", "/api/v1/profile/avatar"),
 ]
 
 
@@ -72,6 +78,8 @@ WRITE_ROUTES = [
     ("PUT", "/api/v1/employees/00000000-0000-0000-0000-000000000000/manager"),
     ("GET", "/api/v1/employees/00000000-0000-0000-0000-000000000000/deletion-preview"),
     ("POST", "/api/v1/imports/employees"),
+    ("PUT", "/api/v1/employees/00000000-0000-0000-0000-000000000000/avatar"),
+    ("DELETE", "/api/v1/employees/00000000-0000-0000-0000-000000000000/avatar"),
 ]
 
 

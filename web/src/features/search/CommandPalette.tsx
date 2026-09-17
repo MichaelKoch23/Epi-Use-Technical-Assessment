@@ -39,7 +39,7 @@ export function CommandPalette({
     placeholderData: (previous) => previous,
   })
 
-  // Never reopen on a stale query — a fresh open should start from empty,
+  // Never reopen on a stale query - a fresh open should start from empty,
   // not wherever the last search left off.
   useEffect(() => {
     if (!open) setSearch('')
@@ -59,7 +59,7 @@ export function CommandPalette({
     >
       {/* Server-side filtering (§ FR-7): `q` already narrowed `results`,
        * so cmdk must not re-filter them client-side against its own
-       * fuzzy match on `value` — same reasoning as `ManagerPicker`. */}
+       * fuzzy match on `value` - same reasoning as `ManagerPicker`. */}
       <Command shouldFilter={false}>
         <CommandInput
           placeholder="Search by name, employee number or position..."
@@ -93,7 +93,7 @@ export function CommandPalette({
                   </span>
                   {/* `text-muted-foreground` on `CommandItem`'s own
                    * `data-selected:bg-muted` background falls just under
-                   * AA (4.34:1) — `group-data-selected` bumps it to the
+                   * AA (4.34:1) - `group-data-selected` bumps it to the
                    * full-contrast foreground colour on the highlighted row. */}
                   <span className="text-xs text-muted-foreground group-data-selected/command-item:text-foreground">
                     {employee.position}

@@ -113,7 +113,9 @@ async def _clean_db(engine: AsyncEngine) -> None:
     tests) make a transaction-rollback-per-test strategy unusable here."""
     async with engine.begin() as conn:
         await conn.execute(
-            text("TRUNCATE TABLE audit_log, refresh_token, employee, app_user")
+            text(
+                "TRUNCATE TABLE audit_log, refresh_token, employee, app_user, avatar_image"
+            )
         )
 
 

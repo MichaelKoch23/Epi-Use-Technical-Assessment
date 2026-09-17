@@ -16,3 +16,6 @@ class AppUser(Base):
     email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     role: Mapped[str] = mapped_column(Text, nullable=False)
+    # Same semantics as `Employee.avatar_override_url`: an uploaded picture
+    # (see `avatar_service`) that takes precedence over the Gravatar image.
+    avatar_override_url: Mapped[str | None] = mapped_column(Text)

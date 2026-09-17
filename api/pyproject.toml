@@ -14,6 +14,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "sqlalchemy[asyncio]>=2.0.53",
     "uvicorn[standard]>=0.53.0",
+    "pillow>=11",
 ]
 
 [dependency-groups]

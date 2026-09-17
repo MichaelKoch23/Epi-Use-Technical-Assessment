@@ -137,13 +137,11 @@ graph TD
 
     DB[(Neon PostgreSQL 17<br/>aws-eu-central-1<br/>pooled endpoint)]
     GRV[Gravatar CDN]
-    BLOB[Cloud Storage bucket<br/>optional avatar uploads]
 
     SPA -->|GET /| ST
     SPA -->|JSON over HTTPS<br/>/api/v1/*| API
     SPA -->|img src| GRV
     API --> DB
-    API --> BLOB
     API -->|profile enrichment| GRV
 ```
 
@@ -594,7 +592,14 @@ Resolution follows a deterministic fallback chain: an uploaded override, then th
 
 ### 8.3 Optional upload
 
-The nice-to-have upload path stores images in a Cloud Storage bucket and records the resulting URL in `avatar_override_url`, which takes precedence over Gravatar. Uploads are validated by content sniffing rather than by file extension, re-encoded to strip EXIF metadata (which can carry GPS coordinates), capped at 2 MB, and served from a bucket with no execute permission and a restrictive CORS policy.
+Uploaded photos are stored **in PostgreSQL** (`avatar_image`, a `bytea` column) rather than in object storage. The Cloud Run filesystem is ephemeral, the brief requires every modification to be committed to the remote database, and a normalised avatar is only a few tens of kilobytes - so a separate bucket would add a service, credentials and a second failure mode for no real benefit at this scale.
+
+- **Every upload is decoded and re-encoded** (Pillow) to a 512 × 512 centre-cropped WebP. The bytes served back are always an image this code produced, so a file that only *claims* to be an image (an SVG with script, an HTML polyglot) never reaches a browser, and EXIF metadata such as GPS coordinates is dropped. JPEG, PNG, WebP and GIF are accepted, up to 5 MB and 40 megapixels (a decompression-bomb guard); the body is read in capped chunks before any decoding.
+- **Serving:** `GET /api/v1/avatars/{id}` is the one unauthenticated read, because an `<img>` tag cannot carry a bearer token. Ids are random UUIDs only ever handed out in authenticated responses - the same exposure as a Gravatar URL. Rows are immutable (a new upload is a new id), so images are served with `Cache-Control: immutable`.
+- **Employee photos** (`PUT`/`DELETE /employees/{id}/avatar`, HR admin only) set `avatar_override_url` through the ordinary update path, so a photo change is version-checked with `If-Match` and recorded in the audit trail like any other edit. The replaced image is deleted once nothing references it.
+- **Account photos** (`PUT`/`DELETE /profile/avatar`, any signed-in user) use the same storage and the same precedence over Gravatar, via `app_user.avatar_override_url`.
+
+The **profile page** (`GET /api/v1/profile`) shows the signed-in account, its avatar resolution (uploaded photo → Gravatar → initials, with a live check of whether a Gravatar exists), its permissions, and the employee record that shares its email address - including that person's manager and direct reports.
 
 ### 8.4 Profile enrichment
 
@@ -679,7 +684,6 @@ Both feeds order by `occurred_at DESC, id DESC`. The tiebreaker is load-bearing 
 | Container registry | Google Artifact Registry | Versioned, immutable image tags; the deployed artefact is identifiable by digest |
 | Database | Neon (serverless PostgreSQL) | Free tier that does not expire; database branching gives a real preview environment per pull request |
 | Secrets | Google Secret Manager | Database URL and signing key injected at start; never in the image or the repository |
-| Object storage | Google Cloud Storage | Only required if avatar upload is enabled |
 
 **Why a container platform rather than a function platform.** Both are "serverless" in the billing sense, but a container platform imposes no handler API, no request-duration ceiling that a large CSV import would hit, and no runtime-specific packaging. The application is a plain ASGI app; the deployment target is an implementation detail. That portability matters more here than any marginal convenience, and it makes the `docker compose up` deliverable and the production deployment the same thing rather than two parallel truths that can quietly diverge.
 
@@ -905,7 +909,6 @@ Seeding writes to the configured database through the same service layer as the 
 | `JWT_ACCESS_TTL_SECONDS` | Access token lifetime (default 900) |
 | `CORS_ORIGINS` | Allowed origins; empty in production, since the SPA is same-origin |
 | `GRAVATAR_DEFAULT_IMAGE` | Fallback avatar style (default `mp`) |
-| `STORAGE_BUCKET` | Cloud Storage bucket for avatar uploads |
 | `WEBHOOK_SIGNING_SECRET` | HMAC key for outbound integration events |
 | `ENVIRONMENT` | `local`, `preview` or `production`; controls docs exposure and log format |
 

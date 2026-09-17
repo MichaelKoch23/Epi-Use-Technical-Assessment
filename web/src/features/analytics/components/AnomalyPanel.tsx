@@ -115,12 +115,12 @@ export function AnomalyPanel({
   const wideSpans: GroupEntry[] = data.wide_spans.map((row) => ({
     id: row.id,
     name: row.name,
-    line: `${row.name} has ${row.direct_reports} direct reports — above the healthy range of 3–10`,
+    line: `${row.name} has ${row.direct_reports} direct reports - above the healthy range of 3–10`,
   }))
   const singleReportManagers: GroupEntry[] = data.single_report_managers.map((row) => ({
     id: row.id,
     name: row.name,
-    line: `${row.name} manages one person — this may be a redundant reporting layer`,
+    line: `${row.name} manages one person - this may be a redundant reporting layer`,
   }))
   const deepChains: GroupEntry[] = data.deep_chains.map((row) => ({
     id: row.id,
@@ -130,7 +130,7 @@ export function AnomalyPanel({
   const unreachable: GroupEntry[] = data.unreachable.map((row) => ({
     id: row.id,
     name: row.name,
-    line: `${row.name} is not reachable from any root — their manager may have been deleted without reassignment`,
+    line: `${row.name} is not reachable from any root - their manager may have been deleted without reassignment`,
   }))
 
   const isEmpty =

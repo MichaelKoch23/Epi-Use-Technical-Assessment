@@ -6,6 +6,7 @@ import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage'
 import { EmployeesListPage } from '@/features/employees/EmployeesListPage'
 import { OrgChartPage } from '@/features/hierarchy/OrgChartPage'
 import { ImportPage } from '@/features/import/ImportPage'
+import { ProfilePage } from '@/features/profile/ProfilePage'
 import { AppShell } from './AppShell'
 import { RequireAuth } from './RequireAuth'
 
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
           { path: '/analytics', element: <AnalyticsPage /> },
           { path: '/import', element: <ImportPage /> },
           { path: '/history', element: <GlobalAuditPage /> },
+          { path: '/profile', element: <ProfilePage /> },
           { path: '*', element: <Navigate to="/chart" replace /> },
         ],
       },

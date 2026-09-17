@@ -23,6 +23,8 @@ from typing import Annotated
 
 from pydantic import AfterValidator, Field, StringConstraints
 
+from app.core.avatars import uploaded_avatar_id
+
 # `salary NUMERIC(12, 2)` holds at most 10 integer digits; anything larger
 # is a Postgres `numeric field overflow` (a 500) rather than a validation
 # error, so the ceiling is stated here where it can be reported properly.
@@ -55,7 +57,7 @@ def _validate_birth_date(value: date) -> date:
 
 
 def _validate_avatar_url(value: str | None) -> str | None:
-    """An absolute `http(s)` URL, or nothing.
+    """An absolute `http(s)` URL, one of our own uploaded pictures, or nothing.
 
     This value is echoed back as `avatar_url` and rendered as an `<img
     src>` by every client. React escapes it, so this is not an XSS fix;
@@ -65,6 +67,11 @@ def _validate_avatar_url(value: str | None) -> str | None:
     """
     if value is None:
         return None
+    # An uploaded picture's path round-trips through the edit form, so it
+    # must stay acceptable - but only in its exact `/api/v1/avatars/<uuid>`
+    # shape, not as a general relative-URL escape hatch.
+    if uploaded_avatar_id(value) is not None:
+        return value
     if not value.startswith(_ALLOWED_AVATAR_SCHEMES):
         raise ValueError("must be an absolute http:// or https:// URL")
     return value
