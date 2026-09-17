@@ -1,27 +1,9 @@
-"""End-to-end HTTP contract tests (§9.2, §9.3).
-
-Every other test module calls router functions directly with a
-`Principal` handed in. That proves the logic inside a route, but it
-cannot prove that the route is *wired* to the policy it claims - a
-missing `Depends(require_role(...))`, a filter that skips its own guard,
-or a response model that serialises a field it shouldn't all look
-identical from inside the function.
-
-These tests go through the real ASGI app instead, so what they assert is
-what a client on the network actually receives.
-"""
-
 from __future__ import annotations
 
 from decimal import Decimal
 
 import pytest
 
-# --------------------------------------------------------------------------
-# Authentication: every route is closed by default.
-# --------------------------------------------------------------------------
-
-# (method, path) for every non-auth, non-health route the app exposes.
 PROTECTED_ROUTES = [
     ("GET", "/api/v1/employees"),
     ("POST", "/api/v1/employees"),
@@ -66,10 +48,6 @@ async def test_every_route_rejects_a_forged_token(api_client, method, path):
     assert response.status_code in (401, 403)
 
 
-# --------------------------------------------------------------------------
-# Authorisation: writes are hr_admin-only.
-# --------------------------------------------------------------------------
-
 WRITE_ROUTES = [
     ("POST", "/api/v1/employees"),
     ("PATCH", "/api/v1/employees/00000000-0000-0000-0000-000000000000"),
@@ -94,11 +72,6 @@ async def test_viewer_cannot_reach_a_write_route(
     )
 
 
-# --------------------------------------------------------------------------
-# §9.3: a viewer must not be able to read *or infer* a salary.
-# --------------------------------------------------------------------------
-
-
 async def test_viewer_employee_payload_has_no_salary_key(
     api_client, auth_headers, employee_factory
 ):
@@ -108,7 +81,6 @@ async def test_viewer_employee_payload_has_no_salary_key(
     response = await api_client.get(f"/api/v1/employees/{employee.id}", headers=headers)
 
     assert response.status_code == 200
-    # Absent, not null and not masked - the claim the design doc makes.
     assert "salary" not in response.json()
     assert "750000" not in response.text
 
@@ -138,14 +110,6 @@ SALARY_INFERENCE_QUERIES = [
 async def test_viewer_cannot_filter_or_sort_by_salary(
     api_client, auth_headers, employee_factory, path, query
 ):
-    """Hiding the salary column is not enough on its own.
-
-    A viewer who can ask "who earns more than X" recovers every salary by
-    bisection in a handful of requests, whether the answer arrives as JSON
-    or as a CSV with the column stripped. Both endpoints accept the same
-    filter parameters, so both must refuse them for a viewer - the export
-    route did not, which is the regression this test exists to prevent.
-    """
     await employee_factory(salary=Decimal(10_000), last_name="Low")
     await employee_factory(salary=Decimal(900_000), last_name="High")
     headers = await auth_headers("viewer")
@@ -164,7 +128,6 @@ async def test_viewer_cannot_filter_or_sort_by_salary(
 async def test_admin_may_filter_and_sort_by_salary(
     api_client, auth_headers, employee_factory, path, query
 ):
-    """The mirror image: the guard must not cost an admin the feature."""
     await employee_factory(salary=Decimal(900_000))
     headers = await auth_headers("hr_admin")
 
@@ -206,21 +169,10 @@ async def test_viewer_audit_feed_hides_salary_values_but_not_the_change(
 
     assert response.status_code == 200
     assert "777777" not in response.text
-    # ...but the fact that pay changed is still visible.
     assert any(item["salary_changed"] for item in response.json()["items"])
 
 
-# --------------------------------------------------------------------------
-# Transport-level hardening.
-# --------------------------------------------------------------------------
-
-
 async def test_security_headers_are_present(api_client):
-    # Deliberately not `/api/v1/health`: that route uses the module-level
-    # `engine` rather than the injected session, which would bind the real
-    # engine's pool to this test's event loop and break the separate
-    # `TestClient` loop in test_health.py. The headers come from
-    # middleware, so any response demonstrates them equally well.
     response = await api_client.get("/api/v1/employees")
 
     assert response.status_code in (401, 403)
@@ -231,7 +183,6 @@ async def test_security_headers_are_present(api_client):
 
 
 async def test_unknown_api_path_is_404_not_the_spa_shell(api_client):
-    """The SPA catch-all must not answer a broken API call with HTML."""
     response = await api_client.get("/api/v1/employeez")
 
     assert response.status_code == 404
@@ -274,10 +225,10 @@ async def test_invalid_employee_payload_is_422_not_500(api_client, auth_headers)
             "first_name": "A",
             "last_name": "B",
             "email": "a@b.co",
-            "birth_date": "2099-01-01",  # future
+            "birth_date": "2099-01-01",
             "position": "Eng",
             "salary": "1",
-            "avatar_override_url": "javascript:alert(1)",  # disallowed scheme
+            "avatar_override_url": "javascript:alert(1)",
         },
     )
 
@@ -288,9 +239,6 @@ async def test_invalid_employee_payload_is_422_not_500(api_client, auth_headers)
 
 
 async def test_login_is_rate_limited(api_client, user_factory):
-    """§9.4: the limiter must be attached to the login route, not merely
-    exist as a class - a unit test of `RateLimiter` cannot tell the
-    difference."""
     await user_factory(email="target@example.com", role="viewer", password="right")
 
     statuses = [
@@ -304,7 +252,7 @@ async def test_login_is_rate_limited(api_client, user_factory):
     ]
 
     assert 429 in statuses, f"login was never rate limited: {statuses}"
-    assert statuses[0] == 401  # ...but the first few are ordinary failures
+    assert statuses[0] == 401
 
 
 async def test_login_does_not_leak_whether_an_account_exists(api_client, user_factory):

@@ -54,9 +54,6 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {/* Inside `DialogContent` (the portalled popup), not a sibling of
-         * it - a sibling renders wherever `<Dialog>` sits in the tree,
-         * outside any landmark, regardless of open/closed state. */}
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

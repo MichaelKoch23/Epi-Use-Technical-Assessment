@@ -9,18 +9,6 @@ from app.db.base import Base
 
 
 class RefreshToken(Base):
-    """One issued refresh token, by `jti` (§9.1).
-
-    Only the identifier is stored, never the token: the JWT's own
-    signature already proves the bearer holds a token this server minted,
-    so the row exists to answer the question a signature cannot - *is
-    this one still valid?* That makes logout, and revocation on detected
-    theft, actually mean something.
-
-    `replaced_by` chains each token to its successor, so a whole rotation
-    family can be walked and revoked together when replay is detected.
-    """
-
     __tablename__ = "refresh_token"
 
     id: Mapped[uuid.UUID] = mapped_column(

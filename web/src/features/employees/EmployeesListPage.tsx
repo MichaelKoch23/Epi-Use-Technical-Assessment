@@ -71,18 +71,11 @@ export function EmployeesListPage() {
   const [searchInput, setSearchInput] = useState(state.q)
   const debouncedSearch = useDebouncedValue(searchInput, 300)
 
-  // Tracks the last value *this component* pushed into the URL, so the
-  // sync-back effect below can tell "the URL caught up with what I just
-  // typed" (ignore - `state.q` update lags a render behind `applyFilters`,
-  // and treating that echo as external would overwrite a newer local edit)
-  // from "the URL changed for some other reason, e.g. the back button"
-  // (apply it).
   const lastAppliedQRef = useRef(state.q)
 
   useEffect(() => {
     lastAppliedQRef.current = debouncedSearch
     applyFilters({ q: debouncedSearch })
-    // Only the debounced value should trigger a URL update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch])
 
@@ -122,8 +115,6 @@ export function EmployeesListPage() {
     canEdit,
   }
 
-  // Server owns sorting, filtering and pagination entirely (§ manual mode);
-  // the table gets one already-processed page and never reprocesses it.
   const table = useTable({
     features: employeeTableFeatures,
     columns,

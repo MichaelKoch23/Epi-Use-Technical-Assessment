@@ -36,8 +36,6 @@ import type { ChartEmployee } from './types'
 import { useOrgChartData } from './useOrgChartData'
 
 const nodeTypes = { employee: EmployeeNode }
-// Focus mode's default window below the selected employee (§7.3 - "N
-// levels of descendants"); the stepper next to "Exit focus" adjusts it.
 const DEFAULT_FOCUS_DEPTH = 2
 
 function buildEdges(visibleIds: Set<string>, childrenByManager: Map<string, Set<string>>): Edge[] {
@@ -69,10 +67,6 @@ function OrgChartCanvas() {
   const [pendingCenterId, setPendingCenterId] = useState<string | null>(null)
 
   const structuralNodes = useMemo<EmployeeFlowNode[]>(() => {
-    // `visibleIds` is structural (which branches are collapsed) and can
-    // include a root/expanded id slightly before its own subtree fetch has
-    // resolved - only build a node once its employee record has actually
-    // loaded, so a node card is never rendered with `employee: undefined`.
     const loadedVisibleIds = new Set(
       [...orgData.visibleIds].filter((id) => orgData.employeesById.has(id))
     )
@@ -117,10 +111,6 @@ function OrgChartCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<EmployeeFlowNode>(structuralNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(structuralEdges)
 
-  // Structural changes (expand/collapse, new data loaded, a reassignment
-  // landing) re-run Dagre and replace the whole layout. Presentational-only
-  // state (selection, focus dimming, drag highlighting) is layered on top
-  // at render time below, so it never fights an in-progress drag gesture.
   useEffect(() => setNodes(structuralNodes), [structuralNodes, setNodes])
   useEffect(() => setEdges(structuralEdges), [structuralEdges, setEdges])
 
@@ -192,10 +182,6 @@ function OrgChartCanvas() {
     [orgData, centerOnNode]
   )
 
-  // `?focus={id}` (from the analytics anomaly panel and branch explorer,
-  // §chart-deep-link) selects and centers that employee on arrival - a
-  // ref rather than state so a later manual selection doesn't re-trigger
-  // this on an unrelated re-render.
   const [searchParams] = useSearchParams()
   const consumedFocusParam = useRef(false)
   useEffect(() => {
@@ -257,9 +243,6 @@ function OrgChartCanvas() {
     [getIntersectingNodes, orgData, setNodes, structuralNodes]
   )
 
-  // Keyboard equivalent of drag-to-reassign (§ accessibility: "drag must
-  // never be the only path") - select a node, press M, pick from the
-  // command palette.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key.toLowerCase() !== 'm' || !selectedId || !canEdit) return

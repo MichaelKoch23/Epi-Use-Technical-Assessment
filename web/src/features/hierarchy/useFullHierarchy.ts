@@ -9,12 +9,6 @@ export interface HierarchyTreeNode {
   children: HierarchyTreeNode[]
 }
 
-/**
- * The full hierarchy, independent of whatever the interactive chart has
- * lazily loaded or the user has collapsed - the nested-list view is a
- * first-class equivalent (§ accessibility: "not a fallback"), so it fetches
- * each root's entire subtree rather than being gated by chart state.
- */
 export function useFullHierarchy() {
   const rootsQuery = useQuery({ queryKey: hierarchyKeys.roots(), queryFn: fetchRoots })
   const roots = useMemo(() => rootsQuery.data ?? [], [rootsQuery.data])
@@ -29,10 +23,6 @@ export function useFullHierarchy() {
   const isLoading = rootsQuery.isLoading || subtreeQueries.some((q) => q.isLoading)
   const isError = rootsQuery.isError || subtreeQueries.some((q) => q.isError)
 
-  // See useOrgChartData's identical comment: `useQueries` hands back a new
-  // array every render, so the memo below depends on this stable version
-  // string rather than the array itself to avoid recomputing (and hence
-  // building new tree objects) on every unrelated render.
   const subtreeQueriesVersion = subtreeQueries.map((q) => `${q.dataUpdatedAt}:${q.status}`).join('|')
 
   const tree = useMemo(() => {

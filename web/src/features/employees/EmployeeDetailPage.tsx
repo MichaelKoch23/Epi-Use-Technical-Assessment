@@ -63,8 +63,6 @@ export function EmployeeDetailPage() {
             firstName={employee.first_name}
             lastName={employee.last_name}
             size={80}
-            // Only an uploaded photo can be removed here; an external URL
-            // override is managed from the edit form.
             hasUpload={employee.avatar_override_url?.startsWith('/api/v1/avatars/') ?? false}
             isBusy={avatarMutation.isPending}
             onUpload={changePhoto}

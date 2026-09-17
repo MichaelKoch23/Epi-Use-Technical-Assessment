@@ -1,7 +1,3 @@
-"""`GET /search` - the command palette's cross-entity quick search (§ FR-7).
-Exercised at the router-function level, like the other tests here (see
-test_hierarchy_roots.py for why)."""
-
 from __future__ import annotations
 
 from app.core.security import Principal

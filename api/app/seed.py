@@ -1,15 +1,3 @@
-"""Seed the database with a realistic South African organisation.
-
-Usage:
-    uv run python -m app.seed [--employees 250] [--reset]
-
-Every row is written through `EmployeeService`, the same path the API
-uses - no data is inserted directly, so uniqueness, the version column
-and the audit trail are all exercised exactly as they would be for a
-real request (Appendix A: "no data is mocked, hardcoded or read from
-local files at runtime").
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -32,10 +20,6 @@ from app.services.employee_service import EmployeeService
 
 SEED_ACTOR_EMAIL = "seed@employee.example.com"
 
-# Real, loggable-in demo accounts (§9 - "these go in the submission
-# email"), distinct from `SEED_ACTOR_EMAIL` above, which only exists to
-# satisfy the audit log's actor FK for synthetic seed data and was never
-# meant to be a real login.
 DEMO_ACCOUNTS = [
     ("admin@epiuse-demo.com", "EpiUse-Admin-2026!", "hr_admin"),
     ("viewer@epiuse-demo.com", "EpiUse-Viewer-2026!", "viewer"),
@@ -67,7 +51,6 @@ class Department(TypedDict):
     ic_titles: list[str]
 
 
-# One branch of the org per department: exec -> director -> manager -> ICs.
 DEPARTMENTS: list[Department] = [
     {
         "exec_title": "Chief Technology Officer",
@@ -163,9 +146,7 @@ def _unique_name() -> tuple[str, str]:
         if candidate not in _used_names:
             _used_names.add(candidate)
             return candidate
-    return random.choice(FIRST_NAMES), random.choice(
-        LAST_NAMES
-    )  # pool exhausted; allow repeats
+    return random.choice(FIRST_NAMES), random.choice(LAST_NAMES)
 
 
 async def _create(
@@ -211,9 +192,6 @@ async def _ensure_seed_actor(session: AsyncSession) -> uuid.UUID:
 
 
 async def _ensure_demo_accounts(session: AsyncSession) -> None:
-    """Create (or repassword) the two accounts named in the submission
-    email - safe to re-run: an existing row just gets its hash refreshed
-    rather than erroring on the unique email constraint."""
     for email, password, role in DEMO_ACCOUNTS:
         existing = (
             await session.execute(select(AppUser).where(AppUser.email == email))
@@ -247,9 +225,7 @@ async def seed(target: int, *, reset: bool) -> None:
         managers_per_director = 4
         directors_total = execs * directors_per_exec
         managers_total = directors_total * managers_per_director
-        base = (
-            1 + execs + directors_total + managers_total
-        )  # ceo + execs + directors + managers
+        base = 1 + execs + directors_total + managers_total
         remaining = max(target - base, managers_total)
         ics_per_manager = max(1, round(remaining / managers_total))
 

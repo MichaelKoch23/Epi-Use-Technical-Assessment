@@ -1,10 +1,3 @@
-"""§9.6: every mutating service writes its audit row inside the same unit
-of work as the change itself, so the two can never disagree - either both
-commit or neither does. Also covers the read side's salary redaction
-(§9.3 extended to the audit trail): a viewer may see *that* salary
-changed, never the value.
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -49,7 +42,7 @@ async def test_update_writes_one_audit_row(db_session, actor_id, employee_factor
     audit = AuditService(db_session)
     rows, total = await audit.list_for_employee(employee.id)
     assert total == 2
-    latest = rows[0]  # newest first
+    latest = rows[0]
     assert latest.entry.action == "employee.updated"
     assert latest.entry.before["salary"] == "50000"
     assert latest.entry.after["salary"] == "60000"
@@ -102,17 +95,7 @@ async def test_reassign_writes_one_audit_row(db_session, actor_id, employee_fact
 async def test_failed_update_rolls_back_its_audit_row(
     db_session, actor_id, employee_factory
 ):
-    """The required rollback test: a legitimate update flushes its audit
-    row (uncommitted), then a second write in the SAME transaction hits a
-    real database constraint the service layer never pre-checks
-    (`employee_salary_non_negative` - unlike `employee_number`/`email`,
-    salary has no application-level guard, only the DB's own CHECK
-    constraint, which only fires at flush). The whole transaction - the
-    first update's audit row included - must disappear on rollback."""
     employee = await employee_factory(position="Engineer")
-    # Captured as a plain value: `db_session.rollback()` below expires the
-    # ORM instance, and touching its attributes after that would trigger a
-    # lazy load outside of an async context (see test_optimistic_lock.py).
     employee_id = employee.id
     service = EmployeeService(db_session)
 
@@ -180,10 +163,6 @@ async def test_audit_endpoint_redacts_salary_for_viewer(
 async def test_audit_pages_do_not_overlap_when_timestamps_tie(
     db_session, actor_id, employee_factory
 ):
-    """`occurred_at` defaults to `now()`, which is the *transaction* start
-    time, so every entry written by one request carries the same value.
-    Ordering on it alone leaves LIMIT/OFFSET free to return a given row on
-    two different pages - and to never return some other row at all."""
     employee = await employee_factory()
     service = EmployeeService(db_session)
     for i in range(10):

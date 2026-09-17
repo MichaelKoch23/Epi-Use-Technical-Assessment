@@ -1,8 +1,3 @@
-"""The flagship test suite (§11): every way a reporting cycle can be
-attempted, and the concurrent case the database - not the service - is
-what actually has to catch.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -30,8 +25,6 @@ async def test_self_assignment_rejected(db_session, actor_id, employee_factory):
 
 
 async def test_direct_inversion_rejected(db_session, actor_id, employee_factory):
-    """A manages B; assigning B as A's manager would invert the edge into
-    a 2-cycle."""
     a = await employee_factory()
     b = await employee_factory(manager_id=a.id)
     service = ReassignmentService(db_session)
@@ -46,7 +39,6 @@ async def test_direct_inversion_rejected(db_session, actor_id, employee_factory)
 
 
 async def _build_chain(employee_factory, length: int):
-    """root -> chain[1] -> chain[2] -> ... -> chain[length]."""
     root = await employee_factory()
     chain = [root]
     for _ in range(length):
@@ -56,8 +48,6 @@ async def _build_chain(employee_factory, length: int):
 
 @pytest.mark.parametrize("depth", [2, 3, 4, 5])
 async def test_indirect_cycle_rejected(db_session, actor_id, employee_factory, depth):
-    """root is `depth` hops above its own descendant; assigning that
-    descendant as root's manager must be rejected regardless of depth."""
     chain = await _build_chain(employee_factory, depth)
     root, descendant = chain[0], chain[-1]
     service = ReassignmentService(db_session)
@@ -105,19 +95,6 @@ async def test_reassignment_to_null_succeeds(db_session, actor_id, employee_fact
 async def test_concurrent_inverse_reassignment_exactly_one_fails(
     session_factory, employee_factory
 ):
-    """The race §5.2 describes: A moved under B and B moved under A, in
-    two separate transactions that each only ever touch their own row, so
-    neither's in-transaction view sees the other's change. This bypasses
-    `ReassignmentService` entirely (no `SELECT ... FOR UPDATE`, no
-    pre-check) to prove it's the deferred constraint trigger - not
-    application locking - that is the actual authority here.
-
-    Both UPDATEs are issued before either transaction commits, so both
-    are genuinely in-flight at once; TX1 then commits first (succeeding,
-    since B's committed state is still unrelated to A at that instant),
-    and only TX2's commit - now able to see TX1's committed change -
-    finds the cycle and is rejected by `employee_no_cycle`.
-    """
     a = await employee_factory()
     b = await employee_factory()
 

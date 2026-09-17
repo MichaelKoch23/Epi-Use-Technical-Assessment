@@ -1,9 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import type { OrgSummary } from '../types'
 
-// The hierarchy depth ramp (docs/brand_style_guide.html, "Using Tokens in
-// Code"), same clamping rule as `features/hierarchy/depthToken.ts`: depth
-// 5+ reuses depth 4 rather than growing without bound.
 const DEPTH_FILL_TOKENS = [
   'bg-depth-0',
   'bg-depth-1',
@@ -16,10 +13,6 @@ function depthFillToken(depth: number): (typeof DEPTH_FILL_TOKENS)[number] {
   return DEPTH_FILL_TOKENS[Math.min(Math.max(depth, 0), DEPTH_FILL_TOKENS.length - 1)]!
 }
 
-/** Depth distribution, coloured with the same per-depth tokens the org
- * chart itself uses, so this chart reads against it (§ analytics
- * charts). No charting library - the `sp-bar` pattern from the style
- * guide, same as `SpanDistributionChart`. */
 export function DepthDistributionChart({
   data,
   isPending,

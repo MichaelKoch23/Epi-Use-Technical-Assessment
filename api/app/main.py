@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -21,9 +22,6 @@ from app.routers.imports import router as imports_router
 from app.routers.profile import router as profile_router
 from app.routers.search import router as search_router
 
-# The interactive docs are a development affordance, not something the
-# deployed app should publish: they enumerate every route, parameter and
-# schema for an unauthenticated reader. Disabled outside development.
 _IS_PRODUCTION = settings.ENVIRONMENT.lower() in {"production", "prod"}
 
 app = FastAPI(
@@ -35,26 +33,17 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    # Never `*`: with `allow_credentials=True` the browser rejects a
-    # wildcard anyway, and `settings` validates the pair (see config.py).
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# The SPA and the API share an origin, so the access token in the SPA's
-# localStorage is exactly as reachable as any script the page will run.
-# That makes these headers load-bearing rather than decorative: the CSP is
-# what stops an injected script from being the thing that reads it.
 _SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; "
-        # Vite emits hashed JS/CSS assets; no inline <script> is used.
         "script-src 'self'; "
-        # Tailwind's runtime injects a <style> element.
         "style-src 'self' 'unsafe-inline'; "
-        # Gravatar, plus any https avatar override.
         "img-src 'self' https: data:; "
         "font-src 'self' data:; "
         "connect-src 'self'; "
@@ -66,7 +55,6 @@ _SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
-    # No feature here needs any of them.
     "Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=()",
 }
 
@@ -78,20 +66,22 @@ async def security_headers(
     response = await call_next(request)
     for header, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(header, value)
+    if request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif not request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-cache")
     if _IS_PRODUCTION:
-        # Only meaningful over TLS, and Cloud Run terminates TLS for us.
         response.headers.setdefault(
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
         )
     return response
 
 
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
+
 install_exception_handlers(app)
 
 
-# Route precedence (§3.3): /api/v1/* first, then FastAPI's own /docs,
-# /redoc and /openapi.json, then /assets/*, then everything else falls
-# back to index.html so client-side routes survive a refresh.
 @app.get("/api/v1/health")
 async def health() -> dict[str, str]:
     async with engine.connect() as conn:
@@ -114,18 +104,11 @@ app.include_router(avatars_router)
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 INDEX_HTML = STATIC_DIR / "index.html"
 
-# Only wired up once the SPA has actually been built into ./static (the
-# production image always has it; local `uv run` without a build won't).
 if INDEX_HTML.is_file():
     app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
     @app.get("/{full_path:path}")
     async def spa_fallback(full_path: str) -> FileResponse:
-        # This route is last, so it catches anything the routers above did
-        # not claim - including misspelled and removed API paths. Returning
-        # index.html for those would answer a broken API call with `200 OK`
-        # and a page of HTML, which a client can only fail to parse. An
-        # unmatched /api/ path is a 404, the same as it is without the SPA.
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="Not Found")
         return FileResponse(INDEX_HTML)

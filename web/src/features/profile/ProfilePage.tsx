@@ -30,8 +30,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 type ImageStatus = 'loading' | 'found' | 'missing'
 
-/** Whether an image URL loads - Gravatar answers 404 (`d=404`) when an
- * email has no picture, which is exactly the question being asked. */
 function useImageStatus(url: string): ImageStatus {
   const [result, setResult] = useState<{ url: string; status: ImageStatus }>({
     url,
@@ -312,7 +310,6 @@ export function ProfilePage() {
   }
 
   const profile = query.data
-  // A linked employee record has a real name; otherwise derive one.
   const name = profile.employee
     ? { first: profile.employee.first_name, last: profile.employee.last_name }
     : nameFromEmail(profile.email)

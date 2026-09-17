@@ -5,12 +5,7 @@ from collections.abc import Sequence
 
 
 class DomainError(Exception):
-    """Base class for exceptions raised by the service layer.
-
-    A single exception-handler layer maps these to RFC 9457 problem
-    documents (§6.4); nothing below the service layer should raise or
-    catch them, and routers should catch nothing more specific.
-    """
+    pass
 
 
 class EmployeeNotFound(DomainError):
@@ -32,9 +27,6 @@ class DuplicateEmailError(DomainError):
 
 
 class VersionConflictError(DomainError):
-    """Raised when a write's `expected_version` no longer matches the
-    row's current `version` - another change landed first (§5.4)."""
-
     def __init__(
         self, employee_id: uuid.UUID, expected_version: int, actual_version: int
     ) -> None:
@@ -48,11 +40,6 @@ class VersionConflictError(DomainError):
 
 
 class ReportingCycleError(DomainError):
-    """Raised when a proposed manager assignment would create a reporting
-    cycle. `chain` is the existing reporting path from the proposed
-    manager up to the employee being reassigned - the path that the
-    assignment would close into a loop (§5.2, §6.4)."""
-
     def __init__(
         self,
         employee_id: uuid.UUID,

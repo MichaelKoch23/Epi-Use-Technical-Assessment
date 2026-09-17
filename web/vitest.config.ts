@@ -11,9 +11,6 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    // `@testing-library/react`'s automatic unmount-between-tests only
-    // registers itself when it finds a global `afterEach` - without this,
-    // one test's rendered DOM leaks into the next.
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
   },

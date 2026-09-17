@@ -24,7 +24,6 @@ class MeResponse(BaseModel):
     id: uuid.UUID
     email: str
     role: str
-    # Uploaded account photo if set, else the account email's Gravatar.
     avatar_url: str
     can_view_salary: bool
     can_edit: bool

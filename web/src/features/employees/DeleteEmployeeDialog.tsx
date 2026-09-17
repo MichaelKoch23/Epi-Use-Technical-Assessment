@@ -63,9 +63,6 @@ export function DeleteEmployeeDialog({
     enabled: open && Boolean(employee),
   })
 
-  // Fully controlled by the parent (no AlertDialogTrigger of its own to
-  // fire `onOpenChange`) - a fresh target resets the chosen policy back
-  // to the default rather than carrying over the previous employee's pick.
   useEffect(() => {
     if (employee) setPolicy('reparent')
   }, [employee])

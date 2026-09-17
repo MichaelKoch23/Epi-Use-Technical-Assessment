@@ -20,9 +20,6 @@ from app.services.audit_service import AuditService, snapshot_employee
 
 @dataclass(frozen=True, slots=True)
 class _UnsetType:
-    """Sentinel distinguishing "field not supplied" from "field explicitly
-    set to None" in a partial update, without collapsing the two."""
-
     def __repr__(self) -> str:
         return "UNSET"
 
@@ -31,11 +28,6 @@ UNSET = _UnsetType()
 
 
 class EmployeeService:
-    """Create, update, soft-delete and restore individual employee
-    records. Manager reassignment is deliberately not here - it carries
-    its own invariant (acyclicity) and its own dedicated sub-resource
-    (§6.1), so it lives in `ReassignmentService`."""
-
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._repo = EmployeeRepository(session)
@@ -74,8 +66,6 @@ class EmployeeService:
             avatar_override_url=avatar_override_url,
         )
         self._session.add(employee)
-        # Flush now (not just add) so id/defaults are assigned and any
-        # constraint violation surfaces here rather than at the audit write.
         await self._session.flush()
 
         await self._audit.record(
@@ -178,15 +168,8 @@ class EmployeeService:
         if employee is None:
             raise EmployeeNotFound(employee_id)
         if employee.deleted_at is None:
-            return employee  # already active: idempotent no-op, nothing to audit
+            return employee
 
-        # `uq_employee_number` and `uq_employee_email` are partial indexes
-        # (`WHERE deleted_at IS NULL`), so a soft-deleted row's number and
-        # email are released for reuse the moment it is deleted. Restoring
-        # it then collides with whoever took them. Detected here so the
-        # caller gets the same 409 a create/update collision produces,
-        # instead of the raw IntegrityError - raised at flush, below - that
-        # would otherwise surface as a 500.
         clash = await self._repo.get_by_employee_number(employee.employee_number)
         if clash is not None and clash.id != employee.id:
             raise DuplicateEmployeeNumberError(employee.employee_number)

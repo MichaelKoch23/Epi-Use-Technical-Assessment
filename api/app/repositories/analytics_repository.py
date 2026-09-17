@@ -14,11 +14,6 @@ from app.models.employee import Employee
 
 @dataclass(frozen=True, slots=True)
 class DepthRow:
-    """One active employee's distance from the nearest root - the raw rows
-    behind both `depth_distribution` (grouped by depth) and the deep-chain
-    anomaly (filtered by depth), so a single walk of the tree serves both
-    rather than running the recursive CTE twice."""
-
     id: uuid.UUID
     name: str
     position: str
@@ -27,12 +22,6 @@ class DepthRow:
 
 @dataclass(frozen=True, slots=True)
 class SpanRow:
-    """One employee's direct-report count - the raw rows behind
-    `span_distribution`, `manager_count`, `individual_contributor_count`,
-    the span-of-control average/median, and the wide-span/single-report
-    anomalies. `direct_reports` is 0 for an individual contributor, thanks
-    to the `LEFT JOIN` in the query behind this."""
-
     id: uuid.UUID
     name: str
     position: str
@@ -54,11 +43,6 @@ class CostAggregate:
     median: Decimal
 
 
-# Walks down from every root, tagging each active employee with its depth
-# below the nearest root (§4.6) - the `NOT id = ANY(path)` guard terminates
-# even on corrupt (cyclic) data, consistent with `_SUBTREE_SQL` in
-# `employee_repository.py`. Employees unreachable from any root (see
-# `_UNREACHABLE_SQL` below) simply never appear in these rows.
 _DEPTH_WALK_SQL = text(
     """
     WITH RECURSIVE tree AS (
@@ -79,9 +63,6 @@ _DEPTH_WALK_SQL = text(
     """
 )
 
-# Active employees that cannot be reached from any root - normally zero
-# rows; a manager soft-deleted without its subtree being reparented is the
-# only way this fires (§ data-integrity check).
 _UNREACHABLE_SQL = text(
     """
     WITH RECURSIVE tree AS (
@@ -104,10 +85,6 @@ _UNREACHABLE_SQL = text(
 
 
 class AnalyticsRepository:
-    """Query construction for the org-structure dashboard. Enforces no
-    business rules of its own (thresholds, role gating) - that's
-    `AnalyticsService`'s job (§3.4)."""
-
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -147,16 +124,10 @@ class AnalyticsRepository:
     async def get_cost_aggregate(
         self, ids: Sequence[uuid.UUID] | None = None
     ) -> CostAggregate:
-        """Admin-only aggregate (§9.3) - callers must not invoke this for a
-        viewer at all, not merely hide the result. `ids=None` aggregates the
-        whole organisation; otherwise it's scoped to a branch's subtree."""
         conditions = [Employee.deleted_at.is_(None)]
         if ids is not None:
             conditions.append(Employee.id.in_(ids))
 
-        # `percentile_cont` returns `double precision` in Postgres - cast
-        # back to `numeric` so the median comes back as a `Decimal`, never a
-        # float, same as every other monetary value in this response.
         median_numeric = (
             func.percentile_cont(0.5)
             .within_group(Employee.salary)

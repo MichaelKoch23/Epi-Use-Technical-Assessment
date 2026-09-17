@@ -1,9 +1,3 @@
-"""Profile picture uploads (§ Gravatar avatars - the optional upload).
-
-Driven over HTTP: multipart parsing, `If-Match`, role checks and the
-unauthenticated image route are all wiring that a router-function test
-would skip."""
-
 from __future__ import annotations
 
 import io
@@ -42,7 +36,6 @@ async def test_admin_uploads_an_employee_photo_that_is_served_normalised(
     assert body["avatar_url"] == body["avatar_override_url"]
     assert body["version"] == employee.version + 1
 
-    # No Authorization header: an <img> tag can't send one.
     image = await api_client.get(body["avatar_url"])
     assert image.status_code == 200
     assert image.headers["content-type"] == "image/webp"
@@ -165,8 +158,6 @@ async def test_viewer_cannot_change_an_employee_photo(
 async def test_uploaded_avatar_path_survives_a_patch_round_trip(
     api_client, auth_headers, employee_factory
 ):
-    """The edit form sends `avatar_override_url` back unchanged - an
-    uploaded path must pass the field's URL validation."""
     employee = await employee_factory()
     headers = await auth_headers("hr_admin")
     uploaded = await api_client.put(

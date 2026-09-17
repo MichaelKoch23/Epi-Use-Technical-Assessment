@@ -1,9 +1,3 @@
-"""Bulk CSV/XLSX import - validate the whole file (including the reporting
-graph it would produce) before writing anything, then apply it as one
-all-or-nothing transaction (§ import). `validate()` is pure; `commit()`
-only ever writes when nothing in the plan is blocked, so a partial import
-never happens."""
-
 from __future__ import annotations
 
 import uuid
@@ -136,17 +130,6 @@ def _check_duplicate_numbers(rows: list[_Row]) -> None:
 
 
 def _check_duplicate_emails(rows: list[_Row], email_owner: dict[str, str]) -> None:
-    """Email collides with the `uq_employee_email` partial index exactly as
-    `employee_number` collides with `uq_employee_number`, but only the
-    latter was being checked. An un-caught collision surfaced from inside
-    `commit()` as a `DuplicateEmailError` - a whole-request 409 with no
-    indication of which row caused it - which is precisely the "validate
-    everything first, report per row" contract this module exists to keep.
-
-    `email_owner` maps a lowercased email to the employee_number that
-    currently holds it in the database, so a row keeping its own email is
-    not reported as colliding with itself.
-    """
     groups: dict[str, list[_Row]] = {}
     for row in rows:
         if row.email is not None:
@@ -172,13 +155,6 @@ def _check_business_rules(rows: list[_Row], today: date) -> None:
 
 
 def _find_cycle_members(graph: dict[str, str | None]) -> set[str]:
-    """Every functional graph (≤1 outgoing edge per node - `manager_id` is
-    singular, same shape the DB's own `employee_no_cycle` trigger and
-    `EmployeeRepository.get_ancestors`/`is_descendant` walk) can be checked
-    for cycles with a single pass per node: walk its manager chain, and if
-    the walk revisits a node still on its own current path, everything from
-    that node onward is a cycle. Completed, cycle-free nodes are memoized
-    so no node is walked twice."""
     resolved: set[str] = set()
     cycle_members: set[str] = set()
 
@@ -208,8 +184,6 @@ class ImportService:
         self._repo = EmployeeRepository(session)
 
     async def validate(self, raw_rows: list[dict[str, str]]) -> ImportPlan:
-        # Row 1 is the header, so the first data row is row 2 - matching
-        # what a user editing the file in a spreadsheet program sees.
         rows = [_parse_row(i + 2, raw) for i, raw in enumerate(raw_rows)]
 
         _check_duplicate_numbers(rows)
@@ -270,9 +244,18 @@ class ImportService:
         employee_service = EmployeeService(self._session)
         reassignment_service = ReassignmentService(self._session)
 
+        existing_by_number = await self._repo.get_many_by_employee_numbers(
+            {r.employee_number for r in plan.rows if r.employee_number is not None}
+            | {
+                r.manager_employee_number
+                for r in plan.rows
+                if r.manager_employee_number is not None
+            }
+        )
+
         by_number: dict[str, Employee] = {}
         for row in plan.rows:
-            assert row.employee_number is not None  # nothing blocked (checked above)
+            assert row.employee_number is not None
             if row.outcome == "will_create":
                 employee = await employee_service.create(
                     employee_number=row.employee_number,
@@ -287,11 +270,8 @@ class ImportService:
                     actor_id=actor_id,
                 )
             else:
-                existing = await self._repo.get_by_employee_number(row.employee_number)
+                existing = existing_by_number.get(row.employee_number)
                 assert existing is not None
-                # A non-blocked row's required fields were already confirmed
-                # present by `_parse_row` - these asserts are for mypy, not
-                # a runtime possibility.
                 assert row.first_name is not None
                 assert row.last_name is not None
                 assert row.email is not None
@@ -318,11 +298,6 @@ class ImportService:
                 continue
             employee = by_number[row.employee_number]
 
-            # An empty `manager_employee_number` column is a positive
-            # instruction that this employee reports to nobody, not an
-            # absence of instruction - otherwise an export edited to
-            # promote someone to root, then re-imported, silently keeps
-            # their old manager and the file no longer describes the org.
             manager_id: uuid.UUID | None
             if row.manager_employee_number is None:
                 manager_id = None
@@ -331,14 +306,12 @@ class ImportService:
                 if manager is not None:
                     manager_id = manager.id
                 else:
-                    manager_row = await self._repo.get_by_employee_number(
-                        row.manager_employee_number
-                    )
+                    manager_row = existing_by_number.get(row.manager_employee_number)
                     assert manager_row is not None
                     manager_id = manager_row.id
 
             if employee.manager_id == manager_id:
-                continue  # already correct - nothing to reassign or audit
+                continue
 
             await reassignment_service.reassign_manager(
                 employee.id,

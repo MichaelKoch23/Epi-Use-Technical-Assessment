@@ -1,21 +1,11 @@
-"""`/api/v1/profile` - the signed-in account's own profile page: who they
-are, how their avatar is resolved, and the employee record that shares
-their email, if any.
-
-Kept outside `/auth/*` on purpose: the SPA's API client never retries
-auth-path requests after refreshing an expired token (so a failed refresh
-can't recurse), and an avatar upload should get that retry like any other
-call.
-"""
-
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, UploadFile
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.avatars import gravatar_url, resolve_avatar_url
-from app.core.security import Principal, get_current_principal
+from app.core.security import get_current_user
 from app.core.uploads import read_capped
 from app.db.session import get_db
 from app.models.app_user import AppUser
@@ -26,17 +16,7 @@ from app.services.avatar_service import MAX_AVATAR_BYTES, AvatarService
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
-# Large enough for the profile page's hero avatar on a high-DPI screen.
 _PROFILE_GRAVATAR_PX = 256
-
-
-async def _current_user(session: AsyncSession, principal: Principal) -> AppUser:
-    user = (
-        await session.execute(select(AppUser).where(AppUser.id == principal.id))
-    ).scalar_one_or_none()
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unknown user")
-    return user
 
 
 def _person(employee: Employee) -> ProfilePerson:
@@ -51,15 +31,29 @@ def _person(employee: Employee) -> ProfilePerson:
     )
 
 
-async def _build_profile(
-    session: AsyncSession, user: AppUser, principal: Principal
-) -> ProfileResponse:
-    repo = EmployeeRepository(session)
-    record = await repo.get_by_email(user.email)
+async def _build_profile(session: AsyncSession, user: AppUser) -> ProfileResponse:
+    record = await EmployeeRepository(session).get_by_email(user.email)
     employee: ProfileEmployee | None = None
     if record is not None:
-        manager = await repo.get(record.manager_id) if record.manager_id else None
-        reports = await repo.get_direct_reports(record.id)
+        related = (
+            (
+                await session.execute(
+                    select(Employee)
+                    .where(
+                        Employee.deleted_at.is_(None),
+                        or_(
+                            Employee.id == record.manager_id,
+                            Employee.manager_id == record.id,
+                        ),
+                    )
+                    .order_by(Employee.last_name)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        manager = next((e for e in related if e.id == record.manager_id), None)
+        reports = [e for e in related if e.manager_id == record.id]
         employee = ProfileEmployee(
             **_person(record).model_dump(),
             employee_number=record.employee_number,
@@ -75,8 +69,8 @@ async def _build_profile(
         id=user.id,
         email=user.email,
         role=user.role,
-        can_view_salary=principal.is_admin,
-        can_edit=principal.is_admin,
+        can_view_salary=user.role == "hr_admin",
+        can_edit=user.role == "hr_admin",
         avatar_url=resolve_avatar_url(
             avatar_override_url=user.avatar_override_url, email=user.email
         ),
@@ -89,38 +83,33 @@ async def _build_profile(
 @router.get("", response_model=ProfileResponse)
 async def get_profile(
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(get_current_principal),
+    user: AppUser = Depends(get_current_user),
 ) -> ProfileResponse:
-    user = await _current_user(session, principal)
-    return await _build_profile(session, user, principal)
+    return await _build_profile(session, user)
 
 
 @router.put("/avatar", response_model=ProfileResponse)
 async def upload_profile_avatar(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(get_current_principal),
+    user: AppUser = Depends(get_current_user),
 ) -> ProfileResponse:
-    """Any signed-in user may set their *own* photo - it is not employee
-    data, so it isn't gated on `hr_admin` like the employee equivalent."""
-    user = await _current_user(session, principal)
     raw = await read_capped(file, MAX_AVATAR_BYTES, what="Image")
     avatars = AvatarService(session)
     previous_url = user.avatar_override_url
     user.avatar_override_url = await avatars.store(raw)
     await avatars.discard_if_unused(previous_url)
     await session.commit()
-    return await _build_profile(session, user, principal)
+    return await _build_profile(session, user)
 
 
 @router.delete("/avatar", response_model=ProfileResponse)
 async def remove_profile_avatar(
     session: AsyncSession = Depends(get_db),
-    principal: Principal = Depends(get_current_principal),
+    user: AppUser = Depends(get_current_user),
 ) -> ProfileResponse:
-    user = await _current_user(session, principal)
     previous_url = user.avatar_override_url
     user.avatar_override_url = None
     await AvatarService(session).discard_if_unused(previous_url)
     await session.commit()
-    return await _build_profile(session, user, principal)
+    return await _build_profile(session, user)

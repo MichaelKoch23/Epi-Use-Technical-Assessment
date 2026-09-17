@@ -1,19 +1,3 @@
-"""Reusable constrained field types for the write schemas (§9.4).
-
-Validation here is deliberately the *outermost* layer of the same rules
-the database already enforces, not a substitute for them: `salary >= 0`,
-`birth_date > 1900-01-01` and `CHAR(3)` currency are all CHECK
-constraints or column types in the schema. Restating them in Pydantic
-turns what would otherwise be an `IntegrityError` surfacing as a 500 into
-a 422 that names the offending field - the DB stays the authority, the
-API stays honest about which input was wrong.
-
-The length caps are the part the database does *not* have: `Text` columns
-are unbounded, so without them a single request can push an arbitrary
-number of megabytes into a row, and every subsequent read of that row
-pays for it.
-"""
-
 from __future__ import annotations
 
 import re
@@ -25,13 +9,8 @@ from pydantic import AfterValidator, Field, StringConstraints
 
 from app.core.avatars import uploaded_avatar_id
 
-# `salary NUMERIC(12, 2)` holds at most 10 integer digits; anything larger
-# is a Postgres `numeric field overflow` (a 500) rather than a validation
-# error, so the ceiling is stated here where it can be reported properly.
 MAX_SALARY = Decimal("9999999999.99")
 
-# Matches the `employee_birth_date_sane` CHECK constraint in migration
-# 0fb48f633d33.
 MIN_BIRTH_DATE = date(1900, 1, 1)
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -48,28 +27,14 @@ def _validate_email(value: str) -> str:
 def _validate_birth_date(value: date) -> date:
     if value <= MIN_BIRTH_DATE:
         raise ValueError(f"must be after {MIN_BIRTH_DATE.isoformat()}")
-    # The import path already blocks future birth dates (`_check_business_rules`);
-    # without this the direct API would happily accept what a CSV of the same
-    # rows is rejected for.
     if value > datetime.now(UTC).date():
         raise ValueError("must not be in the future")
     return value
 
 
 def _validate_avatar_url(value: str | None) -> str | None:
-    """An absolute `http(s)` URL, one of our own uploaded pictures, or nothing.
-
-    This value is echoed back as `avatar_url` and rendered as an `<img
-    src>` by every client. React escapes it, so this is not an XSS fix;
-    the point is that without a scheme allow-list the field accepts
-    `javascript:`, `data:` and `file:` URLs, which turns a personnel
-    record into a stored redirect primitive aimed at whoever opens it.
-    """
     if value is None:
         return None
-    # An uploaded picture's path round-trips through the edit form, so it
-    # must stay acceptable - but only in its exact `/api/v1/avatars/<uuid>`
-    # shape, not as a general relative-URL escape hatch.
     if uploaded_avatar_id(value) is not None:
         return value
     if not value.startswith(_ALLOWED_AVATAR_SCHEMES):
@@ -77,9 +42,6 @@ def _validate_avatar_url(value: str | None) -> str | None:
     return value
 
 
-# Spelled out one alias at a time rather than built by a helper: a factory
-# returning `Annotated[...]` produces a value mypy sees as a variable, not a
-# type, so every annotation using it becomes an error.
 EmployeeNumber = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)
 ]

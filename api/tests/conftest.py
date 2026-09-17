@@ -1,24 +1,3 @@
-"""Integration test fixtures.
-
-These tests run against a real, throwaway PostgreSQL instance (via
-testcontainers), migrated with the project's actual Alembic revisions.
-SQLite cannot run the recursive CTEs, partial indexes or the deferred
-constraint trigger this schema depends on, so a suite that passed against
-it would prove nothing about the invariants that matter (§11).
-
-Two levels of test live on top of these fixtures:
-
-* Most call a router *function* directly, passing a `Principal` in. That
-  is fast and precise for business logic, but it bypasses FastAPI
-  entirely - dependency wiring, `response_model` serialisation and status
-  codes are all assumed rather than checked. A route that simply forgot
-  its `Depends(require_role(...))` would pass every such test.
-* `api_client` (below) closes that hole by driving the real ASGI app over
-  HTTP, with only `get_db` overridden to point at the test container.
-  Anything asserted through it is a statement about what the deployed
-  service actually returns to a caller - see `test_api_contract.py`.
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -63,7 +42,6 @@ def postgres_container() -> Iterator[PostgresContainer]:
 
 @pytest.fixture(scope="session")
 def _database_urls(postgres_container: PostgresContainer) -> tuple[str, str]:
-    """(sync url for Alembic, async url for the app/tests)."""
     base = make_url(postgres_container.get_connection_url())
     sync_url = base.set(drivername="postgresql+psycopg").render_as_string(
         hide_password=False
@@ -76,9 +54,6 @@ def _database_urls(postgres_container: PostgresContainer) -> tuple[str, str]:
 
 @pytest.fixture(scope="session")
 def _migrated(_database_urls: tuple[str, str]) -> None:
-    """Run the real `alembic upgrade head` against the container - the
-    same migrations `scripts/migrate.sh` runs against Neon, so a passing
-    suite says something about the actual migration files too."""
     sync_url, _ = _database_urls
     config = Config(str(API_DIR / "alembic.ini"))
     config.set_main_option("script_location", str(API_DIR / "alembic"))
@@ -108,13 +83,11 @@ def session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 @pytest_asyncio.fixture(autouse=True, loop_scope="session")
 async def _clean_db(engine: AsyncEngine) -> None:
-    """Every test starts from an empty schema. Real commits (including
-    ones that deliberately fail at COMMIT, per the cycle-prevention
-    tests) make a transaction-rollback-per-test strategy unusable here."""
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE TABLE audit_log, refresh_token, employee, app_user, avatar_image"
+                "TRUNCATE TABLE audit_log, refresh_token, employee_assignment, employee,"
+                " app_user, avatar_image"
             )
         )
 
@@ -129,7 +102,6 @@ async def db_session(
 
 @pytest_asyncio.fixture
 async def actor_id(db_session: AsyncSession) -> uuid.UUID:
-    """A committed `app_user` row to satisfy `audit_log.actor_id`'s FK."""
     actor = uuid.uuid4()
     await db_session.execute(
         text(
@@ -146,8 +118,6 @@ async def actor_id(db_session: AsyncSession) -> uuid.UUID:
 async def employee_factory(
     db_session: AsyncSession, actor_id: uuid.UUID
 ) -> EmployeeFactory:
-    """Creates and commits an employee with sensible, unique defaults -
-    override anything (`manager_id`, `salary`, ...) via keyword args."""
     service = EmployeeService(db_session)
 
     async def factory(
@@ -175,11 +145,6 @@ async def employee_factory(
 
 @pytest.fixture(autouse=True)
 def _reset_login_rate_limiter() -> None:
-    """The limiter is process-global and every test logs in from the same
-    (single, fake) client address, so without this the sixth test in a run
-    would be rate-limited by the fifth. Reset between tests rather than
-    disabled, so the limiter stays in the request path and
-    `test_login_is_rate_limited` can still observe it firing."""
     login_rate_limiter._hits.clear()
 
 
@@ -187,15 +152,6 @@ def _reset_login_rate_limiter() -> None:
 async def api_client(
     session_factory: async_sessionmaker[AsyncSession], _clean_db: None
 ) -> AsyncIterator[AsyncClient]:
-    """The real app, over HTTP, against the test database.
-
-    Only `get_db` is overridden - every other dependency (`HTTPBearer`,
-    `get_current_principal`, `require_role`, the rate limiter, the
-    exception handlers, `response_model` serialisation) runs exactly as it
-    does in production. That is the entire point: these tests can observe
-    a missing authorisation dependency or a leaked field, which a test
-    that calls the router function directly cannot.
-    """
 
     async def _override_get_db() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
@@ -214,7 +170,6 @@ async def api_client(
 async def user_factory(
     session_factory: async_sessionmaker[AsyncSession], _clean_db: None
 ) -> Callable[..., Coroutine[Any, Any, tuple[uuid.UUID, str]]]:
-    """Creates a committed `app_user` and returns `(id, password)`."""
 
     async def factory(*, email: str, role: str, password: str = "test-password") -> Any:
         user_id = uuid.uuid4()
@@ -242,9 +197,6 @@ async def auth_headers(
     api_client: AsyncClient,
     user_factory: Callable[..., Coroutine[Any, Any, tuple[uuid.UUID, str]]],
 ) -> Callable[[str], Coroutine[Any, Any, dict[str, str]]]:
-    """`Authorization` headers for a freshly created user of a given role,
-    obtained through the real `POST /auth/login` rather than by minting a
-    token directly - so the login path is covered too."""
 
     async def factory(role: str) -> dict[str, str]:
         email = f"{role}-{uuid.uuid4().hex[:8]}@example.com"

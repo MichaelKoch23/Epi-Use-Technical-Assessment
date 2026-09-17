@@ -27,9 +27,6 @@ async function searchEmployees(q: string): Promise<ChartEmployee[]> {
   return data.items
 }
 
-/** Search wired to the chart (§7.3): finding a person expands their
- * collapsed ancestors and centres the view on them - it never just filters
- * the canvas out from under the rest of the tree. */
 export function ChartSearch({ onSelect }: { onSelect: (employee: ChartEmployee) => void }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')

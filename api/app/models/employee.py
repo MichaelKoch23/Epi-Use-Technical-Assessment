@@ -11,10 +11,6 @@ from app.db.base import Base
 
 class Employee(Base):
     __tablename__ = "employee"
-    # `updated_at` is server-computed (`onupdate=func.now()`); without
-    # eager fetch, the ORM expires it after every UPDATE and only refills
-    # it on next access - a lazy load that can't run inside a synchronous
-    # Pydantic `model_validate()` on an async session (MissingGreenlet).
     __mapper_args__ = {"eager_defaults": True}  # noqa: RUF012 (SQLAlchemy declarative attr)
 
     id: Mapped[uuid.UUID] = mapped_column(

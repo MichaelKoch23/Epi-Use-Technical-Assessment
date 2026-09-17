@@ -21,8 +21,8 @@
   --color-status-alert:    #ff9300;
   --color-status-critical: #b30000;
 
-  --font-display: "Inter Tight", sans-serif;
-  --font-sans:    "Inter", sans-serif;
+  --font-display: "Inter Tight Variable", sans-serif;
+  --font-sans:    "Inter Variable", sans-serif;
 }
 
 @theme inline {
@@ -67,9 +67,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* shadcn semantic tokens mapped onto the brand palette
-   (docs/brand_style_guide.css :root) so stock primitives - buttons,
-   inputs, focus rings - render in brand colours rather than neutral grey. */
 :root {
   --background: oklch(1 0 0);
   --foreground: #313131;

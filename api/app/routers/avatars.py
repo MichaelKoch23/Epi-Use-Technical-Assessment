@@ -1,12 +1,3 @@
-"""`GET /api/v1/avatars/{id}` - serves uploaded profile pictures.
-
-Deliberately unauthenticated: an `<img src>` cannot carry the bearer
-token the rest of the API requires, and the id is a random UUID that is
-only ever handed out inside authenticated responses - the same exposure
-model as the Gravatar URLs the app already renders. Rows are immutable
-(a new upload is a new id), so responses can be cached indefinitely.
-"""
-
 from __future__ import annotations
 
 import uuid

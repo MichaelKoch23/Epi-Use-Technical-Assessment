@@ -4,11 +4,7 @@ import { apiClient } from '@/lib/apiClient'
 import { employeeKeys, hierarchyKeys } from '@/lib/queryKeys'
 import type { ChartEmployee } from './types'
 
-// "fetch /hierarchy/roots plus two levels" - one subtree(depth=2) call per
-// root returns the root itself (depth 0), its direct reports (depth 1) and
-// their reports (depth 2) in a single request.
 const INITIAL_DEPTH = 2
-// Every lazy expand-on-demand fetch after that only needs the next level.
 const EXPAND_DEPTH = 1
 
 export async function fetchRoots(): Promise<ChartEmployee[]> {
@@ -17,8 +13,6 @@ export async function fetchRoots(): Promise<ChartEmployee[]> {
   return data
 }
 
-/** `depth` omitted fetches the entire subtree (the server default), used by
- * the full-parity nested-list/print view rather than the chart's lazy load. */
 export async function fetchSubtree(id: string, depth?: number) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/subtree', {
     params: { path: { employee_id: id }, query: { depth } },
@@ -35,9 +29,6 @@ async function fetchReportingLine(id: string) {
   return data
 }
 
-/** Thrown by the reassignment mutation on a 409, mirroring the employees
- * feature's `VersionConflict` (§5.4) - the chart surfaces it as a toast and
- * rolls the drag back rather than a conflict-resolution dialog. */
 export class ChartVersionConflict extends Error {
   employeeId: string
   constructor(employeeId: string, message: string) {
@@ -47,13 +38,6 @@ export class ChartVersionConflict extends Error {
   }
 }
 
-/**
- * All org-chart data in one place: the lazily-loaded, per-node-cached
- * employee tree (§7.3 - "roots plus two levels initially, then a subtree
- * fetch on expand"), expand/collapse state, and manager reassignment with
- * an optimistic client-side override so a drag moves the card immediately
- * and rolls back on failure.
- */
 export function useOrgChartData() {
   const queryClient = useQueryClient()
 
@@ -67,9 +51,6 @@ export function useOrgChartData() {
     })),
   })
 
-  // Branches the user expanded past what the initial fetch covered, or
-  // that a search/focus jump needed to pull in - each gets its own
-  // independently cached, depth-1 subtree fetch (cache per node id).
   const [pendingExpandIds, setPendingExpandIds] = useState<Set<string>>(new Set())
   const expandQueries = useQueries({
     queries: [...pendingExpandIds].map((id) => ({
@@ -78,32 +59,15 @@ export function useOrgChartData() {
     })),
   })
 
-  // Ancestor employees pulled in by search/focus via /reporting-line -
-  // merged into the known employee set even before their own subtree
-  // (if any) has been fetched, so the connecting chain renders at once.
   const [extraEmployees, setExtraEmployees] = useState<Map<string, ChartEmployee>>(new Map())
 
-  // User-collapsed branches. A node whose children are simply unknown yet
-  // (not fetched) is *not* "collapsed" - it just has nothing to show below
-  // it until its own expand fetch resolves.
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
 
-  // Optimistic manager reassignment: overrides the fetched `manager_id`
-  // for a node while a drag/keyboard reassignment is in flight, so the
-  // card moves instantly; cleared on rollback or once the server refetch
-  // has landed.
   const [managerOverrides, setManagerOverrides] = useState<Map<string, string | null>>(new Map())
 
   const isLoading = rootsQuery.isLoading || rootSubtrees.some((q) => q.isLoading)
   const isError = rootsQuery.isError || rootSubtrees.some((q) => q.isError)
 
-  // `useQueries` returns a new array instance on every render regardless of
-  // whether any query's data actually changed. Depending on that array
-  // directly would make this memo - and everything downstream that reads
-  // its Maps by reference (the chart's Dagre relayout effect included) -
-  // recompute on every unrelated render, which turns into an infinite
-  // relayout loop. These version strings only change when a query's data
-  // or status genuinely does.
   const rootSubtreesVersion = rootSubtrees.map((q) => `${q.dataUpdatedAt}:${q.status}`).join('|')
   const expandQueriesVersion = expandQueries.map((q) => `${q.dataUpdatedAt}:${q.status}`).join('|')
 
@@ -144,8 +108,6 @@ export function useOrgChartData() {
     }
 
     return { employeesById, childrenByManager, loadedIds }
-    // `rootSubtrees`/`expandQueries` are read inside via closure - see the
-    // version-string comment above for why they're not listed directly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roots, rootSubtreesVersion, pendingExpandIds, expandQueriesVersion, extraEmployees, managerOverrides])
 
@@ -215,9 +177,6 @@ export function useOrgChartData() {
     [loadedIds]
   )
 
-  /** Loads and expands every ancestor of `employee` so its full reporting
-   * line is visible, and returns the ancestor ids (root-first) - used by
-   * search-select and focus mode. */
   const focusPathTo = useCallback(async (employee: ChartEmployee): Promise<string[]> => {
     setExtraEmployees((prev) => {
       const next = new Map(prev)
@@ -240,9 +199,6 @@ export function useOrgChartData() {
     return rootFirst.map(({ employee: ancestor }) => ancestor.id)
   }, [])
 
-  /** Descendant ids of `id` reachable from currently loaded data only (§7.3
-   * - drop-target validity is computed client-side from what's loaded; the
-   * server's deferred cycle trigger remains the real authority regardless). */
   const getDescendantIds = useCallback(
     (id: string, maxDepth = Infinity): string[] => {
       const result: string[] = []

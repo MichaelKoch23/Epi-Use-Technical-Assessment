@@ -1,7 +1,3 @@
-"""§ analytics: the org-structure dashboard. Exercised at the router-function
-level, like the other tests here (see test_hierarchy_roots.py for why).
-"""
-
 from __future__ import annotations
 
 import json
@@ -24,10 +20,6 @@ VIEWER = "viewer"
 
 @pytest.fixture(autouse=True)
 def _clear_analytics_cache():
-    """The org-summary cache is process-lifetime (§ analytics: a 60-second
-    in-process TTL cache keyed by role), but this suite truncates the
-    database between tests - without this, a later test would be served an
-    earlier test's cached result instead of fresh data."""
     clear_org_summary_cache()
     yield
     clear_org_summary_cache()
@@ -61,9 +53,9 @@ async def test_headcount_depth_and_roots(db_session, actor_id, employee_factory)
 async def test_average_span_of_control_excludes_individual_contributors(
     db_session, actor_id, employee_factory
 ):
-    root = await employee_factory()  # 2 direct reports
-    mgr_a = await employee_factory(manager_id=root.id)  # 2 direct reports
-    mgr_b = await employee_factory(manager_id=root.id)  # 1 direct report
+    root = await employee_factory()
+    mgr_a = await employee_factory(manager_id=root.id)
+    mgr_b = await employee_factory(manager_id=root.id)
     await employee_factory(manager_id=mgr_a.id)
     await employee_factory(manager_id=mgr_a.id)
     await employee_factory(manager_id=mgr_b.id)
@@ -71,8 +63,6 @@ async def test_average_span_of_control_excludes_individual_contributors(
     service = AnalyticsService(db_session)
     data = await service.get_org_summary(_principal(actor_id))
 
-    # Over managers only: (2 + 2 + 1) / 3, never diluted by the three
-    # individual contributors' zero-report rows.
     assert data.average_span_of_control == pytest.approx(5 / 3)
     assert data.average_span_of_control != pytest.approx(5 / 6)
 
@@ -156,9 +146,6 @@ async def test_unreachable_detection_after_manager_deleted_without_reparenting(
     mid_manager = await employee_factory(manager_id=root.id)
     leaf = await employee_factory(manager_id=mid_manager.id)
 
-    # Soft-delete the manager directly (not via a `DeletionPolicy`, which
-    # would reparent `leaf`) so `leaf` is left pointing at a dead manager -
-    # the only way this anomaly can occur (§ analytics).
     await EmployeeService(db_session).soft_delete(mid_manager.id, actor_id=actor_id)
     await db_session.commit()
 

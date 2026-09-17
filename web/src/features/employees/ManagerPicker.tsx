@@ -25,8 +25,6 @@ async function searchEmployees(q: string) {
   return data.items
 }
 
-/** Every id that would close a reporting cycle if picked as `employeeId`'s
- * manager: the employee itself, plus its full subtree of descendants. */
 async function fetchExcludedIds(employeeId: string): Promise<Set<string>> {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/subtree', {
     params: { path: { employee_id: employeeId } },
@@ -35,13 +33,6 @@ async function fetchExcludedIds(employeeId: string): Promise<Set<string>> {
   return new Set([employeeId, ...data.map((node) => node.employee.id)])
 }
 
-/**
- * Async manager search-and-select (§ shadcn component map: "Manager
- * picker: command; async search"). When `excludeEmployeeId` is set (editing
- * an existing employee), that employee and its descendants still appear in
- * the list - never silently missing - but are disabled with a reason,
- * since assigning any of them would create a reporting cycle.
- */
 export function ManagerPicker({
   value,
   label,

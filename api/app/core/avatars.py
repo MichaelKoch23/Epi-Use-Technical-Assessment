@@ -1,17 +1,9 @@
-"""Avatar URL resolution (§ Gravatar avatars in the brand style guide):
-uploaded override first, then a Gravatar image, with the client falling
-back to initials only if that image itself 404s. Computed once here so
-every response shape gets the same URL instead of each client re-hashing
-the email."""
-
 from __future__ import annotations
 
 import hashlib
 import re
 import uuid
 
-# Where `routers/avatars.py` serves uploaded pictures from. An override
-# URL with this prefix is one of ours; anything else is an external link.
 UPLOADED_AVATAR_PREFIX = "/api/v1/avatars/"
 
 _UPLOADED_AVATAR_RE = re.compile(
@@ -29,8 +21,6 @@ def uploaded_avatar_url(image_id: uuid.UUID) -> str:
 
 
 def uploaded_avatar_id(url: str | None) -> uuid.UUID | None:
-    """The `avatar_image` id an override URL points at, or None if the URL
-    is empty or external."""
     if url is None:
         return None
     match = _UPLOADED_AVATAR_RE.match(url)

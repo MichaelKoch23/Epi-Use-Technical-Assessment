@@ -17,11 +17,6 @@ from app.models.employee import Employee
 
 @dataclass(frozen=True, slots=True)
 class AuditLogRow:
-    """One audit entry plus the actor's email - resolved in the same
-    query rather than pushed onto the caller, mirroring how
-    `EmployeeRepository.list` already merges a manager's display name onto
-    each row instead of leaving that join to the router."""
-
     entry: AuditLog
     actor_email: str
 
@@ -35,9 +30,6 @@ def _jsonable(value: Any) -> Any:
 
 
 def snapshot_employee(employee: Employee) -> dict[str, Any]:
-    """A JSONB-safe before/after snapshot of the fields an audit entry
-    cares about. Not the ORM instance itself, so it stays valid after the
-    instance's own fields change further in the same unit of work."""
     return {
         "employee_number": employee.employee_number,
         "first_name": employee.first_name,
@@ -54,23 +46,11 @@ def snapshot_employee(employee: Employee) -> dict[str, Any]:
     }
 
 
-# `occurred_at` defaults to `now()`, which in Postgres is the *transaction*
-# start time - so every audit row a single request writes (a cascade delete,
-# a bulk import) carries a byte-identical timestamp. Ordering on it alone
-# leaves tied rows in whatever order the executor happens to return, which
-# LIMIT/OFFSET then slices inconsistently between two requests: the same
-# entry shows up on page 1 and page 2, and some other entry is never shown
-# at all. `id` is the unique tiebreaker that makes the total order stable.
 def _newest_first() -> tuple[Any, Any]:
     return AuditLog.occurred_at.desc(), AuditLog.id.desc()
 
 
 class AuditService:
-    """Writes `audit_log` rows. Every method here only adds to the
-    session it was given and flushes - it never opens or commits a
-    transaction of its own, so the audit row lives or dies with whatever
-    change the caller is making in the same unit of work (§9.6)."""
-
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -97,7 +77,6 @@ class AuditService:
     async def list_for_employee(
         self, employee_id: uuid.UUID, *, page: int = 1, page_size: int = 50
     ) -> tuple[Sequence[AuditLogRow], int]:
-        """Change history for one employee, newest first (§6.2)."""
         base = (
             select(AuditLog, AppUser.email)
             .join(AppUser, AppUser.id == AuditLog.actor_id)
@@ -120,8 +99,6 @@ class AuditService:
     async def list_all(
         self, *, page: int = 1, page_size: int = 50
     ) -> tuple[Sequence[AuditLogRow], int]:
-        """Change history across every employee, newest first - the feed
-        behind the topbar's "Change history" button (§ global audit feed)."""
         base = select(AuditLog, AppUser.email).join(
             AppUser, AppUser.id == AuditLog.actor_id
         )

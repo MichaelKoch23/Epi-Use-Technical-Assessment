@@ -37,12 +37,6 @@ function HierarchyBranch({
   )
 }
 
-/**
- * The accessible, keyboard-navigable equivalent of the chart - a plain
- * nested list, reachable from the chart toolbar, and also the print
- * layout (§ accessibility requirements: "It is not a fallback - it is a
- * supported view").
- */
 export function OrgChartNestedList({
   onSelect,
   className,

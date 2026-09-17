@@ -15,12 +15,6 @@ import { searchKeys } from '@/lib/queryKeys'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { searchAll } from './api'
 
-/**
- * The topbar search button's command palette (§6.2 FR-7, `GET /search`).
- * Selecting a result focuses that employee in the org chart, reusing the
- * `?focus={id}` deep link the analytics anomaly panel and branch explorer
- * already navigate to.
- */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -39,8 +33,6 @@ export function CommandPalette({
     placeholderData: (previous) => previous,
   })
 
-  // Never reopen on a stale query - a fresh open should start from empty,
-  // not wherever the last search left off.
   useEffect(() => {
     if (!open) setSearch('')
   }, [open])
@@ -57,9 +49,6 @@ export function CommandPalette({
       title="Search"
       description="Find an employee by name, employee number or position"
     >
-      {/* Server-side filtering (§ FR-7): `q` already narrowed `results`,
-       * so cmdk must not re-filter them client-side against its own
-       * fuzzy match on `value` - same reasoning as `ManagerPicker`. */}
       <Command shouldFilter={false}>
         <CommandInput
           placeholder="Search by name, employee number or position..."
@@ -91,10 +80,6 @@ export function CommandPalette({
                   <span>
                     {employee.first_name} {employee.last_name}
                   </span>
-                  {/* `text-muted-foreground` on `CommandItem`'s own
-                   * `data-selected:bg-muted` background falls just under
-                   * AA (4.34:1) - `group-data-selected` bumps it to the
-                   * full-contrast foreground colour on the highlighted row. */}
                   <span className="text-xs text-muted-foreground group-data-selected/command-item:text-foreground">
                     {employee.position}
                   </span>

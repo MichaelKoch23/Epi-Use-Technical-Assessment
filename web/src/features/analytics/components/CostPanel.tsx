@@ -3,10 +3,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/features/employees/format'
 import type { CostSummary } from '../types'
 
-/** Admin-only cost roll-up (§9.3). For a viewer `cost` is never present on
- * the response at all - this panel still renders, with the `.salary-locked`
- * treatment, so the viewer knows the data exists and that they can't see
- * it, rather than the panel silently disappearing. */
 export function CostPanel({
   cost,
   restricted,

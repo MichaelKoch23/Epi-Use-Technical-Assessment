@@ -1,8 +1,6 @@
 import { AlertTriangleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-/** A named failure plus a retry - never a bare toast with the section left
- * blank (§ analytics states). */
 export function ErrorState({
   message,
   onRetry,

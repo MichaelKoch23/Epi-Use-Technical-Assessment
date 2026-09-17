@@ -1,9 +1,3 @@
-"""A single exception handler mapping domain exceptions (`core.exceptions`)
-to RFC 9457 `application/problem+json` documents (§6.4). Registered once
-for the `DomainError` base class - Starlette walks the MRO of a raised
-exception to find the most specific handler, so this one function catches
-every subclass without a handler per exception type."""
-
 from __future__ import annotations
 
 from fastapi import FastAPI, Request
@@ -18,7 +12,6 @@ from app.core.exceptions import (
     VersionConflictError,
 )
 
-# exception type -> (status, URI slug, title)
 _PROBLEMS: list[tuple[type[DomainError], int, str, str]] = [
     (EmployeeNotFound, 404, "employee-not-found", "Employee not found"),
     (
@@ -69,7 +62,7 @@ def _field_errors(exc: DomainError) -> list[dict[str, str]]:
 
 
 async def domain_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, DomainError)  # the only type this handler is registered for
+    assert isinstance(exc, DomainError)
     status_code, slug, title = _problem_for(exc)
 
     body: dict[str, object] = {

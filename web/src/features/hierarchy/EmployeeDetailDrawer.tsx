@@ -10,10 +10,6 @@ import type { EmployeeListItem } from '@/features/employees/types'
 import { ReportingLineBreadcrumb } from './ReportingLineBreadcrumb'
 import { hasSalary, type ChartEmployee } from './types'
 
-/** The chart doesn't have the list endpoint's `manager_name` /
- * `direct_report_count` - the caller supplies them from what's already
- * loaded in the tree, so `EditEmployeeSheet`/`DeleteEmployeeDialog` (built
- * against the employees table's row shape) can be reused as-is. */
 function toListItemShape(
   employee: ChartEmployee,
   managerName: string | null,
@@ -41,7 +37,6 @@ export function EmployeeDetailDrawer({
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelectAncestor: (id: string) => void
-  /** §9.2 - a viewer gets the read-only detail view, no edit/delete. */
   canEdit: boolean
 }) {
   const [editOpen, setEditOpen] = useState(false)

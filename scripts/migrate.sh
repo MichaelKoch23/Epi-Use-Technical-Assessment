@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# Run Alembic migrations against a named Neon branch.
-#
-# Usage: ./scripts/migrate.sh <dev|prod>
-#
-# The target branch is resolved by name through the Neon CLI rather than
-# from a locally-cached connection string, and "prod" requires a typed
-# confirmation, so a stale env file or a fat-fingered argument can't send a
-# migration to the wrong database.
 set -euo pipefail
 
 PROJECT_ID="wild-surf-18764091"
@@ -48,9 +40,6 @@ if [ "$TARGET" = "prod" ]; then
     fi
 fi
 
-# Direct (non-pooled) connection: Alembic needs session-level behaviour that
-# PgBouncer transaction-mode pooling doesn't support. `neon connection-string`
-# returns the direct URL by default; the pooled one carries a "-pooler" host.
 DIRECT_URL="$(neon connection-string "$BRANCH" --project-id "$PROJECT_ID")"
 
 case "$DIRECT_URL" in

@@ -1,7 +1,3 @@
-"""`/api/v1/employees/*` - §6.2 of the technical design, the employee-scoped
-rows of the endpoint table (hierarchy, auth, analytics, import/export,
-search and the global audit feed are separate routers)."""
-
 from __future__ import annotations
 
 import uuid
@@ -71,7 +67,6 @@ def _policy_for(name: DeletionPolicyName, session: AsyncSession) -> DeletionPoli
 
 
 def _parse_if_match(value: str) -> int:
-    """`If-Match: "<version>"` (§3.5) - a quoted integer version."""
     try:
         return int(value.strip('"'))
     except ValueError as exc:
@@ -81,8 +76,6 @@ def _parse_if_match(value: str) -> int:
 
 
 def to_employee_read(employee: Employee, principal: Principal) -> EmployeeReadAny:
-    """Response schema selection by role (§9.3): a `viewer` gets a payload
-    where `salary` is not a key at all, not a null value."""
     if principal.is_admin:
         return EmployeeRead.model_validate(employee)
     return EmployeeReadRestricted.model_validate(employee)
@@ -113,13 +106,6 @@ def audit_log_fields(
     principal: Principal,
     manager_names: dict[uuid.UUID, str],
 ) -> dict[str, Any]:
-    """The field set common to `AuditLogRead` and `GlobalAuditLogRead`
-    (§ global audit feed) - shared so the two response shapes can never
-    drift apart on the one thing that actually matters here: salary
-    redaction. §9.3 extended to the audit trail: a viewer may see *that*
-    salary changed, never the values. `salary_changed` is computed from
-    the raw snapshots before any stripping, so it stays correct for a
-    viewer whose payload never contains the key at all."""
     entry = row.entry
     before, after = entry.before, entry.after
     salary_changed = (
@@ -165,13 +151,6 @@ def to_audit_log_read(
 def require_salary_access(
     principal: Principal, filters: EmployeeListFilters, sort: str
 ) -> None:
-    """§9.3: salary-based filtering or sorting would let a viewer infer
-    the value by binary search, so both are rejected outright for them.
-
-    Public rather than module-private because the CSV export accepts the
-    identical filter/sort parameters and is subject to the identical
-    inference attack - the guard has to be the same one, not a second copy
-    that can drift away from this one."""
     if principal.is_admin:
         return
     if (
@@ -223,7 +202,6 @@ async def create_employee(
     return EmployeeRead.model_validate(employee)
 
 
-# Declared before `/{employee_id}` so "positions" isn't parsed as an id.
 @router.get("/positions", response_model=list[str])
 async def list_positions(
     session: AsyncSession = Depends(get_db),
@@ -272,9 +250,6 @@ async def _set_avatar(
     if_match: str,
     principal: Principal,
 ) -> EmployeeReadAny:
-    """Swap an employee's override URL through the normal update path, so
-    a photo change is version-checked and lands in the audit trail like
-    any other edit, then drop the image it replaced."""
     repo = EmployeeRepository(session)
     current = await repo.get(employee_id)
     if current is None:
@@ -315,7 +290,6 @@ async def remove_employee_avatar(
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(require_role("hr_admin")),
 ) -> EmployeeReadAny:
-    """Clear the override, falling back to the employee's Gravatar."""
     return await _set_avatar(
         session, employee_id, None, if_match=if_match, principal=principal
     )
@@ -420,9 +394,6 @@ async def get_employee_audit(
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
 ) -> AuditLogPage:
-    """Open to any authenticated role (§9.3 extended): a viewer may read
-    the change history, but `to_audit_log_read` still keeps salary values
-    out of their payload entirely."""
     repo = EmployeeRepository(session)
     if await repo.get_any(employee_id) is None:
         raise EmployeeNotFound(employee_id)

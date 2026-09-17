@@ -15,8 +15,6 @@ class ProfilePerson(BaseModel):
 
 
 class ProfileEmployee(ProfilePerson):
-    """The employee record whose email matches the signed-in account."""
-
     employee_number: str
     email: str
     joined_at: datetime
@@ -30,10 +28,7 @@ class ProfileResponse(BaseModel):
     role: str
     can_view_salary: bool
     can_edit: bool
-    # What the app shows: the uploaded photo if there is one, else Gravatar.
     avatar_url: str
-    # Always the Gravatar image, so the page can say whether one exists
-    # independently of any upload that is currently hiding it.
     gravatar_url: str
     has_uploaded_avatar: bool
     employee: ProfileEmployee | None

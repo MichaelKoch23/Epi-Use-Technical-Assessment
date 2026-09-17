@@ -1,7 +1,3 @@
-"""`GET /employees/positions` - distinct positions for the list page's
-position filter dropdown. Exercised at the router-function level, like the
-other tests here (see test_hierarchy_roots.py for why)."""
-
 from __future__ import annotations
 
 from app.core.security import Principal

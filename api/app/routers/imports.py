@@ -1,6 +1,3 @@
-"""`POST /api/v1/imports/employees` - bulk CSV/XLSX import with a
-`?dry_run=true` validation-only mode (§ import)."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -36,9 +33,6 @@ async def import_employees(
     if dry_run:
         return plan.to_result(committed=False)
 
-    # `commit` only actually writes when nothing in the plan is blocked -
-    # a partial import is worse than none (§ import). The router commits
-    # the transaction exactly once, for the whole file.
     result = await service.commit(plan, actor_id=principal.id)
     if result.committed:
         await session.commit()

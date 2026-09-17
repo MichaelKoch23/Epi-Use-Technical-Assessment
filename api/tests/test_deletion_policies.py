@@ -1,7 +1,3 @@
-"""§5.3: the three deletion strategies, and the preview step the UI is
-required to show before a destructive delete.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -40,9 +36,6 @@ async def test_reparent_moves_reports_to_grandparent(
 async def test_reparent_on_root_degrades_to_promote_to_root(
     db_session, actor_id, employee_factory
 ):
-    """A root has no grandparent to move reports to, so Reparent must
-    fall back to PromoteToRoot's behaviour rather than leaving a
-    dangling reference."""
     root = await employee_factory()
     child = await employee_factory(manager_id=root.id)
 
@@ -93,7 +86,7 @@ async def test_cascade_deletes_entire_subtree(db_session, actor_id, employee_fac
     assert await repo.get(root.id) is None
     assert await repo.get(child.id) is None
     assert await repo.get(grandchild.id) is None
-    assert await repo.get(unrelated.id) is not None  # untouched
+    assert await repo.get(unrelated.id) is not None
 
 
 async def test_preview_does_not_write(db_session, actor_id, employee_factory):
@@ -118,16 +111,12 @@ async def test_preview_does_not_write(db_session, actor_id, employee_factory):
 async def test_restore_reports_a_number_clash_instead_of_crashing(
     db_session, actor_id, employee_factory
 ):
-    """`uq_employee_number` is a partial index (`WHERE deleted_at IS NULL`),
-    so soft-deleting an employee releases their number for reuse. Restoring
-    them afterwards collides, and the raw `IntegrityError` that Postgres
-    raises at flush would otherwise reach the client as a 500."""
     original = await employee_factory(employee_number="E-REUSED")
     service = EmployeeService(db_session)
     await service.soft_delete(original.id, actor_id=actor_id)
     await db_session.commit()
 
-    await employee_factory(employee_number="E-REUSED")  # number taken again
+    await employee_factory(employee_number="E-REUSED")
 
     with pytest.raises(DuplicateEmployeeNumberError):
         await service.restore(original.id, actor_id=actor_id)
@@ -150,7 +139,6 @@ async def test_restore_reports_an_email_clash_instead_of_crashing(
 async def test_restore_succeeds_when_nothing_took_the_identifiers(
     db_session, actor_id, employee_factory
 ):
-    """The guard must not block the ordinary case it was added for."""
     employee = await employee_factory(employee_number="E-FREE")
     service = EmployeeService(db_session)
     await service.soft_delete(employee.id, actor_id=actor_id)

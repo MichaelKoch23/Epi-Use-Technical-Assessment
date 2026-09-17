@@ -1,6 +1,3 @@
-/** Best-effort message from a FastAPI error body - plain `{detail: string}`,
- * `application/problem+json` (`{detail, title}`), or 422's
- * `{detail: [{msg}, ...]}` - falling back to a generic message otherwise. */
 export function getErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (error && typeof error === 'object' && 'detail' in error) {
     const detail = (error as { detail: unknown }).detail

@@ -728,7 +728,7 @@ Cloud Run may run many instances concurrently, each a separate process with its 
 Three settings address this together:
 
 1. The application connects through **Neon's pooled endpoint** (PgBouncer in transaction mode), so the database sees a bounded number of backend connections regardless of client count.
-2. SQLAlchemy uses a **small, explicitly bounded pool** - `pool_size=5, max_overflow=0, pool_pre_ping=True` - rather than the default. A container is a long-lived process, so a pool is correct here; what matters is that it is small and bounded.
+2. SQLAlchemy uses a **small, explicitly bounded pool** - `pool_size=5, max_overflow=0, pool_recycle=240` - rather than the default. A container is a long-lived process, so a pool is correct here; what matters is that it is small and bounded. `pool_recycle` is preferred over `pool_pre_ping`: pre-ping spends an extra round trip on *every* request to detect a connection Neon has closed behind a suspended compute, while recycling below Neon's five-minute idle-suspend window retires those connections by age instead, for no per-request cost.
 3. **Maximum instances is capped** on the Cloud Run service, which puts a hard ceiling on total connections: `max_instances × pool_size`.
 
 Transaction-mode pooling rules out session-level state - server-side prepared-statement caching, `SET` statements, advisory locks held across statements - and the code avoids all three deliberately. `SELECT … FOR UPDATE` remains available, because its scope is a transaction.
@@ -851,7 +851,11 @@ The hosting decision was made against one criterion above all others: an evaluat
 | Chart rendering | Lazy subtree loading and viewport virtualisation; the DOM holds only visible nodes |
 | List view | Server-side pagination, filtering and sorting; keyset pagination available for deep pages |
 | Search | GIN trigram index for fuzzy matching, rather than an unindexed leading-wildcard `LIKE` |
-| Static delivery | Hashed, immutable assets with long-lived cache headers, served from the same container |
+| Static delivery | Hashed, immutable assets with long-lived cache headers, served from the same container; `index.html` is `no-cache` so a deploy is picked up immediately |
+| Payload size | `GZipMiddleware` compresses API responses and the JS/CSS bundle above 1 KB - roughly a 4× reduction on list payloads |
+| Bundle size | Route-level code splitting (`lazy` routes), so the chart's React Flow/Dagre and the analytics charts are fetched only when that route is opened |
+| Fonts | Inter and Inter Tight are self-hosted (`@fontsource-variable`) rather than loaded from Google Fonts: one less third-party round trip on first paint, and the only option the production CSP permits |
+| Cold start | Bytecode is pre-compiled into the image (`UV_COMPILE_BYTECODE`, `compileall`), because the container filesystem is read-only at runtime and would otherwise recompile on every start |
 | Horizontal scaling | Cloud Run adds instances on concurrency; the application holds no in-process state, so instances are interchangeable |
 | Database connections | Bounded pool per instance plus a capped maximum instance count (§10.4) |
 | Scaling ceiling | Comfortable to roughly 100 000 employees. Beyond that, the migration is a closure table maintained as a derived read model |

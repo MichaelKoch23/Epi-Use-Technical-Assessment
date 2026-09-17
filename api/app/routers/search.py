@@ -1,9 +1,3 @@
-"""`/api/v1/search` - the cross-entity quick search behind the topbar's
-command palette (§6.2, FR-7). Employees are the only searchable entity
-today; this stays its own resource rather than folding into `GET
-/employees` so a future entity type has somewhere to plug in without
-overloading the employee list's query contract."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query

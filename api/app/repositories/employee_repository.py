@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -14,9 +14,6 @@ from sqlalchemy.orm import InstrumentedAttribute, aliased
 
 from app.models.employee import Employee
 
-# §6.3: sort is resolved against a static allow-list, never built from raw
-# user input - dynamic ORDER BY is the classic injection vector that bound
-# parameters don't protect against, because identifiers can't be bound.
 SORTABLE_COLUMNS: dict[str, InstrumentedAttribute[Any]] = {
     "employee_number": Employee.employee_number,
     "first_name": Employee.first_name,
@@ -29,8 +26,6 @@ SORTABLE_COLUMNS: dict[str, InstrumentedAttribute[Any]] = {
     "updated_at": Employee.updated_at,
 }
 
-# §5.2: the reporting chain is walked with a hop counter as a defensive cap,
-# independent of any corrupt data the path guard would already have stopped.
 MAX_REPORTING_DEPTH = 1000
 
 
@@ -48,10 +43,6 @@ class EmployeeListFilters:
 
 @dataclass(frozen=True, slots=True)
 class EmployeeListRow:
-    """One row of a paged list: the employee plus fields that would
-    otherwise cost an extra query per row - the manager's display name and
-    direct-report count, both computed in the same statement (§below)."""
-
     employee: Employee
     manager_name: str | None
     direct_report_count: int
@@ -59,9 +50,6 @@ class EmployeeListRow:
 
 @dataclass(frozen=True, slots=True)
 class EmployeeHierarchyRow:
-    """One row of a subtree or ancestor-chain walk: the employee plus its
-    distance (in hops) from the query's root."""
-
     employee: Employee
     depth: int
 
@@ -77,7 +65,7 @@ _SUBTREE_SQL = text(
         FROM employee c
         JOIN subtree s ON c.manager_id = s.id
         WHERE c.deleted_at IS NULL
-          AND NOT c.id = ANY(s.path)          -- terminates even on corrupt data
+          AND NOT c.id = ANY(s.path)
           AND s.depth < :max_depth
     )
     SELECT * FROM subtree ORDER BY depth, last_name
@@ -104,17 +92,6 @@ _ANCESTORS_SQL = text(
     """
 )
 
-# The proposed manager must not already be inside the employee's own
-# subtree - walking down from `of_id` and testing whether `candidate_id`
-# is reachable. This is the pre-write half of cycle prevention; the
-# deferred constraint trigger (§5.2) is the authority that closes the
-# concurrency race this check alone cannot.
-# Unlike the two walks above, this one deliberately includes soft-deleted
-# rows: a deleted manager still sits between its reports and the root, so
-# ignoring it here would let a reassignment close a cycle through it.
-# It carries the same `NOT id = ANY(path)` guard and depth cap they do -
-# without them, a single pre-existing cycle turns this `UNION ALL` into a
-# non-terminating query that pins a connection until the statement timeout.
 _IS_DESCENDANT_SQL = text(
     """
     WITH RECURSIVE subtree AS (
@@ -132,21 +109,9 @@ _IS_DESCENDANT_SQL = text(
 
 
 def _escape_like(value: str) -> str:
-    """Escape the LIKE metacharacters in a user-supplied search term.
-
-    `q` is a bound parameter, so this is not about SQL injection - it is
-    about the search meaning what the user typed. Unescaped, a search for
-    `50%` matches every name starting `50`, `a_b` matches `axb`, and a
-    lone backslash makes Postgres reject the pattern outright. The
-    matching `escape='\\'` on the `ilike()` call is what activates this.
-    """
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-# Columns of `employee` in the order SELECT * returns them - used to hydrate
-# a detached Employee instance from a raw CTE row without touching the
-# session's identity map (these rows carry extra columns the ORM doesn't
-# know about, so a plain `select(Employee)` can't be used here).
 _EMPLOYEE_COLUMNS = tuple(c.name for c in Employee.__table__.columns)
 
 
@@ -158,9 +123,6 @@ def _row_to_employee(row: RowMapping) -> Employee:
 
 
 class EmployeeRepository:
-    """Query construction for the `employee` table. Enforces no business
-    rules of its own - that's the service layer's job (§3.4)."""
-
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -181,14 +143,10 @@ class EmployeeRepository:
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def get_any(self, id: uuid.UUID) -> Employee | None:
-        """Like `get`, but also returns soft-deleted rows - used by restore."""
         stmt = select(Employee).where(Employee.id == id)
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def get_for_update(self, id: uuid.UUID) -> Employee | None:
-        """Row-locking read for the services that mutate the hierarchy
-        (§5.2): `SELECT ... FOR UPDATE`, serialising conflicting writes to
-        the same row regardless of which app instance handles them."""
         stmt = (
             select(Employee)
             .where(Employee.id == id, Employee.deleted_at.is_(None))
@@ -240,9 +198,6 @@ class EmployeeRepository:
 
         manager = aliased(Employee)
         report = aliased(Employee)
-        # `concat()` (unlike `||`) treats NULL arguments as empty strings, so
-        # a root employee's absent manager would otherwise come back as the
-        # single-space string `" "` instead of NULL.
         manager_name = case(
             (manager.id.is_(None), None),
             else_=func.concat(manager.first_name, " ", manager.last_name),
@@ -256,22 +211,26 @@ class EmployeeRepository:
         )
 
         list_stmt = (
-            select(Employee, manager_name, report_count)
+            select(Employee, manager_name, report_count, func.count().over())
             .outerjoin(manager, Employee.manager_id == manager.id)
             .where(*conditions)
             .order_by(order_by, Employee.id)
             .limit(page_size)
             .offset((page - 1) * page_size)
         )
-        count_stmt = select(func.count()).select_from(Employee).where(*conditions)
-
         rows = (await self._session.execute(list_stmt)).all()
-        total = (await self._session.execute(count_stmt)).scalar_one()
+        if rows:
+            total = rows[0][3]
+        elif page == 1:
+            total = 0
+        else:
+            count_stmt = select(func.count()).select_from(Employee).where(*conditions)
+            total = (await self._session.execute(count_stmt)).scalar_one()
         items = [
             EmployeeListRow(
                 employee=employee, manager_name=manager_name_, direct_report_count=count
             )
-            for employee, manager_name_, count in rows
+            for employee, manager_name_, count, _ in rows
         ]
         return items, total
 
@@ -322,9 +281,6 @@ class EmployeeRepository:
         return (await self._session.execute(stmt)).scalars().all()
 
     async def get_names_by_ids(self, ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
-        """Display names for a batch of ids, including soft-deleted rows -
-        used to resolve a manager referenced from an audit snapshot, who may
-        since have been deleted (§ audit timeline UI)."""
         if not ids:
             return {}
         stmt = select(Employee.id, Employee.first_name, Employee.last_name).where(
@@ -336,26 +292,30 @@ class EmployeeRepository:
     async def list_active_identity_map(
         self,
     ) -> Sequence[tuple[uuid.UUID, str, uuid.UUID | None]]:
-        """`(id, employee_number, manager_id)` for every non-deleted employee,
-        in one query - the seed for the import service's whole-graph cycle
-        check (§ import validation), which needs the full existing reporting
-        graph, not just the rows a file happens to touch."""
         stmt = select(Employee.id, Employee.employee_number, Employee.manager_id).where(
             Employee.deleted_at.is_(None)
         )
         return [tuple(row) for row in (await self._session.execute(stmt)).all()]
 
     async def email_owners(self) -> dict[str, str]:
-        """`lower(email) -> employee_number` for every active employee, in
-        one query - the seed for the import service's duplicate-email
-        check, which has to tell "this row is keeping its own email" apart
-        from "this row is taking someone else's" (§ import validation).
-        Keyed the same way `uq_employee_email` indexes the column."""
         stmt = select(Employee.email, Employee.employee_number).where(
             Employee.deleted_at.is_(None)
         )
         rows = (await self._session.execute(stmt)).all()
         return {email.lower(): number for email, number in rows}
+
+    async def get_many_by_employee_numbers(
+        self, employee_numbers: Collection[str]
+    ) -> dict[str, Employee]:
+        if not employee_numbers:
+            return {}
+        stmt = select(Employee).where(
+            Employee.employee_number.in_(employee_numbers),
+            Employee.deleted_at.is_(None),
+        )
+        return {
+            e.employee_number: e for e in (await self._session.execute(stmt)).scalars()
+        }
 
     async def count_reports(self, id: uuid.UUID) -> int:
         stmt = (
@@ -366,8 +326,6 @@ class EmployeeRepository:
         return (await self._session.execute(stmt)).scalar_one()
 
     async def list_positions(self) -> Sequence[str]:
-        """Distinct positions held by active employees, for the list page's
-        position filter dropdown."""
         stmt = (
             select(Employee.position)
             .where(Employee.deleted_at.is_(None))
@@ -377,9 +335,6 @@ class EmployeeRepository:
         return (await self._session.execute(stmt)).scalars().all()
 
     async def search(self, q: str, *, limit: int = 8) -> Sequence[Employee]:
-        """Fuzzy match across name, employee number and position for the
-        command palette (§ FR-7) - a small, fast, unpaginated top-N read,
-        distinct from `list()`'s full paginated table query."""
         pattern = f"%{_escape_like(q)}%"
         full_name = func.concat(Employee.first_name, " ", Employee.last_name)
         stmt = (

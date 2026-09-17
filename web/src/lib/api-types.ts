@@ -64,15 +64,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Logout
-         * @description End the session the presented refresh token belongs to.
-         *
-         *     Authenticated, so a token can only be revoked by its own holder, and
-         *     deliberately tolerant: a token that is already invalid still yields
-         *     204, because "this session is over" is the caller's goal and reporting
-         *     a failure would only tell an attacker which tokens are live.
-         */
+        /** Logout */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
         options?: never;
@@ -162,10 +154,7 @@ export interface paths {
         /** Upload Employee Avatar */
         put: operations["upload_employee_avatar_api_v1_employees__employee_id__avatar_put"];
         post?: never;
-        /**
-         * Remove Employee Avatar
-         * @description Clear the override, falling back to the employee's Gravatar.
-         */
+        /** Remove Employee Avatar */
         delete: operations["remove_employee_avatar_api_v1_employees__employee_id__avatar_delete"];
         options?: never;
         head?: never;
@@ -264,12 +253,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Employee Audit
-         * @description Open to any authenticated role (§9.3 extended): a viewer may read
-         *     the change history, but `to_audit_log_read` still keeps salary values
-         *     out of their payload entirely.
-         */
+        /** Get Employee Audit */
         get: operations["get_employee_audit_api_v1_employees__employee_id__audit_get"];
         put?: never;
         post?: never;
@@ -286,11 +270,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Roots
-         * @description Employees with no manager - the org chart's forest of starting
-         *     points (there's no single-root guarantee, §15 known limitations).
-         */
+        /** Get Roots */
         get: operations["get_roots_api_v1_hierarchy_roots_get"];
         put?: never;
         post?: never;
@@ -427,11 +407,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /**
-         * Upload Profile Avatar
-         * @description Any signed-in user may set their *own* photo - it is not employee
-         *     data, so it isn't gated on `hr_admin` like the employee equivalent.
-         */
+        /** Upload Profile Avatar */
         put: operations["upload_profile_avatar_api_v1_profile_avatar_put"];
         post?: never;
         /** Remove Profile Avatar */
@@ -577,11 +553,7 @@ export interface components {
             /** Average Span Of Control */
             average_span_of_control: number;
         };
-        /**
-         * CostSummaryRead
-         * @description Admin-only (§9.3) - never a field on the `*Restricted` schemas below,
-         *     so it's absent from a viewer's payload entirely, not null.
-         */
+        /** CostSummaryRead */
         CostSummaryRead: {
             /** Total Annual */
             total_annual: string;
@@ -652,12 +624,7 @@ export interface components {
             /** Depth */
             depth: number;
         };
-        /**
-         * EmployeeListItemRead
-         * @description `EmployeeRead` plus fields only the list endpoint bothers to compute
-         *     (§list query in the repository) - a manager's display name in place of
-         *     a bare id, and the row's own direct-report count.
-         */
+        /** EmployeeListItemRead */
         EmployeeListItemRead: {
             /**
              * Id
@@ -768,10 +735,7 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
-        /**
-         * EmployeeRead
-         * @description Full representation - `hr_admin` only (§9.3).
-         */
+        /** EmployeeRead */
         EmployeeRead: {
             /**
              * Id
@@ -818,11 +782,7 @@ export interface components {
             /** Avatar Url */
             readonly avatar_url: string;
         };
-        /**
-         * EmployeeReadRestricted
-         * @description `viewer` representation. `salary` is not a field here at all, so
-         *     it is absent from the serialised payload - never null, never masked.
-         */
+        /** EmployeeReadRestricted */
         EmployeeReadRestricted: {
             /**
              * Id
@@ -867,18 +827,7 @@ export interface components {
             /** Avatar Url */
             readonly avatar_url: string;
         };
-        /**
-         * EmployeeUpdate
-         * @description Partial update - every field optional. `manager_id` deliberately
-         *     absent: reassignment is `PUT /employees/{id}/manager` (§6.1), not a
-         *     general PATCH field, because it carries its own invariant.
-         *
-         *     Every field that *is* here is `Optional` only in the "may be omitted"
-         *     sense - `exclude_unset=True` in the router means an omitted field is
-         *     never passed on. None of them accept an explicit `null` except
-         *     `avatar_override_url`, which is the one column that is genuinely
-         *     nullable.
-         */
+        /** EmployeeUpdate */
         EmployeeUpdate: {
             /** Employee Number */
             employee_number?: string | null;
@@ -910,13 +859,7 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
-        /**
-         * GlobalAuditLogRead
-         * @description `AuditLogRead` plus which employee the entry is about - the
-         *     per-employee page already has that from context, but the global feed
-         *     behind the topbar's "Change history" button spans every employee at
-         *     once (§ global audit feed).
-         */
+        /** GlobalAuditLogRead */
         GlobalAuditLogRead: {
             /**
              * Id
@@ -1023,10 +966,7 @@ export interface components {
             /** Can Edit */
             can_edit: boolean;
         };
-        /**
-         * OrgSummaryRead
-         * @description `hr_admin` representation - includes the cost roll-up.
-         */
+        /** OrgSummaryRead */
         OrgSummaryRead: {
             /** Headcount */
             headcount: number;
@@ -1049,11 +989,7 @@ export interface components {
             anomalies: components["schemas"]["AnomaliesRead"];
             cost: components["schemas"]["CostSummaryRead"];
         };
-        /**
-         * OrgSummaryReadRestricted
-         * @description `viewer` representation. `cost` is not a field here at all, so it's
-         *     absent from the serialised payload - never null, never masked.
-         */
+        /** OrgSummaryReadRestricted */
         OrgSummaryReadRestricted: {
             /** Headcount */
             headcount: number;
@@ -1075,10 +1011,7 @@ export interface components {
             span_distribution: components["schemas"]["SpanCountRead"][];
             anomalies: components["schemas"]["AnomaliesRead"];
         };
-        /**
-         * ProfileEmployee
-         * @description The employee record whose email matches the signed-in account.
-         */
+        /** ProfileEmployee */
         ProfileEmployee: {
             /**
              * Id
@@ -1150,12 +1083,7 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
-        /**
-         * SearchResultRead
-         * @description A command-palette result. Deliberately lighter than `EmployeeRead` -
-         *     no salary concern applies here since the field was never selected in
-         *     the first place, not merely omitted from the response.
-         */
+        /** SearchResultRead */
         SearchResultRead: {
             /**
              * Id

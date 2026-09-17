@@ -48,10 +48,6 @@ const FIELD_LABELS: Record<keyof EmployeeUpdateFormInput, string> = {
   avatar_override_url: 'Avatar URL',
 }
 
-/** Everything the edit form needs from an employee record - deliberately
- * narrower than any one response schema so it accepts both the list row
- * (`EmployeeListItem`, passed in when the sheet opens) and the plain
- * `EmployeeRead`/`EmployeeReadRestricted` a conflict re-fetch returns. */
 interface EditableEmployee {
   employee_number: string
   first_name: string
@@ -108,10 +104,6 @@ export function EditEmployeeSheet({
   const updateEmployee = useUpdateEmployeeMutation()
   const reassignManager = useReassignManagerMutation()
 
-  // Mirrors the parent's fully-controlled open state (no SheetTrigger of
-  // its own to fire `onOpenChange`) - every new employee to edit resets
-  // the known version, manager and clears any conflict left over from a
-  // previous edit session.
   useEffect(() => {
     if (employee) {
       setVersion(employee.version)
@@ -140,9 +132,6 @@ export function EditEmployeeSheet({
         },
       })
 
-      // Reassignment is its own endpoint with its own invariant (§6.1), so
-      // it's only called when the manager actually changed, as a second
-      // request chained off the version the field-update call just returned.
       if (managerId !== (employee.manager_id ?? '')) {
         try {
           await reassignManager.mutateAsync({

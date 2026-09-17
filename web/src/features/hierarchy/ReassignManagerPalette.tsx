@@ -22,13 +22,6 @@ async function searchEmployees(q: string) {
   return data.items
 }
 
-/**
- * The keyboard/non-drag path for reassignment (§ accessibility
- * requirements: "Drag-to-reassign has a keyboard path: select an employee,
- * press M, choose a manager from the command palette"). Shares the same
- * cycle-exclusion messaging as `ManagerPicker`, on a global `CommandDialog`
- * instead of a per-field popover.
- */
 export function ReassignManagerPalette({
   open,
   onOpenChange,

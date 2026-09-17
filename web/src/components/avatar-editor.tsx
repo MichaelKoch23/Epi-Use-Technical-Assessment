@@ -5,15 +5,9 @@ import { Button } from '@/components/ui/button'
 import { EmployeeAvatar } from '@/components/employee-avatar'
 import { cn } from '@/lib/utils'
 
-// Mirrors the server's checks (services/avatar_service.py) so the common
-// mistakes are caught before a round-trip; the server stays authoritative.
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024
 
-/**
- * An avatar with upload / remove controls. Uploaded photos take precedence
- * over Gravatar; removing one falls back to Gravatar, then to initials.
- */
 export function AvatarEditor({
   avatarUrl,
   firstName,
@@ -102,7 +96,6 @@ export function AvatarEditor({
         className="hidden"
         onChange={(event) => {
           pick(event.target.files?.[0])
-          // Reset so picking the same file again still fires onChange.
           event.target.value = ''
         }}
       />

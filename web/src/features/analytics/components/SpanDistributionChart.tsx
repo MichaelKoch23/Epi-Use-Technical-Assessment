@@ -9,11 +9,6 @@ function isHealthy(directReports: number): boolean {
   return directReports >= HEALTHY_MIN && directReports <= HEALTHY_MAX
 }
 
-/** Single-series horizontal bars built from the style guide's
- * `sp-bar-track`/`sp-bar-fill` pattern (§ analytics charts) - no charting
- * library, so the bundle stays small and the colours stay exactly on
- * brand. Bars outside the healthy range get the alert token *and* a
- * label, since colour alone never carries the meaning. */
 export function SpanDistributionChart({
   data,
   isPending,

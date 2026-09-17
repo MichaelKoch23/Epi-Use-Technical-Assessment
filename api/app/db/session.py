@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import settings
 
 engine = create_async_engine(
-    settings.DATABASE_URL,  # Neon's POOLED endpoint
+    settings.DATABASE_URL,
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=0,
-    pool_pre_ping=True,
+    pool_recycle=240,
 )
 
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)

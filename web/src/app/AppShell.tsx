@@ -16,11 +16,6 @@ import { useAuth } from '@/features/auth/useAuth'
 import { CommandPalette } from '@/features/search/CommandPalette'
 import { nameFromEmail } from '@/lib/emailName'
 
-// Mirrors the "topbar-demo" / "nav-demo" patterns in the brand style
-// guide (docs/brand_style_guide.html, §Navigation): a primary-colour
-// topbar with the wordmark and utility actions, and a pill-shaped nav
-// bar below it whose active item is driven by aria-current="page" -
-// which NavLink sets automatically.
 const NAV_ITEMS = [
   { to: '/chart', label: 'Org chart', icon: Network },
   { to: '/employees', label: 'Employees', icon: Table2 },
@@ -34,9 +29,6 @@ export function AppShell() {
   const navigate = useNavigate()
   const accountName = principal ? nameFromEmail(principal.email) : null
 
-  // Cmd/Ctrl+K opens the command palette from anywhere in the app, the
-  // conventional shortcut for one - the topbar button is the discoverable
-  // path, this is the fast one.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
@@ -52,7 +44,6 @@ export function AppShell() {
     <div className="min-h-svh bg-background">
       <header className="flex h-14 items-center justify-between bg-brand-primary px-4 text-white print:hidden">
         <Link to="/chart" className="flex items-center gap-2">
-          {/* White tile: the mark's navy root node would vanish on the navy bar. */}
           <span className="grid size-9 place-items-center rounded-sm bg-white p-1">
             <img src={ehmMark} alt="" className="size-full" />
           </span>
@@ -84,8 +75,6 @@ export function AppShell() {
                 />
               }
             >
-              {/* Same translucent treatment as the other topbar actions, so the
-                  avatar reads as part of the bar rather than a pasted-on badge. */}
               {principal && accountName ? (
                 <EmployeeAvatar
                   avatarUrl={principal.avatar_url}
@@ -98,8 +87,6 @@ export function AppShell() {
                 <UserRoundIcon className="size-4" />
               )}
             </DropdownMenuTrigger>
-            {/* Explicit width: the default tracks the trigger's, which crushes
-                the email onto a 128px menu. */}
             <DropdownMenuContent align="end" sideOffset={8} className="w-72 p-1.5">
               {principal && accountName && (
                 <>

@@ -30,9 +30,6 @@ const FIELD_LABELS: Record<string, string> = {
   avatar_override_url: 'Avatar',
 }
 
-// `version` changes on every write and `manager_id`/`deleted_at` are
-// already rendered by the dedicated reassignment/delete/restore actions -
-// showing them again in the generic field diff would be noise.
 const DIFF_IGNORED_FIELDS = new Set(['version', 'manager_id', 'deleted_at'])
 
 function changedFields(before: Snapshot, after: Snapshot): string[] {
@@ -60,10 +57,6 @@ function actionLabel(entry: AuditLogEntry, fields: string[]): string {
   return `${displayFields.join(', ')} updated`
 }
 
-/** Exported so the global change-history feed (§ global audit feed) can
- * render the exact same entry, just with an employee name/link prefixed -
- * the per-employee page already has that from context, the global one
- * doesn't. */
 export function AuditEntry({
   entry,
   employeeName,
@@ -142,11 +135,6 @@ export function AuditEntry({
   )
 }
 
-/** `GET /employees/{id}/audit`, rendered per the style guide's audit-item
- * pattern (§ audit timeline). Open to every role - a viewer sees that
- * salary changed, via `salary_changed` and the "Values restricted" tag,
- * never the value: the API never puts the key in `before`/`after` for
- * them in the first place, so there is nothing here to hide client-side. */
 export function AuditTimeline({ employeeId }: { employeeId: string }) {
   const [page, setPage] = useState(1)
   const query = useQuery({

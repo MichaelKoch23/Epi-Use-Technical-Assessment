@@ -4,10 +4,6 @@ import { AuditEntry } from '@/features/employees/AuditTimeline'
 import { getErrorMessage } from '@/lib/apiError'
 import { useGlobalAuditLog } from './useGlobalAuditLog'
 
-/** `GET /audit` - the global change-history feed behind the topbar's
- * "Change history" button (§ global audit feed): the same per-employee
- * audit trail, spanning every employee at once. Reuses `AuditEntry` so a
- * change reads identically here and on an employee's own page. */
 export function GlobalAuditPage() {
   const [page, setPage] = useState(1)
   const query = useGlobalAuditLog(page)

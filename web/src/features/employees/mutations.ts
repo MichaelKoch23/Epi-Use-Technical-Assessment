@@ -9,8 +9,6 @@ type EmployeeCreate = components['schemas']['EmployeeCreate']
 type EmployeeUpdate = components['schemas']['EmployeeUpdate']
 type DeletionPolicy = 'reparent' | 'promote_to_root' | 'cascade'
 
-/** Thrown by the update mutation on a 409 so callers can distinguish a
- * version conflict (§ conflict dialogue) from any other failure. */
 export class VersionConflict extends Error {
   employeeId: string
 
@@ -148,11 +146,6 @@ export async function fetchEmployee(id: string) {
   return data
 }
 
-/** `GET /exports/employees.csv` - a plain `fetch` with the bearer token
- * attached by hand, same as the import upload, since the response is a
- * file download rather than JSON the generated client expects. Honours
- * whatever filters/sort are currently applied on the list page, minus
- * pagination - the export is always the full filtered set. */
 export async function exportEmployeesCsv(filters: EmployeeListFilters): Promise<void> {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(filters)) {
@@ -177,9 +170,6 @@ export async function fetchAuditLog(id: string, page: number) {
   return data
 }
 
-/** The generated types describe a multipart body as `{ file: string }`;
- * the serializer swaps in real `FormData`, which openapi-fetch sends with
- * the browser's own multipart boundary. */
 export function fileBody(file: File) {
   return {
     body: { file: file.name },
@@ -192,7 +182,6 @@ export function fileBody(file: File) {
 }
 
 function invalidateAvatarViews(queryClient: ReturnType<typeof useQueryClient>) {
-  // Avatars appear in the list, detail, org chart, search and profile.
   void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
   void queryClient.invalidateQueries({ queryKey: hierarchyKeys.roots() })
   void queryClient.invalidateQueries({ queryKey: profileKeys.me() })
@@ -208,7 +197,6 @@ export function useEmployeeAvatarMutation() {
     }: {
       id: string
       version: number
-      /** A file to upload, or `null` to remove the current photo. */
       file: File | null
     }) => {
       const params = {

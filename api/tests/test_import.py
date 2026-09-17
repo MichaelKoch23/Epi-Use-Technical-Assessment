@@ -1,9 +1,3 @@
-"""§ import: schema validation, duplicate numbers, unknown managers, cycles
-introduced by the file itself (checked against the WHOLE graph, not row by
-row), future birth dates, negative salaries, and the all-or-nothing commit
-- a partial import is worse than none.
-"""
-
 from __future__ import annotations
 
 import io
@@ -50,7 +44,7 @@ async def test_new_and_existing_rows_classified_create_and_update(
     assert outcomes["E-100"][0] == "will_update"
     assert outcomes["E-200"][0] == "will_create"
     assert plan.blocked_count == 0
-    assert existing.employee_number == "E-100"  # fixture created it, unused otherwise
+    assert existing.employee_number == "E-100"
 
 
 async def test_missing_required_field_blocks_row(db_session):
@@ -119,15 +113,12 @@ async def test_cycle_spanning_existing_db_rows_and_a_file_edit_blocked(
     root = await employee_factory(employee_number="E-ROOT")
     child = await employee_factory(employee_number="E-CHILD", manager_id=root.id)
 
-    # The file tries to reparent the root under its own existing descendant
-    # - a cycle that only exists once the file's proposed edge is combined
-    # with the DB's own existing graph, not visible from either alone.
     rows = [_row("E-ROOT", manager="E-CHILD")]
     plan = await ImportService(db_session).validate(rows)
 
     assert plan.rows[0].outcome == "blocked"
     assert "cycle" in plan.rows[0].reason
-    assert child.manager_id == root.id  # untouched, still just data setup
+    assert child.manager_id == root.id
 
 
 async def test_multiple_disjoint_cycles_each_fully_blocked(db_session):
@@ -136,7 +127,7 @@ async def test_multiple_disjoint_cycles_each_fully_blocked(db_session):
         _row("A2", manager="A1"),
         _row("B1", manager="B2"),
         _row("B2", manager="B1"),
-        _row("C1"),  # unrelated, valid row in the same file
+        _row("C1"),
     ]
     plan = await ImportService(db_session).validate(rows)
     outcomes = _outcomes(plan)
@@ -151,10 +142,6 @@ async def test_multiple_disjoint_cycles_each_fully_blocked(db_session):
 async def test_unresolvable_manager_row_does_not_poison_other_valid_references(
     db_session,
 ):
-    """A row blocked for an unrelated reason (bad salary) but with a
-    resolvable identity must still count as a valid graph node - otherwise
-    a second, perfectly fine row that legitimately reports to it would be
-    incorrectly flagged 'unknown manager' too."""
     rows = [_row("E-BOSS", salary="-1"), _row("E-REPORT", manager="E-BOSS")]
     plan = await ImportService(db_session).validate(rows)
     outcomes = _outcomes(plan)
@@ -255,11 +242,6 @@ def test_parse_xlsx_reads_first_sheet():
 
 
 async def test_duplicate_email_within_the_file_is_blocked_per_row(db_session):
-    """`uq_employee_email` is enforced by the database exactly as
-    `uq_employee_number` is, but only the latter was validated up front.
-    An unvalidated collision surfaced from inside `commit()` as a
-    whole-request 409 naming no row - which is the opposite of the
-    per-row report this module exists to produce."""
     service = ImportService(db_session)
 
     plan = await service.validate(
@@ -288,8 +270,6 @@ async def test_email_already_held_by_another_employee_is_blocked(
 async def test_a_row_keeping_its_own_email_is_not_a_collision(
     db_session, employee_factory
 ):
-    """The check must compare against *other* employees only, or every
-    re-import of an unchanged file would block every row."""
     await employee_factory(employee_number="E-SAME", email="same@example.com")
     service = ImportService(db_session)
 
@@ -302,10 +282,6 @@ async def test_a_row_keeping_its_own_email_is_not_a_collision(
 async def test_blank_manager_column_promotes_an_employee_to_root(
     db_session, actor_id, employee_factory
 ):
-    """An empty `manager_employee_number` is an instruction ("reports to
-    nobody"), not an absence of one. Treating it as "leave unchanged" means
-    an exported file, edited to promote someone, silently does nothing on
-    re-import - so the file stops describing the organisation."""
     manager = await employee_factory(employee_number="E-BOSS")
     report = await employee_factory(employee_number="E-REPORT", manager_id=manager.id)
     assert report.manager_id == manager.id
@@ -323,7 +299,6 @@ async def test_blank_manager_column_promotes_an_employee_to_root(
 async def test_manager_column_still_assigns_a_manager(
     db_session, actor_id, employee_factory
 ):
-    """The mirror of the above - clearing must not have broken setting."""
     manager = await employee_factory(employee_number="E-BOSS2")
     report = await employee_factory(employee_number="E-REPORT2")
 

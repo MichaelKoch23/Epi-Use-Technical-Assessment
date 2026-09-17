@@ -21,9 +21,6 @@ from app.schemas.fields import (
 
 
 class EmployeeCreate(BaseModel):
-    # `extra="forbid"` so a typo'd or renamed field is a 422 naming the
-    # unknown key, rather than a silently ignored write the caller
-    # believes succeeded.
     model_config = ConfigDict(extra="forbid")
 
     employee_number: EmployeeNumber
@@ -39,16 +36,6 @@ class EmployeeCreate(BaseModel):
 
 
 class EmployeeUpdate(BaseModel):
-    """Partial update - every field optional. `manager_id` deliberately
-    absent: reassignment is `PUT /employees/{id}/manager` (§6.1), not a
-    general PATCH field, because it carries its own invariant.
-
-    Every field that *is* here is `Optional` only in the "may be omitted"
-    sense - `exclude_unset=True` in the router means an omitted field is
-    never passed on. None of them accept an explicit `null` except
-    `avatar_override_url`, which is the one column that is genuinely
-    nullable."""
-
     model_config = ConfigDict(extra="forbid")
 
     employee_number: EmployeeNumber | None = None
@@ -93,24 +80,17 @@ class _EmployeeReadBase(BaseModel):
 
 
 class EmployeeRead(_EmployeeReadBase):
-    """Full representation - `hr_admin` only (§9.3)."""
-
     salary: Decimal
 
 
 class EmployeeReadRestricted(_EmployeeReadBase):
-    """`viewer` representation. `salary` is not a field here at all, so
-    it is absent from the serialised payload - never null, never masked."""
+    pass
 
 
 EmployeeReadAny = EmployeeRead | EmployeeReadRestricted
 
 
 class EmployeeListItemRead(EmployeeRead):
-    """`EmployeeRead` plus fields only the list endpoint bothers to compute
-    (§list query in the repository) - a manager's display name in place of
-    a bare id, and the row's own direct-report count."""
-
     manager_name: str | None
     direct_report_count: int
 
@@ -146,14 +126,7 @@ class AuditLogRead(BaseModel):
     before: dict[str, Any] | None
     after: dict[str, Any] | None
     occurred_at: datetime
-    # True/False whenever `before`/`after` are both present and their raw
-    # `salary` values differ - computed before any role-based redaction, so
-    # a viewer who never sees the values themselves can still see *that* a
-    # change happened (§9.3 extended to the audit trail).
     salary_changed: bool
-    # Only populated for `employee.reassigned` entries - `before`/`after`
-    # only carry a bare `manager_id` UUID, which isn't renderable as a
-    # human diff on its own (§ audit timeline UI).
     manager_before_name: str | None = None
     manager_after_name: str | None = None
 
@@ -166,11 +139,6 @@ class AuditLogPage(BaseModel):
 
 
 class GlobalAuditLogRead(AuditLogRead):
-    """`AuditLogRead` plus which employee the entry is about - the
-    per-employee page already has that from context, but the global feed
-    behind the topbar's "Change history" button spans every employee at
-    once (§ global audit feed)."""
-
     employee_name: str
 
 

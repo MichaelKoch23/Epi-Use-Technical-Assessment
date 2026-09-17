@@ -1,11 +1,6 @@
 import { z } from 'zod'
 
-// Mirrors app/schemas/fields.py, field for field - the server is the
-// authority and re-checks all of this, but a rule enforced only there
-// arrives as a 422 toast after a round trip, while the same rule here
-// marks the offending input as the user leaves it. Anything added on one
-// side belongs on the other; the constants below are the shared contract.
-const MAX_SALARY = 9999999999.99 // NUMERIC(12,2)'s ceiling
+const MAX_SALARY = 9999999999.99
 const MIN_BIRTH_DATE = '1900-01-01'
 
 const requiredText = (label: string, max: number) =>
@@ -15,9 +10,6 @@ const requiredText = (label: string, max: number) =>
     .min(1, `${label} is required`)
     .max(max, `${label} must be at most ${max} characters`)
 
-// Deliberately the same shape as the server's `_EMAIL_RE`: one @, no
-// whitespace, a dot in the domain. Not RFC 5322 - neither side claims to
-// be, and a stricter client rule would reject addresses the API accepts.
 const email = z
   .string()
   .trim()
@@ -36,8 +28,6 @@ const birthDate = z
     'Birth date cannot be in the future'
   )
 
-// http(s) only, matching the server's scheme allow-list - `z.string().url()`
-// alone also accepts javascript: and data:.
 const optionalUrl = z.union([
   z.literal(''),
   z
@@ -76,9 +66,6 @@ export const employeeCreateSchema = employeeFieldsSchema.extend({
 
 export const employeeUpdateSchema = employeeFieldsSchema
 
-// react-hook-form's `useForm` is generic over both the raw (pre-parse) form
-// values and the parsed (post-`zodResolver`) output - `salary` coerces a
-// string input to a number output, so those two types genuinely differ.
 export type EmployeeCreateFormInput = z.input<typeof employeeCreateSchema>
 export type EmployeeCreateFormValues = z.infer<typeof employeeCreateSchema>
 export type EmployeeUpdateFormInput = z.input<typeof employeeUpdateSchema>

@@ -17,9 +17,6 @@ import { employeeKeys } from '@/lib/queryKeys'
 import { ManagerPicker } from './ManagerPicker'
 import type { EmployeesFilterState } from './useEmployeesViewState'
 
-// The popover never touches `q` (the search bar owns that field), so its
-// draft excludes it - applying the draft as a whole must not be able to
-// clobber a search the user has already typed or cleared elsewhere.
 type PopoverFilterState = Omit<EmployeesFilterState, 'q'>
 
 const EMPTY_DRAFT: PopoverFilterState = {
@@ -59,12 +56,8 @@ export function FilterPopover({
   const { data: positions = [] } = useQuery({
     queryKey: employeeKeys.positions(),
     queryFn: fetchPositions,
-    // Fetched with the page rather than on open, so the list is already
-    // there when the dropdown is clicked; positions rarely change.
     staleTime: 5 * 60 * 1000,
   })
-  // Keep an applied position selectable even if nobody holds it any more
-  // (e.g. it came in via a shared URL), so the trigger still shows it.
   const positionOptions =
     draft.position && !positions.includes(draft.position)
       ? [draft.position, ...positions]
@@ -74,8 +67,6 @@ export function FilterPopover({
     <Popover
       open={open}
       onOpenChange={(next) => {
-        // Reset the draft from the applied filters right as it opens,
-        // rather than in an effect - this is the event that should own it.
         if (next) setDraft(toPopoverState(filters))
         setOpen(next)
       }}

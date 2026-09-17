@@ -1,6 +1,3 @@
-// The hierarchy depth ramp (docs/brand_style_guide.html, "Using Tokens in
-// Code"): depth 5+ reuses depth 4 rather than growing without bound, since
-// the palette only defines five steps.
 const DEPTH_TOKENS = [
   'border-l-depth-0',
   'border-l-depth-1',

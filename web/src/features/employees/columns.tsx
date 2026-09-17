@@ -16,9 +16,6 @@ import { hasSalary, type EmployeeListItem } from './types'
 
 const columnHelper = createColumnHelper<typeof employeeTableFeatures, EmployeeListItem>()
 
-// Maps a column id to the `sort` query value the API accepts for it -
-// absence from this map means the column can't be sorted server-side
-// (the backend's SORTABLE_COLUMNS allow-list has no equivalent).
 export const SORTABLE_COLUMN_IDS: Partial<Record<string, string>> = {
   name: 'last_name',
   employee_number: 'employee_number',
@@ -27,14 +24,6 @@ export const SORTABLE_COLUMN_IDS: Partial<Record<string, string>> = {
   salary: 'salary',
 }
 
-// Wrapped in `columnHelper.columns(...)` rather than a plain array literal
-// so each element's inferred `TValue` survives instead of being widened -
-// a plain array here fails `useTable`'s columns assignability check.
-//
-// §9.2/§9.3: a viewer's response payload never has a `salary` key at all,
-// so the column itself is omitted rather than rendered with a "Restricted"
-// placeholder - the capability flag from `/auth/me` decides this once, up
-// front, rather than every row re-deriving it from `hasSalary`.
 export function buildEmployeeColumns(canViewSalary: boolean) {
   return columnHelper.columns([
   columnHelper.display({

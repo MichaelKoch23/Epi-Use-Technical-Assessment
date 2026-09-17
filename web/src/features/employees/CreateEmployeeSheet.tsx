@@ -46,9 +46,6 @@ export function CreateEmployeeSheet({
   })
   const createEmployee = useCreateEmployeeMutation()
 
-  // The sheet is always mounted (its open state is fully controlled by the
-  // parent, with no SheetTrigger of its own to fire `onOpenChange`), so a
-  // fresh, blank form on each reopen has to be driven from `open` itself.
   useEffect(() => {
     if (open) {
       form.reset(DEFAULT_VALUES)

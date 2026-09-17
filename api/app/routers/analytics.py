@@ -1,8 +1,3 @@
-"""`/api/v1/analytics/*` - the org-structure dashboard (§ analytics). Both
-routes are viewer-accessible; the `cost` object is field-level gated
-(§9.3) rather than the endpoint being admin-only, the same pattern
-`to_employee_read` already applies everywhere else."""
-
 from __future__ import annotations
 
 import uuid
@@ -92,7 +87,7 @@ def to_org_summary_read(
     anomalies = _to_anomalies_read(data)
 
     if principal.is_admin:
-        assert data.cost is not None  # the service never omits it for an admin
+        assert data.cost is not None
         return OrgSummaryRead(
             headcount=data.headcount,
             root_count=data.root_count,

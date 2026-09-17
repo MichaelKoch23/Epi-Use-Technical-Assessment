@@ -18,12 +18,6 @@ function AvatarImage({ avatarUrl, fallback }: { avatarUrl: string; fallback: str
   )
 }
 
-/**
- * Renders whatever `avatarUrl` the API resolved (uploaded override, else a
- * Gravatar image - see `avatars.py`), falling back to initials on
- * `--brand-steel` if that URL 404s. Decorative (`alt=""`): the name always
- * sits next to the avatar, so a failed load never leaves a broken image.
- */
 export function EmployeeAvatar({
   avatarUrl,
   firstName,
@@ -45,8 +39,6 @@ export function EmployeeAvatar({
       )}
       style={{ width: size, height: size }}
     >
-      {/* Keyed on the URL so a fresh image gets a fresh "has it failed?"
-       * state instead of carrying over the previous row/avatar's result. */}
       <AvatarImage key={avatarUrl} avatarUrl={avatarUrl} fallback={initials(firstName, lastName)} />
     </span>
   )

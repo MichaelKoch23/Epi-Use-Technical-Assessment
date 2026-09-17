@@ -1,7 +1,3 @@
-"""§ export: `GET /exports/employees.csv` honours the same filters as the
-list endpoint, and - like every other employee-shaped response - never
-puts a salary value in front of a viewer."""
-
 from __future__ import annotations
 
 import uuid
@@ -99,10 +95,6 @@ async def test_export_resolves_manager_employee_number(
 async def test_export_neutralises_spreadsheet_formulas(
     db_session, actor_id, employee_factory
 ):
-    """CSV injection (CWE-1236): a field beginning `=`, `+`, `-` or `@` is
-    executed as a formula when the download is opened in Excel or
-    LibreOffice, so an employee record is enough to attack whoever exports
-    it. The value must survive intact, prefixed so it is read as text."""
     payload = "=cmd|'/c calc'!A1"
     await employee_factory(first_name=payload, position="@SUM(1+1)")
     admin = Principal(id=actor_id, role="hr_admin")
@@ -117,7 +109,6 @@ async def test_export_neutralises_spreadsheet_formulas(
 
     assert f"'{payload}" in text
     assert "'@SUM(1+1)" in text
-    # No cell is left starting with a bare formula character.
     for line in text.splitlines()[1:]:
         for cell in line.split(","):
             assert not cell.startswith(("=", "+", "@")), cell
@@ -126,8 +117,6 @@ async def test_export_neutralises_spreadsheet_formulas(
 async def test_viewer_cannot_use_salary_filters_on_the_export(
     db_session, actor_id, employee_factory
 ):
-    """The column being absent does not stop bisection - see
-    `require_salary_access`."""
     import pytest
     from fastapi import HTTPException
 

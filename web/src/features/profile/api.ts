@@ -18,7 +18,6 @@ export function useProfile() {
   return useQuery({ queryKey: profileKeys.me(), queryFn: fetchProfile })
 }
 
-/** Upload (`file`) or remove (`null`) the signed-in account's own photo. */
 export function useProfileAvatarMutation() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -31,8 +30,6 @@ export function useProfileAvatarMutation() {
     },
     onSuccess: (profile) => {
       queryClient.setQueryData(profileKeys.me(), profile)
-      // The topbar avatar reads `/auth/me`. Employee photos are separate
-      // records, so nothing else needs refetching.
       void queryClient.invalidateQueries({ queryKey: meQueryKey })
     },
   })

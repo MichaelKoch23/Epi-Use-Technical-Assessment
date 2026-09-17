@@ -10,14 +10,6 @@ async function fetchMe() {
   return data
 }
 
-/** Tell the server to revoke the refresh token before dropping our copy.
- *
- * Clearing localStorage alone only makes *this browser* forget the token -
- * the token itself stays valid for its full lifetime, so anything that
- * captured it keeps working long after the user believes they signed out.
- * Best-effort by design: if the call fails we still sign out locally,
- * because refusing to log someone out because the network is down is worse
- * than a token that expires on its own schedule. */
 async function revokeSession(): Promise<void> {
   const refreshToken = getRefreshToken()
   if (!refreshToken) return
@@ -26,13 +18,9 @@ async function revokeSession(): Promise<void> {
       body: { refresh_token: refreshToken },
     })
   } catch {
-    // Ignored - see above.
   }
 }
 
-/** `GET /auth/me`'s role and capability flags (§9.2), cached for the
- * session - a role change takes effect on next login, same as the access
- * token it's read from. */
 export function useAuth() {
   const queryClient = useQueryClient()
   const query = useQuery({
