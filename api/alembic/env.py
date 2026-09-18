@@ -1,5 +1,6 @@
 import os
 from logging.config import fileConfig
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import engine_from_config, pool
 
@@ -22,6 +23,26 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+_ASYNCPG_SSL_TO_LIBPQ = {"true": "require", "false": "disable"}
+
+
+def _libpq_ssl_params(url: str) -> str:
+    """Respell asyncpg's `ssl=` query parameter as libpq's `sslmode=`.
+
+    The two drivers name the same setting differently, so swapping the driver
+    without swapping the parameter hands psycopg an option it rejects outright
+    with `invalid connection option "ssl"`.
+    """
+    parts = urlsplit(url)
+    params = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        if key == "ssl":
+            key = "sslmode"
+            value = _ASYNCPG_SSL_TO_LIBPQ.get(value.lower(), value)
+        params.append((key, value))
+    return urlunsplit(parts._replace(query=urlencode(params)))
+
+
 def _sync_database_url() -> str:
     url = os.environ.get("DATABASE_URL")
     if not url:
@@ -30,7 +51,9 @@ def _sync_database_url() -> str:
         url = settings.DATABASE_URL
 
     if "+asyncpg" in url:
-        return url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+        return _libpq_ssl_params(
+            url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+        )
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+psycopg://", 1)
     return url
