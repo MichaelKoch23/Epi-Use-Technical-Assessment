@@ -24,6 +24,20 @@ export const SORTABLE_COLUMN_IDS: Partial<Record<string, string>> = {
   salary: 'salary',
 }
 
+/**
+ * Columns whose values are numbers and so read right-aligned, in tabular
+ * figures, with the magnitudes lining up.
+ *
+ * It lives here rather than as a class on the header, because a sortable header
+ * is wrapped in an inline-flex button that shrinks to its text - `text-right`
+ * inside it has nothing to align against. The alignment has to be applied to the
+ * cell, which is what the table does with this set.
+ */
+export const NUMERIC_COLUMN_IDS: ReadonlySet<string> = new Set([
+  'salary',
+  'direct_report_count',
+])
+
 export function buildEmployeeColumns(canViewSalary: boolean) {
   return columnHelper.columns([
   columnHelper.display({
@@ -71,13 +85,13 @@ export function buildEmployeeColumns(canViewSalary: boolean) {
     ? [
         columnHelper.display({
           id: 'salary',
-          header: () => <span className="block text-right">Salary</span>,
+          header: 'Salary',
           cell: ({ row }) => {
             const employee = row.original
             return (
-              <div className="text-right tabular-nums">
+              <span className="tabular-nums">
                 {hasSalary(employee) && formatCurrency(employee.salary, employee.currency)}
-              </div>
+              </span>
             )
           },
         }),
@@ -85,8 +99,8 @@ export function buildEmployeeColumns(canViewSalary: boolean) {
     : []),
   columnHelper.accessor('direct_report_count', {
     id: 'direct_report_count',
-    header: () => <span className="block text-right">Reports</span>,
-    cell: ({ getValue }) => <div className="text-right tabular-nums">{getValue()}</div>,
+    header: 'Reports',
+    cell: ({ getValue }) => <span className="tabular-nums">{getValue()}</span>,
   }),
   columnHelper.display({
     id: 'actions',

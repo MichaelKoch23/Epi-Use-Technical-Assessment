@@ -60,6 +60,7 @@ from app.schemas.employee import (
     EmployeeReadRestricted,
     EmployeeUpdate,
     GravatarPrefillRead,
+    ManagerOptionRead,
     ManagerReassignRequest,
 )
 from app.services.assignment_service import (
@@ -363,6 +364,31 @@ async def gravatar_prefill(
         location=profile.location,
         description=profile.description,
     )
+
+
+@router.get("/managers", response_model=list[ManagerOptionRead])
+async def list_filter_managers(
+    filters: EmployeeListFilters = Depends(employee_filter_params),
+    session: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+) -> list[ManagerOptionRead]:
+    """The managers that the currently filtered employees report to.
+
+    This is what the "Reports to" filter offers before anyone types: narrowing to
+    a position and then being shown eight unrelated people is a worse starting
+    point than the handful of managers those people actually report to.
+    """
+    require_salary_access(principal, filters, sort="last_name")
+    rows = await EmployeeRepository(session).list_managers(filters)
+    return [
+        ManagerOptionRead(
+            id=row.id,
+            first_name=row.first_name,
+            last_name=row.last_name,
+            employee_number=row.employee_number,
+        )
+        for row in rows
+    ]
 
 
 @router.get("/positions", response_model=list[str])

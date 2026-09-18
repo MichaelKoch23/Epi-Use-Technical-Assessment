@@ -15,6 +15,7 @@ import {
 import { apiClient } from '@/lib/apiClient'
 import { employeeKeys } from '@/lib/queryKeys'
 import { ManagerPicker } from './ManagerPicker'
+import { fetchFilterManagers } from './mutations'
 import type { EmployeesFilterState } from './useEmployeesViewState'
 
 type PopoverFilterState = Omit<EmployeesFilterState, 'q'>
@@ -40,6 +41,18 @@ function toPopoverState(filters: EmployeesFilterState): PopoverFilterState {
   return rest
 }
 
+/**
+ * A range with its bounds the wrong way round can never match anyone, so
+ * applying it would empty the table and blame the data. Both ends are only
+ * compared when both are filled in - a one-sided range is perfectly valid.
+ * ISO dates compare lexicographically, which is also chronologically.
+ */
+function rangeError(min: string, max: string, numeric: boolean): string | null {
+  if (!min || !max) return null
+  const inverted = numeric ? Number(min) > Number(max) : min > max
+  return inverted ? 'The minimum cannot be greater than the maximum.' : null
+}
+
 export function FilterPopover({
   filters,
   activeCount,
@@ -62,6 +75,26 @@ export function FilterPopover({
     draft.position && !positions.includes(draft.position)
       ? [draft.position, ...positions]
       : positions
+
+  // Driven by the draft, not the applied filters, so choosing a position and
+  // then opening "Reports to" already offers that position's managers.
+  const managerQueryParams = {
+    position: draft.position || undefined,
+    min_salary: salaryFilterAllowed && draft.minSalary ? draft.minSalary : undefined,
+    max_salary: salaryFilterAllowed && draft.maxSalary ? draft.maxSalary : undefined,
+    min_birth_date: draft.minBirthDate || undefined,
+    max_birth_date: draft.maxBirthDate || undefined,
+  }
+  const { data: managerSuggestions = [], isFetching: managersLoading } = useQuery({
+    queryKey: [...employeeKeys.all, 'filter-managers', managerQueryParams],
+    queryFn: () => fetchFilterManagers(managerQueryParams),
+    enabled: open,
+    placeholderData: (previous) => previous,
+  })
+
+  const salaryError = rangeError(draft.minSalary, draft.maxSalary, true)
+  const birthDateError = rangeError(draft.minBirthDate, draft.maxBirthDate, false)
+  const hasError = Boolean(salaryError || birthDateError)
 
   return (
     <Popover
@@ -110,6 +143,11 @@ export function FilterPopover({
             value={draft.managerId}
             label={draft.managerName}
             clearLabel="Any manager"
+            suggestions={managerSuggestions}
+            suggestionsLoading={managersLoading}
+            suggestionsHeading={
+              draft.position ? `Managers of ${draft.position}` : 'Managers in this selection'
+            }
             onChange={(managerId, managerName) =>
               setDraft((d) => ({ ...d, managerId, managerName }))
             }
@@ -119,25 +157,38 @@ export function FilterPopover({
         <div className="flex flex-col gap-1.5">
           <Label>Salary range</Label>
           {salaryFilterAllowed ? (
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                placeholder="Min"
-                value={draft.minSalary}
-                onChange={(e) => setDraft((d) => ({ ...d, minSalary: e.target.value }))}
-              />
-              <span className="text-muted-foreground">–</span>
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                placeholder="Max"
-                value={draft.maxSalary}
-                onChange={(e) => setDraft((d) => ({ ...d, maxSalary: e.target.value }))}
-              />
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  placeholder="Min"
+                  aria-label="Minimum salary"
+                  aria-invalid={salaryError !== null}
+                  aria-describedby={salaryError ? 'filter-salary-error' : undefined}
+                  value={draft.minSalary}
+                  onChange={(e) => setDraft((d) => ({ ...d, minSalary: e.target.value }))}
+                />
+                <span className="text-muted-foreground">–</span>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  placeholder="Max"
+                  aria-label="Maximum salary"
+                  aria-invalid={salaryError !== null}
+                  aria-describedby={salaryError ? 'filter-salary-error' : undefined}
+                  value={draft.maxSalary}
+                  onChange={(e) => setDraft((d) => ({ ...d, maxSalary: e.target.value }))}
+                />
+              </div>
+              {salaryError && (
+                <p id="filter-salary-error" role="alert" className="text-xs text-status-critical">
+                  {salaryError}
+                </p>
+              )}
+            </>
           ) : (
             <p className="text-xs text-muted-foreground">Requires HR admin access.</p>
           )}
@@ -148,16 +199,27 @@ export function FilterPopover({
           <div className="flex items-center gap-2">
             <Input
               type="date"
+              aria-label="Earliest date of birth"
+              aria-invalid={birthDateError !== null}
+              aria-describedby={birthDateError ? 'filter-birth-date-error' : undefined}
               value={draft.minBirthDate}
               onChange={(e) => setDraft((d) => ({ ...d, minBirthDate: e.target.value }))}
             />
             <span className="text-muted-foreground">–</span>
             <Input
               type="date"
+              aria-label="Latest date of birth"
+              aria-invalid={birthDateError !== null}
+              aria-describedby={birthDateError ? 'filter-birth-date-error' : undefined}
               value={draft.maxBirthDate}
               onChange={(e) => setDraft((d) => ({ ...d, maxBirthDate: e.target.value }))}
             />
           </div>
+          {birthDateError && (
+            <p id="filter-birth-date-error" role="alert" className="text-xs text-status-critical">
+              {birthDateError}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-between pt-1">
@@ -171,7 +233,9 @@ export function FilterPopover({
             Reset
           </Button>
           <Button
+            disabled={hasError}
             onClick={() => {
+              if (hasError) return
               onApply(draft)
               setOpen(false)
             }}

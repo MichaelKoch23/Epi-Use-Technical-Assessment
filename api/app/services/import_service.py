@@ -5,15 +5,41 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.employee import Employee
 from app.repositories.employee_repository import MAX_REPORTING_DEPTH, EmployeeRepository
+from app.schemas.fields import (
+    BirthDate,
+    Currency,
+    Email,
+    EmployeeNumber,
+    PersonName,
+    Position,
+    Salary,
+)
 from app.schemas.import_ import ImportResult, ImportRowOutcome, ImportRowResult
 from app.services.employee_service import EmployeeService
 from app.services.reassignment_service import ReassignmentService
 
 _REQUIRED_TEXT_FIELDS = ("first_name", "last_name", "email", "position")
+
+# The same field constraints the JSON API applies, reused rather than restated so
+# the two entry points cannot drift apart. A spreadsheet reaches the database
+# without passing through a request body model, so without this a row that parses
+# cleanly can still violate a column type or a CHECK constraint - and that arrives
+# as a failed transaction, not as a blocked row with a reason anyone can act on.
+_FIELD_ADAPTERS: dict[str, TypeAdapter[object]] = {
+    "employee_number": TypeAdapter(EmployeeNumber),
+    "first_name": TypeAdapter(PersonName),
+    "last_name": TypeAdapter(PersonName),
+    "email": TypeAdapter(Email),
+    "birth_date": TypeAdapter(BirthDate),
+    "position": TypeAdapter(Position),
+    "salary": TypeAdapter(Salary),
+    "currency": TypeAdapter(Currency),
+}
 
 
 @dataclass
@@ -154,6 +180,33 @@ def _check_business_rules(rows: list[_Row], today: date) -> None:
             row.block(f"salary {row.salary} is negative")
 
 
+def _first_error_message(exc: ValidationError) -> str:
+    message = exc.errors()[0]["msg"]
+    # Pydantic prefixes messages raised from a validator function; the prefix adds
+    # nothing for a reader looking at a spreadsheet row.
+    return message.removeprefix("Value error, ")
+
+
+def _check_field_constraints(rows: list[_Row]) -> None:
+    """Hold every parsed value to the API's own limits, and normalise it.
+
+    Runs after the domain checks so their more specific wording wins: block()
+    keeps the first reason a row is given.
+    """
+    for row in rows:
+        if row.reason is not None:
+            continue
+        for name, adapter in _FIELD_ADAPTERS.items():
+            value = getattr(row, name)
+            if value is None:
+                continue
+            try:
+                setattr(row, name, adapter.validate_python(value))
+            except ValidationError as exc:
+                row.block(f"invalid {name}: {_first_error_message(exc)}")
+                break
+
+
 def _find_cycle_members(graph: dict[str, str | None]) -> set[str]:
     resolved: set[str] = set()
     cycle_members: set[str] = set()
@@ -188,6 +241,7 @@ class ImportService:
 
         _check_duplicate_numbers(rows)
         _check_business_rules(rows, today=self._today())
+        _check_field_constraints(rows)
 
         identity_map = await self._repo.list_active_identity_map()
         _check_duplicate_emails(rows, await self._repo.email_owners())

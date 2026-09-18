@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { apiClient } from '@/lib/apiClient'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { cn } from '@/lib/utils'
+import type { ManagerOption } from './types'
 
 async function searchEmployees(q: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees', {
@@ -40,6 +41,9 @@ export function ManagerPicker({
   excludeEmployeeId,
   clearLabel = 'No manager',
   triggerAriaLabel,
+  suggestions,
+  suggestionsHeading,
+  suggestionsLoading = false,
 }: {
   value: string
   label: string
@@ -47,17 +51,32 @@ export function ManagerPicker({
   excludeEmployeeId?: string
   clearLabel?: string
   triggerAriaLabel?: string
+  /**
+   * Shown instead of a generic employee list while the search box is empty.
+   * Omitting it keeps the original behaviour, which is what picking a real
+   * manager for an employee wants - there, anyone is a legitimate choice.
+   */
+  suggestions?: ManagerOption[]
+  suggestionsHeading?: string
+  suggestionsLoading?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 250)
 
-  const { data: options = [], isFetching } = useQuery({
+  // Typing always searches everyone: the suggestions are a better starting
+  // point, not a restriction on what can be chosen.
+  const showingSuggestions = suggestions !== undefined && debouncedSearch.trim() === ''
+
+  const { data: searchResults = [], isFetching } = useQuery({
     queryKey: ['employees', 'manager-search', debouncedSearch],
     queryFn: () => searchEmployees(debouncedSearch),
-    enabled: open,
+    enabled: open && !showingSuggestions,
     placeholderData: (previous) => previous,
   })
+
+  const options: ManagerOption[] = showingSuggestions ? suggestions : searchResults
+  const busy = showingSuggestions ? suggestionsLoading : isFetching
 
   const { data: excludedIds } = useQuery({
     queryKey: ['employees', 'manager-exclude', excludeEmployeeId],
@@ -84,8 +103,16 @@ export function ManagerPicker({
             onValueChange={setSearch}
           />
           <CommandList>
-            <CommandEmpty>{isFetching ? 'Searching…' : 'No employees found.'}</CommandEmpty>
-            <CommandGroup>
+            <CommandEmpty>
+              {busy
+                ? 'Searching…'
+                : showingSuggestions
+                  ? 'No managers match these filters - type to search everyone.'
+                  : 'No employees found.'}
+            </CommandEmpty>
+            <CommandGroup
+              heading={showingSuggestions && options.length > 0 ? suggestionsHeading : undefined}
+            >
               {value && (
                 <CommandItem
                   onSelect={() => {

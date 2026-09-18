@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 from typing import Self
 
@@ -10,7 +11,12 @@ _WEAK_SECRETS = {"changeme", "secret", "dev", "development", "test", "password"}
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # enable_decoding=False stops pydantic-settings JSON-decoding complex fields
+    # before validation, so the CORS_ORIGINS validator below sees the raw string.
+    # CORS_ORIGINS is the only complex field, so nothing else is affected.
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", enable_decoding=False
+    )
 
     DATABASE_URL: str
     JWT_SECRET: str
@@ -33,6 +39,26 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() in {"production", "prod"}
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _split_origins(cls, value: object) -> object:
+        """Accept a comma-separated list, and treat an empty value as "none".
+
+        Left to itself pydantic-settings parses this field as JSON, so the
+        obvious `CORS_ORIGINS=` in an env file is a start-up crash rather than
+        the empty list anyone would expect, and a plain comma-separated list is
+        a crash too. Both are what a deployment actually writes.
+        """
+        if not isinstance(value, str):
+            return value
+        text = value.strip()
+        if text.startswith("["):
+            try:
+                return json.loads(text)
+            except ValueError:
+                pass
+        return [origin.strip() for origin in text.split(",") if origin.strip()]
 
     @field_validator("JWT_SECRET")
     @classmethod

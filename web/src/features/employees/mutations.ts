@@ -3,11 +3,29 @@ import { apiClient } from '@/lib/apiClient'
 import type { components } from '@/lib/api-types'
 import { getAccessToken } from '@/lib/auth'
 import { triggerDownload } from '@/lib/download'
-import { employeeKeys, hierarchyKeys, profileKeys, type EmployeeListFilters } from '@/lib/queryKeys'
+import {
+  analyticsKeys,
+  employeeKeys,
+  hierarchyKeys,
+  profileKeys,
+  type EmployeeListFilters,
+} from '@/lib/queryKeys'
 
 type EmployeeCreate = components['schemas']['EmployeeCreate']
 type EmployeeUpdate = components['schemas']['EmployeeUpdate']
 type DeletionPolicy = 'reparent' | 'promote_to_root' | 'cascade'
+
+/**
+ * Every write here can move somebody in or out of the chart and shift the
+ * analytics figures, and those live under their own query keys. Invalidating
+ * only the employee keys is what leaves the org chart showing a person who has
+ * just been deleted.
+ */
+function invalidateEmployeeViews(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
+  void queryClient.invalidateQueries({ queryKey: hierarchyKeys.all })
+  void queryClient.invalidateQueries({ queryKey: analyticsKeys.all })
+}
 
 export class VersionConflict extends Error {
   employeeId: string
@@ -27,9 +45,7 @@ export function useCreateEmployeeMutation() {
       if (error) throw error
       return data
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
-    },
+    onSuccess: () => invalidateEmployeeViews(queryClient),
   })
 }
 
@@ -60,9 +76,7 @@ export function useUpdateEmployeeMutation() {
       }
       return data
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
-    },
+    onSuccess: () => invalidateEmployeeViews(queryClient),
   })
 }
 
@@ -93,9 +107,7 @@ export function useReassignManagerMutation() {
       }
       return data
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
-    },
+    onSuccess: () => invalidateEmployeeViews(queryClient),
   })
 }
 
@@ -108,9 +120,7 @@ export function useDeleteEmployeeMutation() {
       })
       if (error) throw error
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
-    },
+    onSuccess: () => invalidateEmployeeViews(queryClient),
   })
 }
 
@@ -124,15 +134,28 @@ export function useRestoreEmployeeMutation() {
       if (error) throw error
       return data
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
-    },
+    onSuccess: () => invalidateEmployeeViews(queryClient),
   })
 }
 
 export async function fetchDeletionPreview(id: string, policy: DeletionPolicy) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/deletion-preview', {
     params: { path: { employee_id: id }, query: { policy } },
+  })
+  if (error) throw error
+  return data
+}
+
+/**
+ * The managers that the currently filtered employees report to.
+ *
+ * Offered as the "Reports to" filter's starting list: having narrowed to a
+ * position, the useful next choice is one of the handful of managers those
+ * people actually report to, not the first eight names in the company.
+ */
+export async function fetchFilterManagers(filters: EmployeeListFilters) {
+  const { data, error } = await apiClient.GET('/api/v1/employees/managers', {
+    params: { query: filters },
   })
   if (error) throw error
   return data

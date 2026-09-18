@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
-import { employeeKeys, hierarchyKeys } from '@/lib/queryKeys'
+import { analyticsKeys, employeeKeys, hierarchyKeys } from '@/lib/queryKeys'
 import type { ChartEmployee } from './types'
 
 const INITIAL_DEPTH = 2
@@ -228,6 +228,9 @@ export function useOrgChartData(asOf: string) {
         queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) })
       )
       promises.push(queryClient.invalidateQueries({ queryKey: hierarchyKeys.all }))
+      // A move changes no headcount, but it does change depth, span of control
+      // and which branches read as anomalies.
+      promises.push(queryClient.invalidateQueries({ queryKey: analyticsKeys.all }))
       return Promise.all(promises)
     },
     [queryClient]

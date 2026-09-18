@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from statistics import median as statistics_median
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,8 +70,13 @@ class BranchSummaryData:
     cost: CostAggregate | None
 
 
-_CACHE_TTL_SECONDS = 60
-_org_summary_cache: dict[str, tuple[float, OrgSummaryData]] = {}
+# The summary is expensive enough to be worth caching and cheap enough to verify:
+# each entry is held against the fingerprint of the data it was built from, so a
+# write is reflected on the very next request rather than whenever a timer runs
+# out. That also keeps it honest across workers, which an invalidate-on-write
+# cache in process memory would not be.
+_Fingerprint = tuple[int, datetime | None]
+_org_summary_cache: dict[str, tuple[_Fingerprint, OrgSummaryData]] = {}
 
 
 def clear_org_summary_cache() -> None:
@@ -89,13 +94,13 @@ class AnalyticsService:
 
     async def get_org_summary(self, principal: Principal) -> OrgSummaryData:
         key = _cache_key(principal)
+        fingerprint = await self._repo.get_fingerprint()
         cached = _org_summary_cache.get(key)
-        now = time.monotonic()
-        if cached is not None and cached[0] > now:
+        if cached is not None and cached[0] == fingerprint:
             return cached[1]
 
         data = await self._compute_org_summary(principal)
-        _org_summary_cache[key] = (now + _CACHE_TTL_SECONDS, data)
+        _org_summary_cache[key] = (fingerprint, data)
         return data
 
     async def _compute_org_summary(self, principal: Principal) -> OrgSummaryData:

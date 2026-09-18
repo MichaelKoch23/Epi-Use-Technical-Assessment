@@ -219,3 +219,49 @@ async def test_branch_headcount_includes_the_root(
     assert result.headcount == 4
     assert result.direct_reports == 2
     assert result.depth_below == 2
+
+
+async def test_org_summary_cache_does_not_outlive_the_data(
+    db_session, actor_id, employee_factory
+):
+    """A cached summary must never survive a write it should have counted.
+
+    The cache is keyed on a fingerprint of the employee table rather than on a
+    clock, so this holds however quickly the second call follows the first.
+    """
+    await employee_factory()
+    principal = _principal(actor_id)
+
+    first = await get_org_summary(
+        response=Response(), session=db_session, principal=principal
+    )
+    assert first.headcount == 1
+
+    await employee_factory()
+
+    second = await get_org_summary(
+        response=Response(), session=db_session, principal=principal
+    )
+    assert second.headcount == 2
+
+
+async def test_org_summary_cache_is_reused_when_nothing_changed(
+    db_session, actor_id, employee_factory, monkeypatch
+):
+    await employee_factory()
+    principal = _principal(actor_id)
+
+    await get_org_summary(response=Response(), session=db_session, principal=principal)
+
+    calls = 0
+    original = AnalyticsService._compute_org_summary
+
+    async def counting(self, p):
+        nonlocal calls
+        calls += 1
+        return await original(self, p)
+
+    monkeypatch.setattr(AnalyticsService, "_compute_org_summary", counting)
+    await get_org_summary(response=Response(), session=db_session, principal=principal)
+
+    assert calls == 0, "an unchanged org summary should be served from the cache"

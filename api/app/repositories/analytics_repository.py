@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import func, select, text
@@ -87,6 +88,21 @@ _UNREACHABLE_SQL = text(
 class AnalyticsRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def get_fingerprint(self) -> tuple[int, datetime | None]:
+        """A one-row stand-in for "has anything the org summary depends on moved?"
+
+        Every write the summary can see touches employee: a create or a restore
+        changes the count, and an edit, a soft delete or a reassignment bumps
+        updated_at (sync_effective_assignments sets it explicitly). One cheap
+        aggregate is a good trade against three recursive walks, and unlike a
+        time-to-live it cannot serve a figure that is already known to be wrong.
+        """
+        stmt = select(func.count(), func.max(Employee.updated_at)).where(
+            Employee.deleted_at.is_(None)
+        )
+        count, latest = (await self._session.execute(stmt)).one()
+        return count, latest
 
     async def get_depths(self) -> Sequence[DepthRow]:
         result = await self._session.execute(_DEPTH_WALK_SQL)

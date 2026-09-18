@@ -255,7 +255,7 @@ class AssignmentService:
         supersedes = [
             _as_cancelled(row)
             for row in await self._assignments.get_starting_on_or_after(
-                employee_id, as_of
+                employee_id, as_of, for_update=False
             )
             if row.valid_from > today()
         ]

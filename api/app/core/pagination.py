@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 from fastapi import HTTPException, Query
 
@@ -50,6 +50,30 @@ def employee_sort_params(
     return EmployeeSortParams(sort=sort, order=order)
 
 
+class _Comparable(Protocol):
+    def __gt__(self, other: Any, /) -> bool: ...
+
+
+def _reject_inverted_range[T: _Comparable](
+    low: T | None, high: T | None, *, low_param: str, high_param: str
+) -> None:
+    """Refuse a range whose lower bound is above its upper bound.
+
+    Such a range can never match a row, so answering it with an empty page tells
+    the caller their data is empty when in fact their question was malformed.
+    Saying so is the difference between "no one earns this" and "you typed the
+    bounds the wrong way round".
+    """
+    if low is not None and high is not None and low > high:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"{low_param} must not be greater than {high_param} "
+                f"(got {low} and {high})"
+            ),
+        )
+
+
 def employee_filter_params(
     q: str | None = Query(None, description="Fuzzy match on first + last name"),
     position: str | None = Query(None),
@@ -62,6 +86,15 @@ def employee_filter_params(
         False, description="List soft-deleted employees instead of active ones"
     ),
 ) -> EmployeeListFilters:
+    _reject_inverted_range(
+        min_salary, max_salary, low_param="min_salary", high_param="max_salary"
+    )
+    _reject_inverted_range(
+        min_birth_date,
+        max_birth_date,
+        low_param="min_birth_date",
+        high_param="max_birth_date",
+    )
     return EmployeeListFilters(
         q=q,
         position=position,

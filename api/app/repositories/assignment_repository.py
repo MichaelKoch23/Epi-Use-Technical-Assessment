@@ -420,8 +420,16 @@ class AssignmentRepository:
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def get_starting_on_or_after(
-        self, employee_id: uuid.UUID, start: date
+        self, employee_id: uuid.UUID, start: date, *, for_update: bool = True
     ) -> Sequence[EmployeeAssignment]:
+        """Assignments beginning on or after a date.
+
+        Locked by default, because the caller that matters is set_edge, which is
+        about to delete these rows. A caller that only wants to *show* them must
+        pass for_update=False: move-preview is open to every signed-in viewer,
+        and taking write locks to render a preview would let any reader stall an
+        administrator's reassignment for the length of a request.
+        """
         stmt = (
             select(EmployeeAssignment)
             .where(
@@ -429,8 +437,9 @@ class AssignmentRepository:
                 EmployeeAssignment.valid_from >= start,
             )
             .order_by(EmployeeAssignment.valid_from)
-            .with_for_update()
         )
+        if for_update:
+            stmt = stmt.with_for_update()
         return (await self._session.execute(stmt)).scalars().all()
 
     async def get_earliest_valid_from(self, employee_id: uuid.UUID) -> date | None:

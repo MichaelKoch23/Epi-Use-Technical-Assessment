@@ -23,7 +23,7 @@ import { getErrorMessage } from '@/lib/apiError'
 import type { EmployeeListFilters } from '@/lib/queryKeys'
 import { cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
-import { buildEmployeeColumns, SORTABLE_COLUMN_IDS } from './columns'
+import { buildEmployeeColumns, NUMERIC_COLUMN_IDS, SORTABLE_COLUMN_IDS } from './columns'
 import { CreateEmployeeSheet } from './CreateEmployeeSheet'
 import { DeleteEmployeeDialog } from './DeleteEmployeeDialog'
 import { EditEmployeeSheet } from './EditEmployeeSheet'
@@ -227,7 +227,12 @@ export function EmployeesListPage() {
                   const isSorted = state.sort === sortField
 
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        NUMERIC_COLUMN_IDS.has(header.column.id) && 'text-right'
+                      )}
+                    >
                       {sortable ? (
                         <button
                           type="button"
@@ -257,7 +262,12 @@ export function EmployeesListPage() {
                 <TableRow key={`skeleton-${i}`}>
                   {columns.map((column) => (
                     <TableCell key={column.id}>
-                      <Skeleton className="h-5 w-full max-w-32" />
+                      <Skeleton
+                        className={cn(
+                          'h-5 w-full max-w-32',
+                          column.id && NUMERIC_COLUMN_IDS.has(column.id) && 'ml-auto'
+                        )}
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -272,7 +282,12 @@ export function EmployeesListPage() {
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        NUMERIC_COLUMN_IDS.has(cell.column.id) && 'text-right'
+                      )}
+                    >
                       <table.FlexRender cell={cell} />
                     </TableCell>
                   ))}

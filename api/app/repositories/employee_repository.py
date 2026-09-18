@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
@@ -46,6 +46,14 @@ class EmployeeListRow:
     employee: Employee
     manager_name: str | None
     direct_report_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class ManagerOptionRow:
+    id: uuid.UUID
+    first_name: str
+    last_name: str
+    employee_number: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +130,36 @@ def _row_to_employee(row: RowMapping) -> Employee:
     return employee
 
 
+def filter_conditions(filters: EmployeeListFilters) -> list[ColumnElement[bool]]:
+    """The WHERE terms for a filtered employee query.
+
+    Shared so that anything answering a question *about* a filtered set - the
+    page itself, and the managers those people report to - is answering it about
+    the same set. Two copies of this would drift the first time a filter is added.
+    """
+    conditions: list[ColumnElement[bool]] = [
+        Employee.deleted_at.is_not(None)
+        if filters.deleted
+        else Employee.deleted_at.is_(None)
+    ]
+    if filters.q:
+        full_name = func.concat(Employee.first_name, " ", Employee.last_name)
+        conditions.append(full_name.ilike(f"%{_escape_like(filters.q)}%", escape="\\"))
+    if filters.position is not None:
+        conditions.append(Employee.position == filters.position)
+    if filters.manager_id is not None:
+        conditions.append(Employee.manager_id == filters.manager_id)
+    if filters.min_salary is not None:
+        conditions.append(Employee.salary >= filters.min_salary)
+    if filters.max_salary is not None:
+        conditions.append(Employee.salary <= filters.max_salary)
+    if filters.min_birth_date is not None:
+        conditions.append(Employee.birth_date >= filters.min_birth_date)
+    if filters.max_birth_date is not None:
+        conditions.append(Employee.birth_date <= filters.max_birth_date)
+    return conditions
+
+
 class EmployeeRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -170,28 +208,7 @@ class EmployeeRepository:
         if not (1 <= page_size <= 500):
             raise ValueError("page_size must be between 1 and 500")
 
-        conditions: list[ColumnElement[bool]] = [
-            Employee.deleted_at.is_not(None)
-            if filters.deleted
-            else Employee.deleted_at.is_(None)
-        ]
-        if filters.q:
-            full_name = func.concat(Employee.first_name, " ", Employee.last_name)
-            conditions.append(
-                full_name.ilike(f"%{_escape_like(filters.q)}%", escape="\\")
-            )
-        if filters.position is not None:
-            conditions.append(Employee.position == filters.position)
-        if filters.manager_id is not None:
-            conditions.append(Employee.manager_id == filters.manager_id)
-        if filters.min_salary is not None:
-            conditions.append(Employee.salary >= filters.min_salary)
-        if filters.max_salary is not None:
-            conditions.append(Employee.salary <= filters.max_salary)
-        if filters.min_birth_date is not None:
-            conditions.append(Employee.birth_date >= filters.min_birth_date)
-        if filters.max_birth_date is not None:
-            conditions.append(Employee.birth_date <= filters.max_birth_date)
+        conditions = filter_conditions(filters)
 
         sort_column = SORTABLE_COLUMNS[sort]
         order_by = sort_column.asc() if order == "asc" else sort_column.desc()
@@ -324,6 +341,42 @@ class EmployeeRepository:
             .where(Employee.manager_id == id, Employee.deleted_at.is_(None))
         )
         return (await self._session.execute(stmt)).scalar_one()
+
+    async def list_managers(
+        self, filters: EmployeeListFilters, *, limit: int = 100
+    ) -> Sequence[ManagerOptionRow]:
+        """The distinct managers that a filtered set of employees reports to.
+
+        The manager filter itself is ignored: the caller is choosing what to set
+        it to, so narrowing the candidates by the current choice would leave them
+        with only the option they already have.
+        """
+        subject_filters = replace(filters, manager_id=None)
+        manager = aliased(Employee)
+        stmt = (
+            select(
+                manager.id,
+                manager.first_name,
+                manager.last_name,
+                manager.employee_number,
+            )
+            .select_from(Employee)
+            .join(manager, Employee.manager_id == manager.id)
+            .where(*filter_conditions(subject_filters), manager.deleted_at.is_(None))
+            .distinct()
+            .order_by(manager.last_name, manager.first_name)
+            .limit(limit)
+        )
+        rows = (await self._session.execute(stmt)).all()
+        return [
+            ManagerOptionRow(
+                id=id_,
+                first_name=first_name,
+                last_name=last_name,
+                employee_number=employee_number,
+            )
+            for id_, first_name, last_name, employee_number in rows
+        ]
 
     async def list_positions(self) -> Sequence[str]:
         stmt = (

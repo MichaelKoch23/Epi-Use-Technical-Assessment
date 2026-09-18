@@ -39,8 +39,9 @@ export const hierarchyKeys = {
 }
 
 export const analyticsKeys = {
-  orgSummary: () => ['analytics', 'org-summary'] as const,
-  branch: (employeeId: string) => ['analytics', 'branch', employeeId] as const,
+  all: ['analytics'] as const,
+  orgSummary: () => [...analyticsKeys.all, 'org-summary'] as const,
+  branch: (employeeId: string) => [...analyticsKeys.all, 'branch', employeeId] as const,
 }
 
 export const searchKeys = {

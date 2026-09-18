@@ -536,10 +536,14 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 |---|---|---|---|
 | `POST` | `/auth/login` | Exchange credentials for access + refresh tokens | Public |
 | `POST` | `/auth/refresh` | Rotate refresh token | Authenticated |
+| `POST` | `/auth/logout` | Revoke the presented refresh token | Authenticated |
 | `GET` | `/auth/me` | Current principal and capability flags | Authenticated |
 | `GET` | `/employees` | Paginated list; sort, filter, free-text search | Viewer |
 | `POST` | `/employees` | Create employee | Admin |
-| `GET` | `/employees/{id}` | Single employee with manager and direct reports | Viewer |
+| `GET` | `/employees/positions` | Distinct job titles in use, for the filter list | Viewer |
+| `GET` | `/employees/managers` | Distinct managers the *currently filtered* employees report to, for the "Reports to" filter | Viewer (salary filters gated to Admin, §9.3) |
+| `GET` | `/employees/gravatar-prefill` | Public Gravatar profile for an address, to prefill the create form | Admin |
+| `GET` | `/employees/{id}` | Single employee record | Viewer |
 | `PATCH` | `/employees/{id}` | Partial update (optimistic lock) | Admin |
 | `DELETE` | `/employees/{id}` | Soft delete with `?policy=` | Admin |
 | `POST` | `/employees/{id}/restore` | Undo a soft delete | Admin |
@@ -550,6 +554,8 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `GET` | `/employees/{id}/subtree` | Descendants to `?depth=`, as at `?as_of=` | Viewer |
 | `GET` | `/employees/{id}/reporting-line` | Ancestor chain to the root, as at `?as_of=` | Viewer |
 | `GET` | `/employees/{id}/audit` | Change history for one employee | Viewer (`salary` values field-gated to Admin, §9.3) |
+| `PUT` | `/employees/{id}/avatar` | Upload a photo for an employee (optimistic lock) | Admin |
+| `DELETE` | `/employees/{id}/avatar` | Drop the uploaded photo, falling back to Gravatar | Admin |
 | `GET` | `/hierarchy/roots` | Employees with no manager, as at `?as_of=` | Viewer |
 | `GET` | `/hierarchy/tree` | Chart-shaped payload, lazily expandable, as at `?as_of=` | Viewer |
 | `GET` | `/hierarchy/scheduled` | Every future-dated assignment not yet in force | Viewer |
@@ -561,6 +567,10 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `GET` | `/exports/employees.csv` | Full extract honouring current filters | Viewer |
 | `GET` | `/search` | Cross-entity quick search for the command palette | Viewer |
 | `GET` | `/audit` | Global change-history feed across every employee | Viewer (`salary` values field-gated to Admin, §9.3) |
+| `GET` | `/profile` | Signed-in user, their avatar sources and their own employee record | Authenticated |
+| `PUT` | `/profile/avatar` | Upload the signed-in user's own photo | Authenticated |
+| `DELETE` | `/profile/avatar` | Drop the signed-in user's own photo | Authenticated |
+| `GET` | `/avatars/{id}` | Serve a stored avatar image (§8.3) | Public |
 | `GET` | `/health` | Liveness and database reachability | Public |
 
 The four hierarchy reads take an optional `as_of` date, defaulting to today, and **echo the resolved date back in every response** so a client never has to infer which day a payload describes. `PUT /employees/{id}/manager` returns the resulting assignment along with any scheduled changes the decision superseded, so a caller is never told silently that someone else's plan was cancelled.
@@ -569,7 +579,7 @@ The four hierarchy reads take an optional `as_of` date, defaulting to today, and
 
 ```
 GET /api/v1/employees
-    ?q=jansen                      # trigram fuzzy match on name, position, employee number
+    ?q=jansen                      # trigram-backed match on first + last name
     &position=Integration+Architect
     &manager_id=<uuid>
     &min_salary=450000&max_salary=900000
@@ -577,7 +587,9 @@ GET /api/v1/employees
     &page=1&page_size=50
 ```
 
-`sort` is resolved against a static map of permitted column names. Dynamic `ORDER BY` built from raw user input is the classic injection vector that parameterised queries do **not** protect against, because identifiers cannot be bound as parameters. Sorting and filtering are performed in the database, not in the browser, so the table view remains correct and fast when the dataset outgrows a single page.
+`/employees/managers` takes the same filter parameters as the list and answers them about the same set - both build their `WHERE` from one shared `filter_conditions`, so the managers offered are exactly the managers of the rows you are looking at. It ignores `manager_id`, since the caller is choosing what to set it to.
+
+`q` on the list matches the full name only; the command palette's `/search` is the endpoint that also looks at position and employee number, because a table filter and a jump-to-person box want different recall. `sort` is resolved against a static map of permitted column names. Dynamic `ORDER BY` built from raw user input is the classic injection vector that parameterised queries do **not** protect against, because identifiers cannot be bound as parameters. Sorting and filtering are performed in the database, not in the browser, so the table view remains correct and fast when the dataset outgrows a single page.
 
 ### 6.4 Error model
 
@@ -598,7 +610,9 @@ A single exception-handler layer maps domain exceptions to problem documents, so
 
 ### 6.5 Contract documentation
 
-FastAPI derives an OpenAPI 3.1 document from the same Pydantic models used for runtime validation, so the published contract cannot drift from the implementation. Swagger UI is served at `/docs` and ReDoc at `/redoc`, both publicly reachable for assessment. A Postman collection is generated from the specification and committed to the repository.
+FastAPI derives an OpenAPI 3.1 document from the same Pydantic models used for runtime validation, so the published contract cannot drift from the implementation. Swagger UI is served at `/docs`, ReDoc at `/redoc` and the raw document at `/openapi.json` - **in every environment except production**, where all three are switched off, since an interactive console over a live HR database is not something to leave reachable. To browse them, run the service with `ENVIRONMENT` set to anything other than `production`.
+
+The same document is the source for the SPA's request and response types: `npm run generate:api-types` regenerates `web/src/lib/api-types.ts` from the live schema, so a contract change that the frontend has not caught up with is a TypeScript error rather than a runtime surprise.
 
 ---
 
@@ -787,7 +801,7 @@ A multi-stage Dockerfile produces one image:
 # ---- stage 1: build the SPA
 FROM node:22-alpine AS web
 WORKDIR /web
-COPY web/package*.json ./
+COPY web/package*.json web/.npmrc ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build
@@ -796,14 +810,28 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /srv
 COPY api/pyproject.toml api/uv.lock ./
+ENV UV_COMPILE_BYTECODE=1
 RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev
+ENV PATH="/srv/.venv/bin:${PATH}"
 COPY api/app ./app
+RUN python -m compileall -q app
 COPY --from=web /web/dist ./static
+
+RUN useradd --system --no-create-home --uid 10001 appuser
+USER appuser
+
 ENV PORT=8080
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
 ```
 
-The container listens on `$PORT` rather than a hardcoded value, which is what Cloud Run requires and what keeps the same image runnable locally, in CI, and on any other container host.
+Four details in that file are load-bearing:
+
+- **`$PORT` rather than a hardcoded value** is what Cloud Run requires, and it keeps the same image runnable locally, in CI, and on any other container host.
+- **The runtime stage carries no Node and no build tools.** Only `dist/` crosses from the first stage, so the SPA's toolchain is not part of the attack surface of the thing that runs.
+- **`USER appuser`** drops the process out of root. Nothing in the image needs to write to disk at runtime - uploads go to the database (§8.3), not the filesystem - so there is no reason to keep the privilege.
+- **`--proxy-headers`** makes the app trust `X-Forwarded-For` from the load balancer in front of it. Without it every request appears to originate from the proxy, which would collapse the login rate limiter (§9.1) into one shared bucket for the whole internet. `--forwarded-allow-ips='*'` is safe only because Cloud Run is the sole ingress; behind a different topology it must name the proxy.
+
+Note that `alembic/` is deliberately **not** copied into the image. Migrations are run as their own deployment step (§10.6), not from inside a running container, so shipping them would only invite the race that step exists to avoid.
 
 ### 10.4 Database connections under autoscaling
 
@@ -821,30 +849,43 @@ Transaction-mode pooling rules out session-level state - server-side prepared-st
 
 | Environment | Trigger | Database | Service |
 |---|---|---|---|
-| Local | `docker compose up` | PostgreSQL 17 container | Uvicorn in a container |
+| Local | `docker compose up` (`scripts/dev.sh`) | Neon `dev` branch | Uvicorn in the production image |
 | Preview | Every pull request | Neon branch, seeded automatically | Cloud Run revision deployed with `--no-traffic`, reachable by tag URL |
 | Production | Merge to `main` | Neon primary | Cloud Run, gradual traffic migration |
+
+The Preview and Production triggers describe the intended pipeline, not something the repository automates today - see §10.6.
+
+Local development runs the **production image** against a Neon branch rather than a throwaway PostgreSQL container. That costs a little start-up time and buys the thing worth having: the container being exercised is the container that ships, on a database with the same extensions (`pg_trgm`, `btree_gist`) and the same pooled-connection behaviour as production. `scripts/migrate.sh dev` applies migrations to that branch; the same script refuses to touch `main` without a typed confirmation.
 
 Cloud Run's revision model means a deployment creates an immutable new revision rather than mutating the running one. Traffic can be split across revisions and rolled back to any previous revision in seconds, without a rebuild.
 
 ### 10.6 CI/CD and migrations
 
-GitHub Actions on every push:
+**Implemented today: the gate, run locally.** `scripts/check.sh` is the single command that has to pass, and it runs the whole thing in order:
 
-1. Ruff lint and format check, `mypy`, `pytest` with coverage gating
-2. `tsc --noEmit`, ESLint, Vite production build
-3. Build the image and push it to Artifact Registry, tagged with the commit SHA
-4. **Run `alembic upgrade head` as a separate step against the target database, before any traffic shifts**
-5. `gcloud run deploy` the new revision with `--no-traffic`
-6. Playwright smoke test against the revision's tag URL, then migrate traffic to it
+1. `ruff check` and `ruff format --check`, then `mypy app`, then `pytest`
+2. `tsc -b`, `oxlint`, `vitest run`, then the Vite production build
+3. **A build of the actual production image**, so a change that passes every test but breaks the Dockerfile is still caught
 
-Migrations run as their own step rather than at container start, because container start happens once per instance: with several instances starting at once, a start-up migration becomes several processes racing to alter the same schema. Migrations are written to be backward-compatible with the previous application version, so step 6 can be reversed by shifting traffic back without a data restore.
+Migrations are applied separately by `scripts/migrate.sh dev|prod`, which resolves a **direct** (non-pooled) Neon connection string - `alembic upgrade head` over a transaction-mode pooler is a good way to acquire a lock you cannot hold - and demands a typed confirmation before touching production.
+
+**Not yet implemented: the pipeline.** There is no `.github/` workflow in the repository; the steps above are run by hand. The intended shape, and the reason for it, is this:
+
+1. Steps 1-3 above on every push
+2. Push the image to Artifact Registry, tagged with the commit SHA
+3. **Run `alembic upgrade head` as a separate step against the target database, before any traffic shifts**
+4. `gcloud run deploy` the new revision with `--no-traffic`
+5. Smoke-test the revision's tag URL, then migrate traffic to it
+
+Migrations belong in their own step rather than at container start, because container start happens once per *instance*: with several instances starting at once, a start-up migration becomes several processes racing to alter the same schema. Migrations are written to be backward-compatible with the previous application version, so step 5 can be reversed by shifting traffic back without a data restore. Automating this is the first piece of work after the assessment, not a claim about the repository as it stands.
 
 ### 10.7 Observability
 
-Structured JSON logs written to stdout are collected automatically by Cloud Logging, with a correlation ID per request propagated from the SPA so a user-reported problem can be traced end to end. Cloud Run's built-in metrics cover request count, latency percentiles, instance count and error rate. `/health` reports API liveness and database reachability and serves as the container's startup probe. Slow-query logging is enabled on the database.
+**Implemented.** `GET /api/v1/health` reports API liveness and database reachability in one call, and serves as the container's startup probe. Uvicorn's access log goes to stdout, which Cloud Logging collects automatically, and Cloud Run's built-in metrics cover request count, latency percentiles, instance count and error rate without any application code. The audit trail (§9.6) answers "who changed this record and when" independently of any log retention policy, which is the question most likely to be asked months later.
 
-Optional outbound webhooks emit `employee.created`, `employee.updated` and `employee.reassigned` events with an HMAC-SHA256 signature over the payload, giving downstream systems - an SAP HCM interface, for instance - an integration point that does not require polling.
+**Not implemented, and worth naming.** There is no structured-logging configuration and no per-request correlation ID: the application emits Uvicorn's default access lines, so a user-reported problem is traced by timestamp and path rather than by an id carried from the SPA. That is the honest state of it, and the gap is small - a middleware that reads or mints a request id and a JSON formatter - but it is a gap.
+
+Outbound webhooks (`employee.created`, `employee.updated`, `employee.reassigned`, signed with HMAC-SHA256) are **designed but not built**. They are the intended integration point for a downstream system such as an SAP HCM interface, and the reason the audit trail records a complete before/after snapshot rather than a diff: the event payload falls out of the audit record. No code and no configuration for this exists yet.
 
 ### 10.8 Cold starts
 
@@ -885,7 +926,7 @@ Because the deployable unit is a container, `scripts/check.sh` finishes by build
 | Unit of Work | Session-per-request dependency | Data change and its audit record commit atomically |
 | Dependency Injection | FastAPI `Depends` | Auth, session and policies are composable and overridable in tests |
 | DTO / schema mapping | Pydantic request and response models | Prevents internal fields leaking; enables role-specific response shapes |
-| Adapter | `GravatarAdapter`, `StorageAdapter` | External services behind narrow ports, replaceable and fakeable |
+| Adapter | `adapters/gravatar.py`, `adapters/spreadsheet.py` | External services and file formats behind narrow ports, replaceable and fakeable |
 | Strategy | `DeletionPolicy` | Three deletion behaviours without branching logic through the service |
 | Optimistic offline lock | `version` column + `If-Match` | Concurrent edits without holding locks across user think-time |
 | Specification (lightweight) | Composable list filters | Filter criteria combine without a combinatorial explosion of query methods |
@@ -933,7 +974,7 @@ The hosting decision was made against one criterion above all others: an evaluat
 |---|---|
 | Hierarchy reads | Index on `manager_id`; recursive CTE resolves a 5 000-node subtree in single-digit milliseconds |
 | Chart rendering | Lazy subtree loading and viewport virtualisation; the DOM holds only visible nodes |
-| List view | Server-side pagination, filtering and sorting; keyset pagination available for deep pages |
+| List view | Server-side pagination, filtering and sorting. The page query carries its own `count(*) OVER ()`, so a page costs one round trip rather than two. Offset-based: deep pages get linearly more expensive, which is acceptable while a page is reached by filtering rather than by paging thousands of rows. Keyset pagination is the fix if that stops being true |
 | Search | GIN trigram index for fuzzy matching, rather than an unindexed leading-wildcard `LIKE` |
 | Static delivery | Hashed, immutable assets with long-lived cache headers, served from the same container; `index.html` is `no-cache` so a deploy is picked up immediately |
 | Payload size | `GZipMiddleware` compresses API responses and the JS/CSS bundle above 1 KB - roughly a 4× reduction on list payloads |
@@ -965,15 +1006,24 @@ Stated plainly, because a design document that claims no limitations is not desc
 
 ## Appendix A - Running the system
 
-**Locally, from a clean clone:**
+**Locally, from a clean clone.** `docker compose` starts the application only - the database is a Neon branch, not a local container (§10.5), so `DATABASE_URL` must point at one before the first run.
 
 ```bash
-git clone «repository-url» && cd employee-hierarchy
-cp .env.example .env            # DATABASE_URL, JWT_SECRET
-docker compose up --build       # application :8080, PostgreSQL :5432
-docker compose exec app alembic upgrade head
-docker compose exec app python -m app.seed --employees 250
+git clone «repository-url» && cd Epi-Use-Technical-Assessment
+cp .env.example .env            # fill in DATABASE_URL and JWT_SECRET
+bash scripts/migrate.sh dev        # alembic upgrade head, over a direct connection
+bash scripts/dev.sh                # docker compose up --build, application on :8080
 ```
+
+`JWT_SECRET` must be at least 32 characters of real entropy - `openssl rand -hex 32` - or the application refuses to start rather than booting with a guessable signing key.
+
+Migrations run from the host, not from inside the container: `alembic/` is deliberately not in the image (§10.3). To seed a demo organisation, run the seeder from the host too, against the same database:
+
+```bash
+cd api && uv run python -m app.seed --employees 250 --reset
+```
+
+That creates roughly 250 people across five departments, spreads their reporting history over the preceding eighteen months and schedules a few future-dated moves, so the as-of controls and the scheduled-changes panel have something real to show. It also creates the two demo accounts listed in the user guide. For the frontend with hot reload, run `npm run dev` in `web/` alongside the container - but re-check the container before calling a change done, since that is what ships.
 
 **The production image, directly:**
 
@@ -988,17 +1038,22 @@ Seeding writes to the configured database through the same service layer as the 
 
 ## Appendix B - Configuration
 
+Defined in `api/app/core/config.py`; `DATABASE_URL` and `JWT_SECRET` are the only two without a default.
+
 | Variable | Purpose |
 |---|---|
+| `DATABASE_URL` | Pooled PostgreSQL connection string. **Required.** |
+| `JWT_SECRET` | Access and refresh token signing key. **Required**, and validated: under 32 characters, or a known weak value, and start-up fails (§9.1) |
 | `PORT` | Port the container listens on (Cloud Run sets this; defaults to 8080) |
-| `DATABASE_URL` | Pooled PostgreSQL connection string |
 | `DB_POOL_SIZE` | SQLAlchemy pool size per instance (default 5) |
-| `JWT_SECRET` | Access and refresh token signing key |
-| `JWT_ACCESS_TTL_SECONDS` | Access token lifetime (default 900) |
-| `CORS_ORIGINS` | Allowed origins; empty in production, since the SPA is same-origin |
-| `GRAVATAR_DEFAULT_IMAGE` | Fallback avatar style (default `mp`) |
-| `WEBHOOK_SIGNING_SECRET` | HMAC key for outbound integration events |
-| `ENVIRONMENT` | `local`, `preview` or `production`; controls docs exposure and log format |
+| `JWT_ACCESS_TTL_SECONDS` | Access token lifetime (default 900, i.e. 15 minutes) |
+| `JWT_REFRESH_TTL_SECONDS` | Refresh token lifetime (default 604800, i.e. 7 days) |
+| `CORS_ORIGINS` | Allowed origins (default `["http://localhost:5173"]`). `*` is rejected outright, because the API is served with `allow_credentials=True`; in production plaintext origins are rejected too. Not needed for the deployed service, where the SPA is same-origin |
+| `GRAVATAR_DEFAULT_IMAGE` | What Gravatar serves for an address with no photo (default `mp`); `404` defers to client-rendered initials (§8.1) |
+| `GRAVATAR_API_KEY` | Optional. Unlocks the fuller profile payload behind `/employees/gravatar-prefill`; without it enrichment degrades rather than breaks (§8.4) |
+| `GRAVATAR_API_TIMEOUT_SECONDS` | Timeout on that outbound call (default 3.0) |
+| `MAX_UPLOAD_BYTES` | Cap on a spreadsheet import (default 5 MB) |
+| `ENVIRONMENT` | Default `development`. Only `production`/`prod` is special: it switches off `/docs`, `/redoc` and `/openapi.json` and adds HSTS (§6.5) |
 
 ## Appendix C - Glossary
 

@@ -16,12 +16,13 @@ This guide assumes no technical background. For how the system is built and why,
 6. [Employee details](#6-employee-details)
 7. [Adding, editing and removing employees](#7-adding-editing-and-removing-employees)
 8. [Changing who someone reports to](#8-changing-who-someone-reports-to)
-9. [Profile pictures and your profile page](#9-profile-pictures-and-your-profile-page)
-10. [Exporting to a spreadsheet](#10-exporting-to-a-spreadsheet)
-11. [Importing from a spreadsheet](#11-importing-from-a-spreadsheet)
-12. [Analytics](#12-analytics)
-13. [Change history](#13-change-history)
-14. [Messages you might see](#14-messages-you-might-see)
+9. [Time travel: past dates and planned changes](#9-time-travel-past-dates-and-planned-changes)
+10. [Profile pictures and your profile page](#10-profile-pictures-and-your-profile-page)
+11. [Exporting to a spreadsheet](#11-exporting-to-a-spreadsheet)
+12. [Importing from a spreadsheet](#12-importing-from-a-spreadsheet)
+13. [Analytics](#13-analytics)
+14. [Change history](#14-change-history)
+15. [Messages you might see](#15-messages-you-might-see)
 
 ---
 
@@ -100,6 +101,10 @@ The search box on the chart finds a person and scrolls the chart to them, expand
 
 Clicking a card opens a side panel with their details, their reporting line up to the top of the organisation, and - for administrators - buttons to edit, reassign or delete.
 
+### Seeing the chart as at another date
+
+The **Viewing as at** control above the chart redraws it as the organisation stood on any date you choose, and the **Scheduled changes** panel below it lists moves that have not yet taken effect. See [§9](#9-time-travel-past-dates-and-planned-changes).
+
 ### Saving a picture of the chart
 
 **Export PNG** saves the current view as an image file, for slide decks or printing. What you see is what you get, so set up the view - focus, zoom, expanded branches - before exporting.
@@ -120,9 +125,11 @@ Click any column heading to sort by it. Click again to reverse the direction.
 
 - **Name** - partial matches are fine.
 - **Position** - pick from a list of every job title currently in use.
-- **Manager**
+- **Manager** - the list opens on the managers that the people you have already narrowed to actually report to, so after picking a position you are choosing between a handful of relevant names rather than hunting through the whole company. Typing still searches everyone.
 - **Salary range** (administrators only)
 - **Date of birth range**
+
+A range whose minimum is above its maximum can never match anybody, so **Apply filters** stays disabled and tells you which way round it should be, rather than showing you an empty table.
 
 Active filters appear as removable chips above the table; click the **×** on one to drop just that filter, or **Clear all** to reset.
 
@@ -140,10 +147,11 @@ The filters, sort order and page you are looking at are all recorded in the brow
 
 Clicking a row in the table, or a card in the chart, opens that person's page:
 
-- Their photograph, name, job title and employee number. Administrators can upload or change the photograph here ([§9](#9-profile-pictures-and-your-profile-page)).
+- Their photograph, name, job title and employee number. Administrators can upload or change the photograph here ([§10](#10-profile-pictures-and-your-profile-page)).
 - Date of birth, email address, and salary (administrators only).
 - Their manager, and their direct reports.
 - Their **reporting line** - the chain of managers from them to the top of the organisation.
+- Their **assignment history** - every manager they have ever had, with the dates each arrangement started and ended, the reason recorded and who made the change ([§9](#9-time-travel-past-dates-and-planned-changes)).
 - Their **change history** - every modification to this record, most recent first, with who made it and when.
 
 ---
@@ -192,7 +200,7 @@ One case to be aware of: if their employee number or email address was reassigne
 *Administrators only.* There are three ways.
 
 - **Drag and drop on the org chart.** Drag a person's card onto their new manager. Cards that cannot legally receive them are marked as you drag.
-- **Reassign, from the chart's side panel.** Search for the new manager by name and select them.
+- **Reassign, from the chart's side panel.** Search for the new manager by name and select them. With a card selected on the chart, pressing **M** opens the same picker without reaching for the mouse.
 - **Edit an employee**, and change the manager field.
 
 ### Two rules the system enforces
@@ -203,9 +211,69 @@ This is enforced by the database itself, not only by the interface, so it holds 
 
 **Someone can have no manager.** That is how the CEO - or any top-level person - is represented. Leave the manager field empty.
 
+### Every move is dated, and can be dated ahead
+
+A reassignment is not a simple overwrite: it is recorded with the date it takes effect, which means it can be **scheduled for a future date** and the whole history stays readable. That is [§9](#9-time-travel-past-dates-and-planned-changes), and it is worth reading before you make your first change.
+
 ---
 
-## 9. Profile pictures and your profile page
+## 9. Time travel: past dates and planned changes
+
+This is the part of the system most worth knowing about, because it changes what a reporting line *is*. A reassignment is not an overwrite. Every "who reports to whom" is recorded with the date it started and the date it ended, so the organisation can be read as it stood on any day - and a change can be decided now and take effect later, on its own.
+
+### Viewing the organisation as at a past date
+
+Above the org chart is a **Viewing as at** date box, with shortcuts for **Today**, **−3 months** and **−1 year**. Set a date and the whole chart redraws as the organisation stood that day - the reporting lines and everyone's place in the tree. A *future* date works too, and shows you the organisation as it will be once the changes scheduled before then have taken effect.
+
+The date is kept in the address bar, so a historical view is a link you can send to someone.
+
+While you are looking at any date other than today, a banner across the top says so, and **editing is switched off** - you cannot drag someone to a new manager in a view of March. This is deliberate: the most dangerous thing a historical view can do is look like the present one, and the second most dangerous is letting you act on it. Past views are amber, future views are teal, so the two are not mistaken for each other. **Return to today** on the banner, or **Today** on the date control, puts you back in the live view where editing works again.
+
+If any changes are scheduled, **Jump to change** buttons appear next to the date box - one per date on which something happens - so you can step straight to the day the organisation next changes shape.
+
+### Scheduling a change for a future date
+
+When you reassign someone ([§8](#8-changing-who-someone-reports-to)), the confirmation dialog has an **Effective from** date, which defaults to today, and an optional **Reason**.
+
+- **Leave the date as today** and the move happens immediately. The button reads **Confirm move**.
+- **Set a future date** and the move is *scheduled*. The button changes to **Schedule move**, and the dialog tells you it takes effect on that date. Nothing changes in today's chart. On the morning of that date, the change becomes current by itself - there is no job to run and nobody has to remember.
+
+A reason is worth filling in. It is stored with the change and shown in the person's assignment history, which is what turns "moved in March" into "moved in March, span-of-control rebalance".
+
+### Before you commit: the move preview
+
+Confirming a reassignment is not a blind action. The dialog first shows you exactly what the move does:
+
+- **Who is affected** - the person and everyone beneath them, because a manager takes their branch with them.
+- **Headcount** moving.
+- **Depth change** - whether they end up higher, lower or at the same level.
+- **Cost moving between branches** (administrators only) - the annual salary total leaving one branch and arriving in another.
+- **Scheduled changes this will cancel** - see below.
+- A **block**, if the move would create a reporting loop, naming the chain that would have formed.
+
+The preview writes nothing. You can open it, read it and close it.
+
+### Backdating a correction
+
+You can set **Effective from** to a date in the *past*, which is how you correct a move that was recorded late. The one thing the system refuses is a date before that person's first recorded assignment, because there is no organisation to place them into before they existed in it.
+
+### The scheduled changes panel
+
+Below the chart, **Scheduled changes** lists every future-dated move that has not yet taken effect: who moves, to whom, on what date, why, and who decided it. Administrators can **cancel** any of them with the **×**. Cancelling puts things back as they were - the arrangement the scheduled change was going to replace simply continues.
+
+**One scheduled change per person per date supersedes another.** If someone already has a move scheduled and you schedule a different one from the same date onward, the new decision replaces the old. The system does not do this quietly: the preview lists what will be cancelled before you confirm, and the confirmation tells you what was.
+
+### One person's history
+
+An employee's detail page has an **assignment history** - every manager they have had, each with its start date, its end date, the reason recorded, and who made the change. The run in force today is marked as current; anything not yet started is marked as scheduled.
+
+### What does *not* travel in time
+
+Only reporting lines are dated. Names, positions, salaries and who has been deleted are single current values, so a chart read at a past date shows **today's** people arranged in **that date's** reporting structure. Someone hired last week appears in a chart dated last year. This is a known limit rather than a bug, and it is worth remembering before treating a historical view as a historical record.
+
+---
+
+## 10. Profile pictures and your profile page
 
 Everyone's picture is chosen in this order - the first one that exists is shown:
 
@@ -232,7 +300,7 @@ Choose **Your profile** from the account menu. It shows:
 
 ---
 
-## 10. Exporting to a spreadsheet
+## 11. Exporting to a spreadsheet
 
 **Export CSV** on the employee table downloads the list as a file you can open in Excel, LibreOffice or Google Sheets.
 
@@ -241,11 +309,11 @@ Two things worth knowing:
 - **The export honours your current filters and sort order.** Filter to one department first and you will export only that department. Clear the filters to export everyone.
 - **Administrators get a salary column; read-only users do not.**
 
-Managers are identified by **employee number** rather than by an internal identifier, which makes the exported file safe to edit and import straight back in ([§11](#11-importing-from-a-spreadsheet)).
+Managers are identified by **employee number** rather than by an internal identifier, which makes the exported file safe to edit and import straight back in ([§12](#12-importing-from-a-spreadsheet)).
 
 ---
 
-## 11. Importing from a spreadsheet
+## 12. Importing from a spreadsheet
 
 *Administrators only.* Use **Import** to create or update many employees at once, from a `.csv` or `.xlsx` file.
 
@@ -261,11 +329,11 @@ The first row must be column headings. The columns are:
 | `email` | Yes | Must be unique among active employees |
 | `birth_date` | Yes | `YYYY-MM-DD`, e.g. `1990-04-27` |
 | `position` | Yes | |
-| `salary` | Yes | Digits only, e.g. `450000` |
+| `salary` | Yes | A number, e.g. `450000` or `450000.50`; at most two decimal places |
 | `currency` | No | Three letters; defaults to `ZAR` |
 | `manager_employee_number` | No | The manager's **employee number**, not their name |
 
-The simplest way to start is to **export first** ([§10](#10-exporting-to-a-spreadsheet)) and edit the file you get back - the columns already match.
+The simplest way to start is to **export first** ([§11](#11-exporting-to-a-spreadsheet)) and edit the file you get back - the columns already match.
 
 To make someone top-level, leave `manager_employee_number` empty. This is treated as an instruction ("reports to nobody"), so it will clear an existing manager.
 
@@ -279,11 +347,15 @@ To make someone top-level, leave `manager_employee_number` empty. This is treate
 
 **If any row is blocked, nothing is imported.** A half-applied import is worse than none, because you cannot easily tell what landed. Fix the reported rows and try again.
 
-Rows are blocked for reasons such as: a missing required field, an unreadable date, an employee number or email appearing twice in the file, an email already belonging to someone else, a manager who is in neither the file nor the system, a date of birth in the future, or a set of reporting lines that would create a loop. The row numbers match what you see in your spreadsheet program, so they are easy to find.
+Rows are blocked for reasons such as: a missing required field, an unreadable date, an employee number or email appearing twice in the file, an email already belonging to someone else, a manager who is in neither the file nor the system, a date of birth in the future, or a set of reporting lines that would create a loop.
+
+A row is also blocked if a value breaks one of the same limits the **Add employee** form applies - a name longer than 100 characters, a currency that is not three letters, an address that is not a valid email, a salary that is impossibly large, a date of birth before 1900. A spreadsheet is checked exactly as strictly as the form is, so an import cannot put anything into the system that you could not have typed in.
+
+The row numbers match what you see in your spreadsheet program, so they are easy to find.
 
 ---
 
-## 12. Analytics
+## 13. Analytics
 
 A dashboard describing the shape of the organisation.
 
@@ -299,9 +371,11 @@ A dashboard describing the shape of the organisation.
 
 **Branch explorer** shows the same figures for one department: pick a person and see the totals for everyone beneath them.
 
+**Compare two dates** answers "what actually changed?" between any two dates. Pick a **from** and a **to** date and it reports who changed manager, which of those were whole-branch moves, who became or stopped being top-level, how the maximum depth and the average span of control shifted, and - for administrators - the total salary that moved between branches. This reads the same dated reporting records as [§9](#9-time-travel-past-dates-and-planned-changes), so it needs no separate change log and cannot disagree with one.
+
 ---
 
-## 13. Change history
+## 14. Change history
 
 The clock icon in the top bar opens a record of **every** change made in the system: who made it, what they changed, and when. Individual employees have the same view, filtered to their own record, on their detail page.
 
@@ -311,7 +385,7 @@ The history is written as part of the change itself, so it cannot disagree with 
 
 ---
 
-## 14. Messages you might see
+## 15. Messages you might see
 
 | Message | What it means | What to do |
 |---|---|---|
@@ -321,6 +395,8 @@ The history is written as part of the change itself, so it cannot disagree with 
 | *Employee number / Email is already in use* | Another active employee holds it | Choose a different one, or free it on the other record |
 | *Would create a reporting cycle* | The reassignment would make a loop | Pick a manager who is not below this person |
 | *This employee and their entire subtree are deleted* | You have selected **Cascade** | Check the preview list; choose **Reparent** if you did not mean it |
+| *Effective date precedes the first recorded assignment* | You backdated a move to before this person had any reporting line at all | Choose a date on or after their first recorded assignment - their assignment history shows it |
+| *The assignment is already in force* | You tried to cancel a scheduled change that has since taken effect | It is history now; reassign them again if you want it undone |
 | *Import file exceeds the … limit* | The upload is too large | Split it into smaller files |
 | *File is not a readable .xlsx workbook* | The file is corrupt, or not really a spreadsheet | Re-export it from your spreadsheet program |
 | Session ends unexpectedly | Your sign-in expired, or was signed out elsewhere | Sign in again |

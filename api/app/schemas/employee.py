@@ -76,6 +76,15 @@ class GravatarPrefillRead(BaseModel):
     description: str | None = None
 
 
+class ManagerOptionRead(BaseModel):
+    """A manager offered as a choice, with just enough to tell two apart."""
+
+    id: uuid.UUID
+    first_name: str
+    last_name: str
+    employee_number: str
+
+
 class _EmployeeReadBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

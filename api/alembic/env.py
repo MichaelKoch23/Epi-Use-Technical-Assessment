@@ -5,11 +5,17 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app.db.base import Base
+
+# Import every model so Base.metadata is complete. A model missing here reads to
+# --autogenerate as a table that exists in the database but not in the code, and
+# it will helpfully write a drop_table for it.
 from app.models import (  # noqa: F401  (registers metadata)
     AppUser,
     AuditLog,
+    AvatarImage,
     Employee,
     EmployeeAssignment,
+    RefreshToken,
 )
 
 config = context.config

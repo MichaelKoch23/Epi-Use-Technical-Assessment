@@ -107,6 +107,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employees/gravatar-prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gravatar Prefill
+         * @description Look up a public Gravatar profile to prefill the create-employee form.
+         *
+         *     The administrator decides what to accept; nothing here writes. A miss is a
+         *     200 with found=false rather than a 404, because "this address has no
+         *     Gravatar" is a normal answer, not a failure.
+         */
+        get: operations["gravatar_prefill_api_v1_employees_gravatar_prefill_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/managers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Filter Managers
+         * @description The managers that the currently filtered employees report to.
+         *
+         *     This is what the "Reports to" filter offers before anyone types: narrowing to
+         *     a position and then being shown eight unrelated people is a worse starting
+         *     point than the handful of managers those people actually report to.
+         */
+        get: operations["list_filter_managers_api_v1_employees_managers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees/positions": {
         parameters: {
             query?: never;
@@ -1106,6 +1154,34 @@ export interface components {
             /** Employee Name */
             employee_name: string;
         };
+        /**
+         * GravatarPrefillRead
+         * @description A suggestion drawn from a public Gravatar profile, never applied on its own.
+         */
+        GravatarPrefillRead: {
+            /** Found */
+            found: boolean;
+            /** Hash */
+            hash: string;
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Profile Url */
+            profile_url?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Position */
+            position?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1166,6 +1242,23 @@ export interface components {
             to_manager_name: string | null;
             /** Subtree Size */
             subtree_size: number;
+        };
+        /**
+         * ManagerOptionRead
+         * @description A manager offered as a choice, with just enough to tell two apart.
+         */
+        ManagerOptionRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Employee Number */
+            employee_number: string;
         };
         /**
          * ManagerReassignRead
@@ -1839,6 +1932,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gravatar_prefill_api_v1_employees_gravatar_prefill_get: {
+        parameters: {
+            query: {
+                email: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GravatarPrefillRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_filter_managers_api_v1_employees_managers_get: {
+        parameters: {
+            query?: {
+                /** @description Fuzzy match on first + last name */
+                q?: string | null;
+                position?: string | null;
+                manager_id?: string | null;
+                min_salary?: number | string | null;
+                max_salary?: number | string | null;
+                min_birth_date?: string | null;
+                max_birth_date?: string | null;
+                /** @description List soft-deleted employees instead of active ones */
+                deleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerOptionRead"][];
                 };
             };
             /** @description Validation Error */
