@@ -70,11 +70,6 @@ class BranchSummaryData:
     cost: CostAggregate | None
 
 
-# The summary is expensive enough to be worth caching and cheap enough to verify:
-# each entry is held against the fingerprint of the data it was built from, so a
-# write is reflected on the very next request rather than whenever a timer runs
-# out. That also keeps it honest across workers, which an invalidate-on-write
-# cache in process memory would not be.
 _Fingerprint = tuple[int, datetime | None]
 _org_summary_cache: dict[str, tuple[_Fingerprint, OrgSummaryData]] = {}
 

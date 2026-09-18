@@ -20,8 +20,6 @@ def _settings(monkeypatch: pytest.MonkeyPatch, **overrides: str) -> Settings:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        # The bare `CORS_ORIGINS=` that an env file or a deployment actually
-        # writes. Parsed as JSON this is a start-up crash, not an empty list.
         ("", []),
         ("http://localhost:5173", ["http://localhost:5173"]),
         (

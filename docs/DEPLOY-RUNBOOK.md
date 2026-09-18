@@ -2,9 +2,9 @@
 
 Operational procedures for the Employee Hierarchy Management System: how to get it running, how to change it safely, and what to do when it misbehaves.
 
-This is the *how*. For the *why* - topology, connection budgeting, revision strategy - see [TECHNICAL-DESIGN.md §10](TECHNICAL-DESIGN.md#10-deployment-and-operations).
+This is the *how*. For the *why* - topology, connection budgeting, revision strategy - see [TECHNICAL-DESIGN.md section 10](TECHNICAL-DESIGN.md#10-deployment-and-operations).
 
-> **Status.** Deployment is currently run by hand from a workstation. There is no CI/CD pipeline in the repository ([§10.6](TECHNICAL-DESIGN.md#106-cicd-and-migrations)), so every procedure below is written as something a person executes and can verify.
+> **Status.** Deployment is currently run by hand from a workstation. There is no CI/CD pipeline in the repository ([section 10.6](TECHNICAL-DESIGN.md#106-cicd-and-migrations)), so every procedure below is written as something a person executes and can verify.
 
 ---
 
@@ -98,7 +98,7 @@ cd api && uv run python -m app.seed --employees 250 --reset
 
 The seeder writes through the same service layer the application uses, so every row is one the API would have produced. It creates roughly 250 people across five departments, spreads their opening reporting runs over the preceding eighteen months, and generates historical and future-dated moves - which is what gives the as-of controls and the scheduled-changes panel something real to show.
 
-It also creates the two demo accounts (`admin@epiuse-demo.com`, `viewer@epiuse-demo.com`) and resets their passwords to the values in `app/seed.py`. Those are demo credentials for an assessment environment; they have no business being in a real deployment.
+It also creates the two demo accounts (`admin@example.com`, `viewer@example.com`) and resets their passwords to the values in `app/seed.py`. Those are demo credentials for an assessment environment; they have no business being in a real deployment.
 
 ---
 
@@ -169,7 +169,7 @@ gcloud run revisions list --service ehm
 gcloud run services update-traffic ehm --to-revisions "${PREVIOUS_REVISION}=100"
 ```
 
-This takes seconds and needs no database restore **provided the migration in that release was backward-compatible** - which is exactly why §5 requires it. A migration that dropped or renamed something the previous version reads cannot be rolled back this way; recovering from that means restoring the database, so the discipline in §5 is what keeps rollback cheap.
+This takes seconds and needs no database restore **provided the migration in that release was backward-compatible** - which is exactly why section 5 requires it. A migration that dropped or renamed something the previous version reads cannot be rolled back this way; recovering from that means restoring the database, so the discipline in section 5 is what keeps rollback cheap.
 
 ---
 
@@ -181,15 +181,15 @@ This takes seconds and needs no database restore **provided the migration in tha
 |---|---|---|
 | Container exits immediately at start | `JWT_SECRET` too short or well-known; `CORS_ORIGINS` contains `*`, or a plaintext origin in production | The validation error is printed on stdout and names the variable |
 | `/health` 500s | Database unreachable, or the pool is exhausted | Neon compute suspended or at its connection limit; see below |
-| Every request is slow on first hit after idle | Neon scale-to-zero, or a Cloud Run cold start | [§10.8](TECHNICAL-DESIGN.md#108-cold-starts) - raise minimum instances |
+| Every request is slow on first hit after idle | Neon scale-to-zero, or a Cloud Run cold start | [section 10.8](TECHNICAL-DESIGN.md#108-cold-starts) - raise minimum instances |
 | Requests hang, then time out | Connection pool exhausted (`pool_size=5, max_overflow=0`) | Long-running CSV exports hold a connection for the whole download; check for concurrent large exports |
 | `/docs` returns 404 | Working as designed - `ENVIRONMENT=production` | Nothing to fix |
 | Login always 429s | Rate limiter is seeing one client IP for everyone | The container must run with `--proxy-headers`; without it `X-Forwarded-For` is ignored |
 | A scheduled move did not take effect | The cache column is refreshed on write and at start-up | Any write, or a restart, applies it; `SELECT sync_effective_assignments();` forces it |
 
-**Connection budget.** Total connections are `max_instances × DB_POOL_SIZE`. Raising either without checking the other against Neon's limit is the standard way to cause an outage ([§10.4](TECHNICAL-DESIGN.md#104-database-connections-under-autoscaling)).
+**Connection budget.** Total connections are `max_instances x DB_POOL_SIZE`. Raising either without checking the other against Neon's limit is the standard way to cause an outage ([section 10.4](TECHNICAL-DESIGN.md#104-database-connections-under-autoscaling)).
 
-**Logs.** The application does not emit structured logs or correlation ids ([§10.7](TECHNICAL-DESIGN.md#107-observability)); you get Uvicorn's access lines in Cloud Logging, so tracing a report means matching on timestamp and path.
+**Logs.** The application does not emit structured logs or correlation ids ([section 10.7](TECHNICAL-DESIGN.md#107-observability)); you get Uvicorn's access lines in Cloud Logging, so tracing a report means matching on timestamp and path.
 
 ---
 
@@ -212,12 +212,12 @@ Set the hash directly instead:
 ```bash
 cd api && uv run python -c "
 from app.core.passwords import hash_password
-print(hash_password('«new-password»'))
+print(hash_password('<new-password>'))
 "
 ```
 
 ```sql
-UPDATE app_user SET password_hash = '«hash»' WHERE email = 'admin@epiuse-demo.com';
+UPDATE app_user SET password_hash = '<hash>' WHERE email = 'admin@example.com';
 ```
 
 ### Force every session to sign in again
@@ -228,7 +228,7 @@ Revoke the outstanding refresh tokens:
 UPDATE refresh_token SET revoked_at = now() WHERE revoked_at IS NULL;
 ```
 
-Access tokens already issued remain valid until they expire - 15 minutes by default ([§13](TECHNICAL-DESIGN.md#13-technology-decision-register), item 8). Shorten `JWT_ACCESS_TTL_SECONDS` if that window matters more than the round trips it costs.
+Access tokens already issued remain valid until they expire - 15 minutes by default ([section 13](TECHNICAL-DESIGN.md#13-technology-decision-register), item 8). Shorten `JWT_ACCESS_TTL_SECONDS` if that window matters more than the round trips it costs.
 
 ### Check for orphaned employees
 

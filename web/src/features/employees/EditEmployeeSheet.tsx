@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -149,7 +151,9 @@ export function EditEmployeeSheet({
         }
       }
 
-      toast.success('Changes saved')
+      toast.success('Changes saved', {
+        description: `${values.first_name} ${values.last_name}'s record has been updated.`,
+      })
       setConflict(null)
       onOpenChange(false)
     } catch (error) {
@@ -161,7 +165,9 @@ export function EditEmployeeSheet({
         })
         return
       }
-      toast.error(getErrorMessage(error, 'Failed to save changes'))
+      toast.error('Could not save these changes', {
+        description: getErrorMessage(error, 'The record is unchanged. Try again in a moment.'),
+      })
     }
   }
 
@@ -224,14 +230,20 @@ export function EditEmployeeSheet({
               Cancel
             </Button>
             <Button type="submit" form="edit-employee-form" disabled={updateEmployee.isPending}>
-              {updateEmployee.isPending ? 'Saving…' : 'Save changes'}
+              {updateEmployee.isPending ? (
+                <>
+                  <Spinner /> Saving...
+                </>
+              ) : (
+                'Save changes'
+              )}
             </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
 
       <Dialog open={Boolean(conflict)} onOpenChange={(next) => !next && setConflict(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>This record changed since you opened it</DialogTitle>
             <DialogDescription>
@@ -240,30 +252,32 @@ export function EditEmployeeSheet({
             </DialogDescription>
           </DialogHeader>
 
-          {conflict && (
-            <div className="flex flex-col gap-3 text-sm">
-              <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 font-medium text-muted-foreground">
-                <span>Field</span>
-                <span>Your version</span>
-                <span>Current version</span>
+          <DialogBody>
+            {conflict && (
+              <div className="flex flex-col gap-3 text-sm">
+                <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 font-medium text-muted-foreground">
+                  <span>Field</span>
+                  <span>Your version</span>
+                  <span>Current version</span>
+                </div>
+                {changedFields.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    No overlapping fields differ - you can safely keep your changes.
+                  </p>
+                ) : (
+                  changedFields.map((field) => (
+                    <div key={field} className="grid grid-cols-[1fr_1fr_1fr] gap-2">
+                      <span className="text-muted-foreground">{FIELD_LABELS[field]}</span>
+                      <span className="font-medium">
+                        {displayValue(form.getValues(field), field)}
+                      </span>
+                      <span>{displayValue(conflict.serverValues[field], field)}</span>
+                    </div>
+                  ))
+                )}
               </div>
-              {changedFields.length === 0 ? (
-                <p className="text-muted-foreground">
-                  No overlapping fields differ - you can safely keep your changes.
-                </p>
-              ) : (
-                changedFields.map((field) => (
-                  <div key={field} className="grid grid-cols-[1fr_1fr_1fr] gap-2">
-                    <span className="text-muted-foreground">{FIELD_LABELS[field]}</span>
-                    <span className="font-medium">
-                      {displayValue(form.getValues(field), field)}
-                    </span>
-                    <span>{displayValue(conflict.serverValues[field], field)}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+            )}
+          </DialogBody>
 
           <DialogFooter>
             <Button variant="outline" onClick={useTheirs}>

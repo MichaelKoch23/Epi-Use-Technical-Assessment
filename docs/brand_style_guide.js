@@ -201,7 +201,7 @@ document.querySelectorAll(".node-collapse").forEach((btn) => {
 	btn.addEventListener("click", () => {
 		const expanded = btn.getAttribute("aria-expanded") === "true";
 		btn.setAttribute("aria-expanded", String(!expanded));
-		btn.textContent = expanded ? "+" : "−";
+		btn.textContent = expanded ? "+" : "-";
 		const branch = document.getElementById(btn.getAttribute("aria-controls"));
 		if (branch) branch.hidden = expanded;
 	});

@@ -23,6 +23,14 @@ export async function fetchSubtree(id: string, asOf: string, depth?: number) {
   return data.items
 }
 
+async function fetchEmployee(id: string): Promise<ChartEmployee> {
+  const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}', {
+    params: { path: { employee_id: id } },
+  })
+  if (error) throw error
+  return data
+}
+
 async function fetchReportingLine(id: string, asOf: string) {
   const { data, error } = await apiClient.GET('/api/v1/employees/{employee_id}/reporting-line', {
     params: { path: { employee_id: id }, query: { as_of: asOf } },
@@ -64,7 +72,21 @@ export function useOrgChartData(asOf: string) {
     })),
   })
 
-  const [extraEmployees, setExtraEmployees] = useState<Map<string, ChartEmployee>>(new Map())
+  /**
+   * People pinned into the chart by a search or a ?focus= link, who may sit
+   * outside every loaded subtree. They are held as queries rather than as a
+   * frozen copy so that a delete or an edit elsewhere reaches them: a snapshot
+   * would keep drawing someone the server has already removed until a reload.
+   */
+  const [extraIds, setExtraIds] = useState<Set<string>>(new Set())
+  const extraQueries = useQueries({
+    queries: [...extraIds].map((id) => ({
+      queryKey: employeeKeys.detail(id),
+      queryFn: () => fetchEmployee(id),
+      // A deleted employee is a 404 here, which is an answer, not a failure.
+      retry: false,
+    })),
+  })
 
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
 
@@ -75,14 +97,16 @@ export function useOrgChartData(asOf: string) {
 
   const rootSubtreesVersion = rootSubtrees.map((q) => `${q.dataUpdatedAt}:${q.status}`).join('|')
   const expandQueriesVersion = expandQueries.map((q) => `${q.dataUpdatedAt}:${q.status}`).join('|')
+  const extraQueriesVersion = extraQueries.map((q) => `${q.dataUpdatedAt}:${q.status}`).join('|')
 
   const { employeesById, childrenByManager, loadedIds } = useMemo(() => {
     const employeesById = new Map<string, ChartEmployee>()
     const childrenByManager = new Map<string, Set<string>>()
     const loadedIds = new Set<string>()
 
-    for (const employee of extraEmployees.values()) {
-      employeesById.set(employee.id, employee)
+    for (const query of extraQueries) {
+      if (query.isError || !query.data) continue
+      employeesById.set(query.data.id, query.data)
     }
 
     const ingest = (
@@ -114,7 +138,15 @@ export function useOrgChartData(asOf: string) {
 
     return { employeesById, childrenByManager, loadedIds }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roots, rootSubtreesVersion, pendingExpandIds, expandQueriesVersion, extraEmployees, managerOverrides])
+  }, [
+    roots,
+    rootSubtreesVersion,
+    pendingExpandIds,
+    expandQueriesVersion,
+    extraIds,
+    extraQueriesVersion,
+    managerOverrides,
+  ])
 
   const depthById = useMemo(() => {
     const depths = new Map<string, number>()
@@ -148,6 +180,19 @@ export function useOrgChartData(asOf: string) {
     }
     return visible
   }, [roots, childrenByManager, collapsedIds])
+
+  /**
+   * The branches whose children are still in flight. Expanding a deep node can
+   * take a moment, and without this the chevron looks like it did nothing.
+   */
+  const expandingIds = useMemo(() => {
+    const ids = new Set<string>()
+    ;[...pendingExpandIds].forEach((id, index) => {
+      if (expandQueries[index]?.isLoading) ids.add(id)
+    })
+    return ids
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingExpandIds, expandQueriesVersion])
 
   const hasChildren = useCallback(
     (id: string): boolean | undefined => {
@@ -183,17 +228,21 @@ export function useOrgChartData(asOf: string) {
   )
 
   const focusPathTo = useCallback(async (employee: ChartEmployee): Promise<string[]> => {
-    setExtraEmployees((prev) => {
-      const next = new Map(prev)
-      next.set(employee.id, employee)
-      return next
-    })
+    // Seeded into the cache so the node draws immediately, then tracked as a
+    // query so later invalidations refresh - or retire - it.
+    const pin = (record: ChartEmployee) =>
+      queryClient.setQueryData(employeeKeys.detail(record.id), record)
+
+    pin(employee)
+    setExtraIds((prev) => (prev.has(employee.id) ? prev : new Set(prev).add(employee.id)))
+
     const ancestors = await fetchReportingLine(employee.id, asOf)
     const rootFirst = [...ancestors].reverse()
-    setExtraEmployees((prev) => {
-      const next = new Map(prev)
-      for (const { employee: ancestor } of rootFirst) next.set(ancestor.id, ancestor)
-      return next
+    for (const { employee: ancestor } of rootFirst) pin(ancestor)
+    setExtraIds((prev) => {
+      const next = new Set(prev)
+      for (const { employee: ancestor } of rootFirst) next.add(ancestor.id)
+      return next.size === prev.size ? prev : next
     })
     setCollapsedIds((prev) => {
       if (rootFirst.every(({ employee: a }) => !prev.has(a.id))) return prev
@@ -202,7 +251,7 @@ export function useOrgChartData(asOf: string) {
       return next
     })
     return rootFirst.map(({ employee: ancestor }) => ancestor.id)
-  }, [asOf])
+  }, [asOf, queryClient])
 
   const getDescendantIds = useCallback(
     (id: string, maxDepth = Infinity): string[] => {
@@ -221,18 +270,21 @@ export function useOrgChartData(asOf: string) {
     [childrenByManager]
   )
 
-  const invalidateAround = useCallback(
-    (ids: (string | null)[]) => {
-      const targets = new Set(ids.filter((id): id is string => Boolean(id)))
-      const promises = [...targets].map((id) =>
-        queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) })
-      )
-      promises.push(queryClient.invalidateQueries({ queryKey: hierarchyKeys.all }))
-      // A move changes no headcount, but it does change depth, span of control
-      // and which branches read as anomalies.
-      promises.push(queryClient.invalidateQueries({ queryKey: analyticsKeys.all }))
-      return Promise.all(promises)
-    },
+  /**
+   * A move changes a row that is cached under whichever node's subtree query
+   * fetched it - a root, or whichever ancestor was expanded - and not under
+   * either manager's own key. Invalidating just the two managers therefore
+   * leaves the moved employee's stale manager_id (and stale version, which the
+   * next If-Match is built from) in the cache, so the node springs back to its
+   * old parent the moment the optimistic override is dropped.
+   */
+  const invalidateChartData = useCallback(
+    () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all }),
+        queryClient.invalidateQueries({ queryKey: hierarchyKeys.all }),
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.all }),
+      ]),
     [queryClient]
   )
 
@@ -272,13 +324,10 @@ export function useOrgChartData(asOf: string) {
       }
       return data
     },
-    onMutate: async ({ employeeId, newManagerId, effectiveFrom }) => {
-      const previousManagerId = employeesById.get(employeeId)?.manager_id ?? null
-      // Only an immediate move changes what the chart shows today.
+    onMutate: ({ employeeId, newManagerId, effectiveFrom }) => {
       if (!effectiveFrom || effectiveFrom <= asOf) {
         setManagerOverrides((prev) => new Map(prev).set(employeeId, newManagerId))
       }
-      return { previousManagerId }
     },
     onError: (_error, { employeeId }) => {
       setManagerOverrides((prev) => {
@@ -287,12 +336,19 @@ export function useOrgChartData(asOf: string) {
         return next
       })
     },
-    onSuccess: async (data, { employeeId, newManagerId }, context) => {
-      await invalidateAround([context?.previousManagerId ?? null, newManagerId])
+    onSuccess: async (data, { employeeId }) => {
+      // The response carries the saved row, so a node held here from a search
+      // does not keep answering with the reporting line it was moved off.
+      if (data?.employee) {
+        queryClient.setQueryData(employeeKeys.detail(employeeId), data.employee)
+      }
+      await invalidateChartData()
       void queryClient.invalidateQueries({ queryKey: hierarchyKeys.scheduled() })
       void queryClient.invalidateQueries({
         queryKey: employeeKeys.assignmentHistory(employeeId),
       })
+      // Dropped only once the refetch has landed, so the move never flickers
+      // back to the old parent in between.
       setManagerOverrides((prev) => {
         const next = new Map(prev)
         next.delete(employeeId)
@@ -311,6 +367,7 @@ export function useOrgChartData(asOf: string) {
     depthById,
     visibleIds,
     collapsedIds,
+    expandingIds,
     hasChildren,
     toggleExpanded,
     ensureExpanded,

@@ -61,6 +61,24 @@ class ReportingCycleError(DomainError):
         )
 
 
+class ManagerUnchangedError(DomainError):
+    """The requested manager is already the one in force, with nothing pending.
+
+    Writing it anyway would close the open run and open an identical one, so
+    the history would show a move from a manager to themselves and the audit
+    log would record a change that never happened.
+    """
+
+    def __init__(self, employee_id: uuid.UUID, manager_id: uuid.UUID | None) -> None:
+        self.employee_id = employee_id
+        self.manager_id = manager_id
+        target = "have no manager" if manager_id is None else "report to that manager"
+        super().__init__(
+            f"This employee already {target} from that date, "
+            "so there is nothing to change"
+        )
+
+
 class AssignmentNotFound(DomainError):
     def __init__(self, assignment_id: uuid.UUID) -> None:
         self.assignment_id = assignment_id

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { CostPanel } from '../components/CostPanel'
 
 describe('CostPanel', () => {
-  it('renders the restricted treatment when cost is absent (§9.3)', () => {
+  it('renders the restricted treatment when cost is absent (section 9.3)', () => {
     render(<CostPanel cost={undefined} restricted isPending={false} />)
 
     expect(screen.getByText(/restricted/i)).toBeInTheDocument()

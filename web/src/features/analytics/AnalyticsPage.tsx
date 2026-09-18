@@ -24,7 +24,7 @@ export function AnalyticsPage() {
         <h1 className="font-display text-2xl font-bold">Organisation analytics</h1>
         <p className="text-muted-foreground">
           {!data
-            ? 'Loading the current org structure…'
+            ? 'Loading the current org structure...'
             : `${data.headcount.toLocaleString()} employees, as of ${formatDateTime(
                 new Date(query.dataUpdatedAt).toISOString()
               )}.`}

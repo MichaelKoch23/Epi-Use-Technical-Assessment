@@ -113,5 +113,4 @@ async def test_a_viewer_may_list_managers_but_not_filter_them_by_salary(
 
 
 async def test_managers_needs_authentication(api_client):
-    # Matching the contract suite: the bearer scheme may answer either.
     assert (await api_client.get(_MANAGERS)).status_code in (401, 403)

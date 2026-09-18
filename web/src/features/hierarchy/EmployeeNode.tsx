@@ -2,6 +2,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { ChevronRightIcon } from 'lucide-react'
 import { EmployeeAvatar } from '@/components/employee-avatar'
 import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { depthToken } from './depthToken'
 import type { ChartEmployee } from './types'
@@ -12,6 +13,7 @@ export interface EmployeeNodeData extends Record<string, unknown> {
   isRoot: boolean
   hasChildren: boolean | undefined
   expanded: boolean
+  isExpanding: boolean
   dropValidity: 'valid' | 'invalid' | null
   isDimmed: boolean
   childNodeIds: string[]
@@ -27,6 +29,7 @@ export function EmployeeNode({ id, data, selected, dragging }: NodeProps<Employe
     isRoot,
     hasChildren,
     expanded,
+    isExpanding,
     dropValidity,
     isDimmed,
     childNodeIds,
@@ -81,7 +84,13 @@ export function EmployeeNode({ id, data, selected, dragging }: NodeProps<Employe
           aria-controls={
             expanded ? childNodeIds.map((childId) => `org-node-${childId}`).join(' ') : undefined
           }
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${fullName}'s branch`}
+          aria-label={
+            isExpanding
+              ? `Loading ${fullName}'s reports`
+              : `${expanded ? 'Collapse' : 'Expand'} ${fullName}'s branch`
+          }
+          aria-busy={isExpanding}
+          disabled={isExpanding}
           onClick={(event) => {
             event.stopPropagation()
             onToggleExpand(id)
@@ -89,7 +98,13 @@ export function EmployeeNode({ id, data, selected, dragging }: NodeProps<Employe
           className="absolute top-1/2 -right-5.5 grid size-11 -translate-y-1/2 place-items-center rounded-full"
         >
           <span className="grid size-6 place-items-center rounded-full border border-border bg-background shadow-sm">
-            <ChevronRightIcon className={cn('size-3.5 transition-transform', expanded && 'rotate-180')} />
+            {isExpanding ? (
+              <Spinner className="size-3.5 text-brand-mid" />
+            ) : (
+              <ChevronRightIcon
+                className={cn('size-3.5 transition-transform', expanded && 'rotate-180')}
+              />
+            )}
           </span>
         </button>
       )}

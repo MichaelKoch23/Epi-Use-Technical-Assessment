@@ -28,7 +28,7 @@ export function EmployeeDetailPage() {
   if (!id) return null
 
   if (query.isPending) {
-    return <p className="text-muted-foreground">Loading…</p>
+    return <p className="text-muted-foreground">Loading...</p>
   }
   if (query.isError || !query.data) {
     return <p className="text-muted-foreground">Could not load this employee.</p>
@@ -41,8 +41,16 @@ export function EmployeeDetailPage() {
     avatarMutation.mutate(
       { id: employee.id, version: employee.version, file },
       {
-        onSuccess: () => toast.success(file ? 'Photo updated' : 'Photo removed'),
-        onError: (error) => toast.error(getErrorMessage(error, error.message || 'Could not update the photo')),
+        onSuccess: () =>
+          toast.success(file ? 'Photo updated' : 'Photo removed', {
+            description: file
+              ? 'It now appears in the employee list and the org chart.'
+              : 'Their Gravatar or initials will be shown instead.',
+          }),
+        onError: (error) =>
+          toast.error('Could not update the photo', {
+            description: getErrorMessage(error, error.message || 'The photo is unchanged. Try again in a moment.'),
+          }),
       }
     )
   }

@@ -18,16 +18,25 @@ function StatCard({
     <div
       className={cn(
         'rounded-md border border-border bg-card px-5 py-4',
-        caution && 'border-l-4 border-l-status-alert'
+        caution && 'border-status-alert/40'
       )}
     >
       <p className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
         {label}
       </p>
-      <p className="type-numeric my-2 text-2xl font-extrabold text-brand-primary tabular-nums">
+      <p
+        className={cn(
+          'type-numeric my-2 text-2xl font-extrabold tabular-nums',
+          caution ? 'text-status-alert' : 'text-brand-primary'
+        )}
+      >
         {value}
       </p>
-      {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
+      {meta && (
+        <p className={cn('text-xs', caution ? 'text-status-alert' : 'text-muted-foreground')}>
+          {meta}
+        </p>
+      )}
     </div>
   )
 }

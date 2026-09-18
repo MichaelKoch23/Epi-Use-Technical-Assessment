@@ -71,9 +71,6 @@ class EmployeeService:
         self._session.add(employee)
         await self._session.flush()
 
-        # Open the employee's first assignment run so employee_assignment is the
-        # complete record of the reporting edge, not only of moves made through
-        # the effective-dating endpoints.
         await self._assignments.set_edge(
             employee.id,
             manager_id,

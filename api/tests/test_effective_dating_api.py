@@ -4,6 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import EmployeeFactory
@@ -32,8 +33,6 @@ async def test_tree_and_roots_echo_the_resolved_date(
     assert roots.status_code == 200, roots.text
     assert roots.json()["as_of"] == TODAY.isoformat()
 
-    # Five days ago none of these assignment runs had opened yet, so everyone
-    # reads as a root. Employee lifecycle is not itself temporal - only the edge.
     past = (TODAY - timedelta(days=5)).isoformat()
     tree = await api_client.get(
         f"{API}/hierarchy/tree", params={"as_of": past}, headers=headers
@@ -70,6 +69,62 @@ async def test_subtree_and_reporting_line_accept_as_of(
     assert len(line.json()["items"]) == 2
 
 
+async def test_a_historical_view_rooted_on_someone_since_deleted_still_reads(
+    api_client: AsyncClient, auth_headers, db_session, employee_factory
+) -> None:
+    """The chart loads roots, then each root's subtree. Deleting the only root
+    leaves yesterday's chart rooted on somebody who is gone today, so an
+    existence check asking "is this person here now" fails the whole view
+    rather than the one node. It has to ask about the date being read."""
+    root, a, _b, _mover = await _org(employee_factory, db_session)
+    headers = await auth_headers("hr_admin")
+    yesterday = (TODAY - timedelta(days=1)).isoformat()
+
+    # Backdate the opening runs so yesterday has a structure to read at all.
+    await db_session.execute(
+        text("UPDATE employee_assignment SET valid_from = :from_date"),
+        {"from_date": TODAY - timedelta(days=30)},
+    )
+    await db_session.commit()
+
+    deleted = await api_client.delete(
+        f"{API}/employees/{root.id}",
+        params={"policy": "promote_to_root"},
+        headers=headers,
+    )
+    assert deleted.status_code in (200, 204), deleted.text
+
+    roots = await api_client.get(
+        f"{API}/hierarchy/roots", params={"as_of": yesterday}, headers=headers
+    )
+    assert roots.status_code == 200, roots.text
+    assert [item["id"] for item in roots.json()["items"]] == [str(root.id)]
+
+    subtree = await api_client.get(
+        f"{API}/employees/{root.id}/subtree",
+        params={"as_of": yesterday},
+        headers=headers,
+    )
+    assert subtree.status_code == 200, subtree.text
+    assert len(subtree.json()["items"]) == 5
+
+    line = await api_client.get(
+        f"{API}/employees/{a.id}/reporting-line",
+        params={"as_of": yesterday},
+        headers=headers,
+    )
+    assert line.status_code == 200, line.text
+    assert [item["employee"]["id"] for item in line.json()["items"]] == [str(root.id)]
+
+    # ...and today they really are gone.
+    today_subtree = await api_client.get(
+        f"{API}/employees/{root.id}/subtree",
+        params={"as_of": TODAY.isoformat()},
+        headers=headers,
+    )
+    assert today_subtree.status_code == 404, today_subtree.text
+
+
 async def test_scheduling_a_move_then_cancelling_it(
     api_client: AsyncClient, auth_headers, db_session, employee_factory
 ) -> None:
@@ -91,7 +146,6 @@ async def test_scheduling_a_move_then_cancelling_it(
     assert body["in_force_now"] is False
     assert body["effective_from"] == effective
     assert body["reason"] == "Planned transfer"
-    # Not in force, so the employee still reports to the old manager today.
     assert body["employee"]["manager_id"] != str(b.id)
 
     listing = await api_client.get(f"{API}/hierarchy/scheduled", headers=headers)

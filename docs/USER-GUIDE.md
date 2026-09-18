@@ -34,10 +34,12 @@ Two demo accounts are available:
 
 | Account | Email | Role |
 |---|---|---|
-| Administrator | `admin@epiuse-demo.com` | `hr_admin` - full access |
-| Read-only | `viewer@epiuse-demo.com` | `viewer` - can look, cannot change |
+| Administrator | `admin@example.com` | `hr_admin` - full access |
+| Read-only | `viewer@example.com` | `viewer` - can look, cannot change |
 
 Passwords are supplied separately with the submission.
+
+The read-only account is worth signing into at least once. It is not a lesser copy of the administrator view - it is the demonstration that **salary confidentiality is enforced by the server, not by hiding buttons**. Sign in as the viewer and the salary column, the payroll figures on the analytics page and the salary column in an export are all simply absent, because they were never sent ([section 2](#2-what-you-can-do-depends-on-your-role)).
 
 **If sign-in fails**, the message is deliberately the same whether the email is unknown or the password is wrong - this prevents anyone from using the login form to discover which email addresses have accounts. Check both.
 
@@ -51,14 +53,14 @@ Passwords are supplied separately with the submission.
 
 | | Administrator (`hr_admin`) | Read-only (`viewer`) |
 |---|---|---|
-| Browse the org chart and employee table | ✓ | ✓ |
-| See salaries | ✓ | ✗ |
-| Add, edit, delete, restore employees | ✓ | ✗ |
-| Change reporting lines | ✓ | ✗ |
-| Export to CSV | ✓ (with salary) | ✓ (without salary) |
-| Import a spreadsheet | ✓ | ✗ |
-| View analytics | ✓ (including payroll cost) | ✓ (excluding payroll cost) |
-| View change history | ✓ (including salary figures) | ✓ (figures hidden) |
+| Browse the org chart and employee table | Yes | Yes |
+| See salaries | Yes | No |
+| Add, edit, delete, restore employees | Yes | No |
+| Change reporting lines | Yes | No |
+| Export to CSV | Yes (with salary) | Yes (without salary) |
+| Import a spreadsheet | Yes | No |
+| View analytics | Yes (including payroll cost) | Yes (excluding payroll cost) |
+| View change history | Yes (including salary figures) | Yes (figures hidden) |
 
 If you are signed in as a viewer, buttons that would change data are simply not shown.
 
@@ -71,7 +73,7 @@ If you are signed in as a viewer, buttons that would change data are simply not 
 The bar across the top of every page contains:
 
 - **Org chart**, **Employees**, **Analytics**, **Import** - the main sections.
-- **Search** (magnifying glass) - jump to any person from anywhere. Keyboard shortcut: **Ctrl + K** (**⌘ + K** on a Mac). Start typing a name, an employee number or a job title; press **Enter** on a result to open that person.
+- **Search** (magnifying glass) - jump to any person from anywhere. Keyboard shortcut: **Ctrl + K** (**Cmd + K** on a Mac). Start typing a name, an employee number or a job title; press **Enter** on a result to open that person.
 - **Change history** (clock icon) - every change made in the system.
 - **Account menu** (your picture, top right) - your signed-in identity, **Your profile**, and **Sign out**.
 
@@ -87,7 +89,7 @@ A visual, interactive map of who reports to whom.
 
 - **Drag the background** to pan.
 - **Scroll** (or pinch) to zoom.
-- Click the **+ / −** on a card to expand or collapse that person's reports. Large branches load as you open them, so the chart stays responsive even in a big organisation.
+- Click the **+ / -** on a card to expand or collapse that person's reports. Large branches load as you open them, so the chart stays responsive even in a big organisation.
 
 ### Focus mode
 
@@ -103,7 +105,7 @@ Clicking a card opens a side panel with their details, their reporting line up t
 
 ### Seeing the chart as at another date
 
-The **Viewing as at** control above the chart redraws it as the organisation stood on any date you choose, and the **Scheduled changes** panel below it lists moves that have not yet taken effect. See [§9](#9-time-travel-past-dates-and-planned-changes).
+The **Viewing as at** control above the chart redraws it as the organisation stood on any date you choose, and the **Scheduled changes** panel below it lists moves that have not yet taken effect. See [section 9](#9-time-travel-past-dates-and-planned-changes).
 
 ### Saving a picture of the chart
 
@@ -131,11 +133,11 @@ Click any column heading to sort by it. Click again to reverse the direction.
 
 A range whose minimum is above its maximum can never match anybody, so **Apply filters** stays disabled and tells you which way round it should be, rather than showing you an empty table.
 
-Active filters appear as removable chips above the table; click the **×** on one to drop just that filter, or **Clear all** to reset.
+Active filters appear as removable chips above the table; click the **x** on one to drop just that filter, or **Clear all** to reset.
 
 ### Deleted employees
 
-A **Deleted** toggle lists people who have been removed. Deletion in this system is reversible - nothing is erased - so anyone here can be restored. See [§7](#7-adding-editing-and-removing-employees).
+A **Deleted** toggle lists people who have been removed. Deletion in this system is reversible - nothing is erased - so anyone here can be restored. See [section 7](#7-adding-editing-and-removing-employees).
 
 ### Your view is shareable
 
@@ -147,11 +149,11 @@ The filters, sort order and page you are looking at are all recorded in the brow
 
 Clicking a row in the table, or a card in the chart, opens that person's page:
 
-- Their photograph, name, job title and employee number. Administrators can upload or change the photograph here ([§10](#10-profile-pictures-and-your-profile-page)).
+- Their photograph, name, job title and employee number. Administrators can upload or change the photograph here ([section 10](#10-profile-pictures-and-your-profile-page)).
 - Date of birth, email address, and salary (administrators only).
 - Their manager, and their direct reports.
 - Their **reporting line** - the chain of managers from them to the top of the organisation.
-- Their **assignment history** - every manager they have ever had, with the dates each arrangement started and ended, the reason recorded and who made the change ([§9](#9-time-travel-past-dates-and-planned-changes)).
+- Their **assignment history** - every manager they have ever had, with the dates each arrangement started and ended, the reason recorded and who made the change ([section 9](#9-time-travel-past-dates-and-planned-changes)).
 - Their **change history** - every modification to this record, most recent first, with who made it and when.
 
 ---
@@ -169,7 +171,7 @@ Fields are checked as you type, so problems are flagged before you submit:
 - Employee numbers and email addresses must be unique among active employees.
 - A date of birth must be in the past.
 - Salary cannot be negative.
-- Currency is a three-letter code (`ZAR`, `USD`, …).
+- Currency is a three-letter code (`ZAR`, `USD`, ...).
 
 ### Editing
 
@@ -213,7 +215,7 @@ This is enforced by the database itself, not only by the interface, so it holds 
 
 ### Every move is dated, and can be dated ahead
 
-A reassignment is not a simple overwrite: it is recorded with the date it takes effect, which means it can be **scheduled for a future date** and the whole history stays readable. That is [§9](#9-time-travel-past-dates-and-planned-changes), and it is worth reading before you make your first change.
+A reassignment is not a simple overwrite: it is recorded with the date it takes effect, which means it can be **scheduled for a future date** and the whole history stays readable. That is [section 9](#9-time-travel-past-dates-and-planned-changes), and it is worth reading before you make your first change.
 
 ---
 
@@ -223,7 +225,7 @@ This is the part of the system most worth knowing about, because it changes what
 
 ### Viewing the organisation as at a past date
 
-Above the org chart is a **Viewing as at** date box, with shortcuts for **Today**, **−3 months** and **−1 year**. Set a date and the whole chart redraws as the organisation stood that day - the reporting lines and everyone's place in the tree. A *future* date works too, and shows you the organisation as it will be once the changes scheduled before then have taken effect.
+Above the org chart is a **Viewing as at** date box, with shortcuts for **Today**, **-3 months** and **-1 year**. Set a date and the whole chart redraws as the organisation stood that day - the reporting lines and everyone's place in the tree. A *future* date works too, and shows you the organisation as it will be once the changes scheduled before then have taken effect.
 
 The date is kept in the address bar, so a historical view is a link you can send to someone.
 
@@ -233,7 +235,7 @@ If any changes are scheduled, **Jump to change** buttons appear next to the date
 
 ### Scheduling a change for a future date
 
-When you reassign someone ([§8](#8-changing-who-someone-reports-to)), the confirmation dialog has an **Effective from** date, which defaults to today, and an optional **Reason**.
+When you reassign someone ([section 8](#8-changing-who-someone-reports-to)), the confirmation dialog has an **Effective from** date, which defaults to today, and an optional **Reason**.
 
 - **Leave the date as today** and the move happens immediately. The button reads **Confirm move**.
 - **Set a future date** and the move is *scheduled*. The button changes to **Schedule move**, and the dialog tells you it takes effect on that date. Nothing changes in today's chart. On the morning of that date, the change becomes current by itself - there is no job to run and nobody has to remember.
@@ -259,7 +261,7 @@ You can set **Effective from** to a date in the *past*, which is how you correct
 
 ### The scheduled changes panel
 
-Below the chart, **Scheduled changes** lists every future-dated move that has not yet taken effect: who moves, to whom, on what date, why, and who decided it. Administrators can **cancel** any of them with the **×**. Cancelling puts things back as they were - the arrangement the scheduled change was going to replace simply continues.
+Below the chart, **Scheduled changes** lists every future-dated move that has not yet taken effect: who moves, to whom, on what date, why, and who decided it. Administrators can **cancel** any of them with the **x**. Cancelling puts things back as they were - the arrangement the scheduled change was going to replace simply continues.
 
 **One scheduled change per person per date supersedes another.** If someone already has a move scheduled and you schedule a different one from the same date onward, the new decision replaces the old. The system does not do this quietly: the preview lists what will be cancelled before you confirm, and the confirmation tells you what was.
 
@@ -269,7 +271,7 @@ An employee's detail page has an **assignment history** - every manager they hav
 
 ### What does *not* travel in time
 
-Only reporting lines are dated. Names, positions, salaries and who has been deleted are single current values, so a chart read at a past date shows **today's** people arranged in **that date's** reporting structure. Someone hired last week appears in a chart dated last year. This is a known limit rather than a bug, and it is worth remembering before treating a historical view as a historical record.
+Reporting lines are dated, and so are departures: someone deleted on the 18th is in the chart on the 17th and gone from the 18th, under the manager they actually had. Arrivals are not dated, because a record has no hire date - so someone added last week still appears in a chart dated last year. Names, positions and salaries are single current values too, and always read as they are now. So a past view is reliable about who had left and who reported to whom, and not about who had joined.
 
 ---
 
@@ -309,7 +311,7 @@ Two things worth knowing:
 - **The export honours your current filters and sort order.** Filter to one department first and you will export only that department. Clear the filters to export everyone.
 - **Administrators get a salary column; read-only users do not.**
 
-Managers are identified by **employee number** rather than by an internal identifier, which makes the exported file safe to edit and import straight back in ([§12](#12-importing-from-a-spreadsheet)).
+Managers are identified by **employee number** rather than by an internal identifier, which makes the exported file safe to edit and import straight back in ([section 12](#12-importing-from-a-spreadsheet)).
 
 ---
 
@@ -323,7 +325,7 @@ The first row must be column headings. The columns are:
 
 | Column | Required | Notes |
 |---|---|---|
-| `employee_number` | Yes | The key. Matches an existing employee → updates them. New → creates them. |
+| `employee_number` | Yes | The key. Matches an existing employee -> updates them. New -> creates them. |
 | `first_name` | Yes | |
 | `last_name` | Yes | |
 | `email` | Yes | Must be unique among active employees |
@@ -333,7 +335,7 @@ The first row must be column headings. The columns are:
 | `currency` | No | Three letters; defaults to `ZAR` |
 | `manager_employee_number` | No | The manager's **employee number**, not their name |
 
-The simplest way to start is to **export first** ([§11](#11-exporting-to-a-spreadsheet)) and edit the file you get back - the columns already match.
+The simplest way to start is to **export first** ([section 11](#11-exporting-to-a-spreadsheet)) and edit the file you get back - the columns already match.
 
 To make someone top-level, leave `manager_employee_number` empty. This is treated as an instruction ("reports to nobody"), so it will clear an existing manager.
 
@@ -371,7 +373,7 @@ A dashboard describing the shape of the organisation.
 
 **Branch explorer** shows the same figures for one department: pick a person and see the totals for everyone beneath them.
 
-**Compare two dates** answers "what actually changed?" between any two dates. Pick a **from** and a **to** date and it reports who changed manager, which of those were whole-branch moves, who became or stopped being top-level, how the maximum depth and the average span of control shifted, and - for administrators - the total salary that moved between branches. This reads the same dated reporting records as [§9](#9-time-travel-past-dates-and-planned-changes), so it needs no separate change log and cannot disagree with one.
+**Compare two dates** answers "what actually changed?" between any two dates. Pick a **from** and a **to** date and it reports who changed manager, which of those were whole-branch moves, who became or stopped being top-level, how the maximum depth and the average span of control shifted, and - for administrators - the total salary that moved between branches. This reads the same dated reporting records as [section 9](#9-time-travel-past-dates-and-planned-changes), so it needs no separate change log and cannot disagree with one.
 
 ---
 
@@ -397,7 +399,7 @@ The history is written as part of the change itself, so it cannot disagree with 
 | *This employee and their entire subtree are deleted* | You have selected **Cascade** | Check the preview list; choose **Reparent** if you did not mean it |
 | *Effective date precedes the first recorded assignment* | You backdated a move to before this person had any reporting line at all | Choose a date on or after their first recorded assignment - their assignment history shows it |
 | *The assignment is already in force* | You tried to cancel a scheduled change that has since taken effect | It is history now; reassign them again if you want it undone |
-| *Import file exceeds the … limit* | The upload is too large | Split it into smaller files |
+| *Import file exceeds the ... limit* | The upload is too large | Split it into smaller files |
 | *File is not a readable .xlsx workbook* | The file is corrupt, or not really a spreadsheet | Re-export it from your spreadsheet program |
 | Session ends unexpectedly | Your sign-in expired, or was signed out elsewhere | Sign in again |
 

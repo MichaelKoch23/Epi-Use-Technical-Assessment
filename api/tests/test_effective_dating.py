@@ -11,11 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
     EffectiveDateBeforeFirstAssignmentError,
+    ManagerUnchangedError,
     ReportingCycleError,
     ScheduledAssignmentInForceError,
 )
 from app.repositories.assignment_repository import AssignmentRepository
 from app.services.assignment_service import AssignmentService
+from app.services.employee_service import EmployeeService
 from tests.conftest import EmployeeFactory
 
 TODAY = datetime.now(UTC).date()
@@ -48,7 +50,6 @@ async def test_as_of_tree_reflects_history_not_the_cache(
     mover = await employee_factory(manager_id=a.id)
 
     service = AssignmentService(db_session)
-    # Backdate the mover's first run so a past date is representable.
     await db_session.execute(
         text("UPDATE employee_assignment SET valid_from = :d WHERE employee_id = :e"),
         {"d": TODAY - timedelta(days=200), "e": mover.id},
@@ -121,8 +122,6 @@ async def test_temporal_cycle_across_a_scheduled_change(
     )
     await db_session.commit()
 
-    # At september the structure is acyclic, so a point-in-time check would allow
-    # this. At october it would close a loop.
     with pytest.raises(ReportingCycleError) as exc:
         await service.reassign(
             a.id, b.id, effective_from=september, reason="A under B", actor_id=actor_id
@@ -156,6 +155,59 @@ async def test_the_same_move_is_allowed_when_nothing_is_scheduled(
     assert result.assignment.manager_id == b.id
 
 
+async def test_reassigning_to_the_current_manager_is_rejected(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """A move to the manager already in force is a non-change, not a move.
+
+    Allowing it closes the open run and opens an identical one, so the history
+    reads "moved from Ravi to Ravi" and the audit log gains an entry for
+    something that never happened.
+    """
+    root = await employee_factory()
+    manager = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=manager.id)
+
+    mover_id, manager_id = mover.id, manager.id
+    before = await _count(db_session)
+    with pytest.raises(ManagerUnchangedError):
+        await AssignmentService(db_session).reassign(
+            mover_id, manager_id, actor_id=actor_id
+        )
+
+    assert await _count(db_session) == before
+    rows = await AssignmentRepository(db_session).get_assignment_history(mover_id)
+    assert [row.assignment.manager_id for row in rows] == [manager_id]
+
+
+async def test_reaffirming_the_current_manager_calls_off_a_scheduled_move(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """The exception to the rule above, and why it is not a blanket rejection."""
+    root = await employee_factory()
+    manager = await employee_factory(manager_id=root.id)
+    other = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=manager.id)
+
+    service = AssignmentService(db_session)
+    scheduled = await service.reassign(
+        mover.id,
+        other.id,
+        effective_from=TODAY + timedelta(days=20),
+        reason="planned",
+        actor_id=actor_id,
+    )
+    await db_session.commit()
+
+    result = await service.reassign(
+        mover.id, manager.id, reason="staying put", actor_id=actor_id
+    )
+    await db_session.commit()
+
+    assert scheduled.assignment.id in [c.id for c in result.cancelled]
+    assert await AssignmentRepository(db_session).get_scheduled() == []
+
+
 async def test_move_supersedes_scheduled_and_reports_them(
     db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
 ) -> None:
@@ -183,6 +235,69 @@ async def test_move_supersedes_scheduled_and_reports_them(
 
     repo = AssignmentRepository(db_session)
     assert len(await repo.get_scheduled()) == 1
+
+
+async def test_a_departure_ends_on_its_date_rather_than_rewriting_history(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """Deleting somebody removes them from that day on, not from all of time.
+
+    The whole point of the as-at view is that yesterday still reads the way it
+    read yesterday. A departure is dated like any other change: gone from the
+    day it happens, present on every day before it.
+    """
+    ceo = await employee_factory()
+    manager = await employee_factory(manager_id=ceo.id)
+    ic = await employee_factory(manager_id=manager.id)
+    yesterday = TODAY - timedelta(days=1)
+
+    # Backdate the opening runs so there is a day of history to read.
+    await db_session.execute(
+        text("UPDATE employee_assignment SET valid_from = :from_date"),
+        {"from_date": TODAY - timedelta(days=30)},
+    )
+    await db_session.commit()
+
+    await EmployeeService(db_session).soft_delete(manager.id, actor_id=actor_id)
+    await db_session.commit()
+
+    repo = AssignmentRepository(db_session)
+
+    rows = await repo.get_tree(yesterday)
+    by_id = {row.employee.id: row for row in rows}
+    assert manager.id in by_id, "yesterday predates the deletion"
+    assert by_id[manager.id].employee.manager_id == ceo.id
+    assert by_id[ic.id].depth == 2, "the branch still hangs off the manager"
+
+    today_ids = {row.employee.id for row in await repo.get_tree(TODAY)}
+    assert manager.id not in today_ids
+    assert {ceo.id, ic.id} <= today_ids
+
+
+async def test_an_edge_left_pointing_at_a_departed_manager_does_not_strand_a_branch(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """The guard in the root CTE, exercised.
+
+    Deleting through a DeletionPolicy reparents the reports, so their edge
+    never outlives their manager. soft_delete on its own does not, which is
+    the shape of any row written before departures were dated: without the
+    guard that branch falls out of the tree entirely, and the view comes back
+    empty when the departed manager was the only root.
+    """
+    manager = await employee_factory()
+    ic = await employee_factory(manager_id=manager.id)
+
+    await EmployeeService(db_session).soft_delete(manager.id, actor_id=actor_id)
+    await db_session.commit()
+
+    repo = AssignmentRepository(db_session)
+    rows = await repo.get_tree(TODAY)
+    assert manager.id not in {row.employee.id for row in rows}
+    assert ic.id in {row.employee.id for row in rows}
+
+    roots = await repo.get_tree(TODAY, max_depth=0)
+    assert ic.id in {row.employee.id for row in roots}
 
 
 async def test_preview_writes_nothing(
@@ -321,9 +436,6 @@ async def test_diff_structure_reads_from_assignments_alone(
     assert diff.max_depth_from == diff.max_depth_to == 3
 
 
-# --- Step 34: the non-overlap invariant is structural, not defensive ----------
-
-
 async def _insert_assignment(
     session: AsyncSession,
     employee_id: uuid.UUID,
@@ -350,8 +462,6 @@ async def test_exclusion_constraint_rejects_an_overlapping_assignment(
     mover = await employee_factory(manager_id=root.id)
     await db_session.commit()
 
-    # The run opened by create() is open-ended from today, so any row covering
-    # today overlaps it.
     with pytest.raises(IntegrityError) as exc:
         async with db_session.begin_nested():
             await _insert_assignment(db_session, mover.id, other.id, TODAY)
@@ -371,7 +481,6 @@ async def test_exclusion_constraint_permits_an_adjacent_assignment(
         text("UPDATE employee_assignment SET valid_to = :t WHERE employee_id = :e"),
         {"t": handover, "e": mover.id},
     )
-    # Starts on the very day the previous run ends - adjacent, not overlapping.
     await _insert_assignment(db_session, mover.id, other.id, handover)
     await db_session.commit()
 
@@ -398,9 +507,6 @@ async def test_exclusion_constraint_is_scoped_to_one_employee(
     await _insert_assignment(db_session, second.id, root.id, TODAY)
     await db_session.commit()
     assert await _count(db_session) == before
-
-
-# --- Step 35: the as-of tree is the historical structure ---------------------
 
 
 async def test_get_tree_returns_the_structure_as_it_stood_at_four_dates(
@@ -446,7 +552,6 @@ async def test_get_tree_returns_the_structure_as_it_stood_at_four_dates(
     assert await manager_at(TODAY - timedelta(days=150)) == c.id
     assert await manager_at(TODAY) == a.id
 
-    # The runs tile the whole period with no gap and no overlap.
     history = [r.assignment for r in await repo.get_assignment_history(mover.id)]
     assert [row.valid_from for row in history] == [
         TODAY - timedelta(days=100),
@@ -488,9 +593,6 @@ async def test_the_boundary_day_itself_belongs_to_the_new_manager(
     assert await manager_at(changeover) == b.id
 
 
-# --- Step 37: a scheduled change becomes current by date, with no scheduler ---
-
-
 async def test_a_scheduled_change_applies_itself_once_its_date_arrives(
     db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
 ) -> None:
@@ -524,7 +626,6 @@ async def test_a_scheduled_change_applies_itself_once_its_date_arrives(
     assert mover.manager_id == a.id
     assert await repo.sync_effective(force=True) == 0
 
-    # The date arrives.
     await db_session.execute(
         text(
             "UPDATE employee_assignment"
@@ -541,8 +642,6 @@ async def test_a_scheduled_change_applies_itself_once_its_date_arrives(
 
     await db_session.refresh(mover)
     assert mover.manager_id == b.id
-    # The cache column backs the If-Match ETag, so it has to move with it.
     assert mover.version == version_while_pending + 1
-    # Nothing is left scheduled, and a second sync has nothing to do.
     assert await repo.get_scheduled() == []
     assert await repo.sync_effective(force=True) == 0

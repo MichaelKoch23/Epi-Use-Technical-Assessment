@@ -76,8 +76,6 @@ export function FilterPopover({
       ? [draft.position, ...positions]
       : positions
 
-  // Driven by the draft, not the applied filters, so choosing a position and
-  // then opening "Reports to" already offers that position's managers.
   const managerQueryParams = {
     position: draft.position || undefined,
     min_salary: salaryFilterAllowed && draft.minSalary ? draft.minSalary : undefined,
@@ -170,7 +168,7 @@ export function FilterPopover({
                   value={draft.minSalary}
                   onChange={(e) => setDraft((d) => ({ ...d, minSalary: e.target.value }))}
                 />
-                <span className="text-muted-foreground">–</span>
+                <span className="text-muted-foreground">-</span>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -205,7 +203,7 @@ export function FilterPopover({
               value={draft.minBirthDate}
               onChange={(e) => setDraft((d) => ({ ...d, minBirthDate: e.target.value }))}
             />
-            <span className="text-muted-foreground">–</span>
+            <span className="text-muted-foreground">-</span>
             <Input
               type="date"
               aria-label="Latest date of birth"

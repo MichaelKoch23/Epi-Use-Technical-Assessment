@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTable } from '@tanstack/react-table'
 import { ChevronDownIcon, ChevronUpIcon, DownloadIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import {
   InputGroup,
@@ -10,6 +11,7 @@ import {
   InputGroupInput,
 } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Table,
   TableBody,
@@ -66,6 +68,7 @@ export function EmployeesListPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null)
   const [deletingEmployee, setDeletingEmployee] = useState<EmployeeListItem | null>(null)
+  const [restoringEmployee, setRestoringEmployee] = useState<EmployeeListItem | null>(null)
   const restoreEmployee = useRestoreEmployeeMutation()
 
   const [searchInput, setSearchInput] = useState(state.q)
@@ -105,12 +108,7 @@ export function EmployeesListPage() {
   const meta: EmployeeTableMeta = {
     onEdit: setEditingEmployee,
     onDelete: setDeletingEmployee,
-    onRestore: (employee) => {
-      restoreEmployee.mutate(employee.id, {
-        onSuccess: () => toast.success(`${employee.first_name} ${employee.last_name} was restored`),
-        onError: (error) => toast.error(getErrorMessage(error, 'Failed to restore employee')),
-      })
-    },
+    onRestore: setRestoringEmployee,
     showRestore: state.deleted,
     canEdit,
   }
@@ -145,14 +143,20 @@ export function EmployeesListPage() {
               setIsExporting(true)
               try {
                 await exportEmployeesCsv(filters)
+                toast.success('Export ready', {
+                  description: 'employees.csv has been downloaded with the filters you have applied.',
+                })
               } catch (error) {
-                toast.error(getErrorMessage(error, 'Failed to export employees'))
+                toast.error('Could not export the employee list', {
+                  description: getErrorMessage(error, 'Try again in a moment.'),
+                })
               } finally {
                 setIsExporting(false)
               }
             }}
           >
-            <DownloadIcon /> Export CSV
+            {isExporting ? <Spinner /> : <DownloadIcon />}
+            {isExporting ? 'Exporting...' : 'Export CSV'}
           </Button>
           {canEdit && (
             <Button onClick={() => setCreateOpen(true)}>
@@ -316,6 +320,44 @@ export function EmployeesListPage() {
         employee={deletingEmployee}
         open={Boolean(deletingEmployee)}
         onOpenChange={(open) => !open && setDeletingEmployee(null)}
+      />
+      <ConfirmDialog
+        open={Boolean(restoringEmployee)}
+        onOpenChange={(open) => !open && setRestoringEmployee(null)}
+        title="Restore this employee?"
+        description={
+          restoringEmployee ? (
+            <>
+              <span className="font-medium text-foreground">
+                {restoringEmployee.first_name} {restoringEmployee.last_name}
+              </span>{' '}
+              goes back into the roster and the org chart, reporting to the same manager as
+              before.
+            </>
+          ) : null
+        }
+        confirmLabel="Restore"
+        pendingLabel="Restoring..."
+        cancelLabel="Leave deleted"
+        variant="default"
+        isPending={restoreEmployee.isPending}
+        onConfirm={() => {
+          const employee = restoringEmployee
+          if (!employee) return
+          restoreEmployee.mutate(employee.id, {
+            onSuccess: () => {
+              toast.success(`${employee.first_name} ${employee.last_name} was restored`, {
+                description: 'They appear in the employee list and the org chart again.',
+              })
+              setRestoringEmployee(null)
+            },
+            onError: (error) => {
+              toast.error('Could not restore this employee', {
+                description: getErrorMessage(error, 'They are still deleted. Try again in a moment.'),
+              })
+            },
+          })
+        }}
       />
     </div>
   )

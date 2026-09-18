@@ -12,6 +12,7 @@ from app.core.exceptions import (
     AssignmentNotFound,
     EffectiveDateBeforeFirstAssignmentError,
     EmployeeNotFound,
+    ManagerUnchangedError,
     ReportingCycleError,
     ScheduledAssignmentInForceError,
     VersionConflictError,
@@ -145,8 +146,6 @@ class AssignmentService:
         locked = await self._lock(employee_id, new_manager_id)
         employee = locked[employee_id]
 
-        # The If-Match lock is checked after the row is held, so a concurrent
-        # writer cannot slip in between the read and the decision.
         if expected_version is not None and employee.version != expected_version:
             raise VersionConflictError(employee_id, expected_version, employee.version)
 
@@ -163,7 +162,17 @@ class AssignmentService:
             employee_id, effective_from
         )
 
-        # A new decision supersedes anything already scheduled from this date on.
+        if new_manager_id == previous_manager_id:
+            # Re-affirming the manager in force is still a real edit when it
+            # supersedes a scheduled move to somebody else - that is how a
+            # pending change is called off. With nothing pending it writes a
+            # move from a manager to themselves, which is what this rejects.
+            upcoming = await self._assignments.get_starting_on_or_after(
+                employee_id, effective_from
+            )
+            if all(row.manager_id == new_manager_id for row in upcoming):
+                raise ManagerUnchangedError(employee_id, new_manager_id)
+
         assignment, superseded = await self._assignments.set_edge(
             employee_id,
             new_manager_id,
@@ -293,9 +302,6 @@ class AssignmentService:
         await self._session.flush()
 
         if preceding is not None:
-            # Reopen the run this was going to supersede. Handing it the cancelled
-            # row's own valid_to reopens it fully when that was NULL, and bridges
-            # the gap exactly when a further change is already scheduled behind it.
             preceding.valid_to = assignment.valid_to
             await self._session.flush()
 
@@ -363,8 +369,6 @@ class AssignmentService:
             from_date=from_date,
             to_date=to_date,
             manager_changes=manager_changes,
-            # A manager who moves takes their reports with them, so a change on
-            # someone with reports is a branch move rather than a single hop.
             branch_moves=[c for c in manager_changes if c.subtree_size > 0],
             became_root=[
                 c
@@ -394,8 +398,6 @@ class AssignmentService:
     async def get_scheduled(
         self, after: date | None = None
     ) -> Sequence[ScheduledAssignmentRow]:
-        # Filtered on CURRENT_DATE in SQL rather than on the cache, so this stays
-        # correct without turning a read into a write.
         return await self._assignments.get_scheduled(after)
 
     async def _assert_acyclic(

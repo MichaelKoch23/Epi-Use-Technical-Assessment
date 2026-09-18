@@ -32,7 +32,7 @@ async def test_inverted_range_is_refused_rather_than_returning_nothing(
     "query",
     [
         "min_salary=40000&max_salary=200000",
-        "min_salary=50000&max_salary=50000",  # an exact-match range is legitimate
+        "min_salary=50000&max_salary=50000",
         "min_salary=200000",
         "max_salary=40000",
         "min_birth_date=1990-01-01&max_birth_date=2000-01-01",

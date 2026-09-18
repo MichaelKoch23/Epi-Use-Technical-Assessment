@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { SpanDistributionChart } from '../components/SpanDistributionChart'
 
 describe('SpanDistributionChart', () => {
-  it('gives bars outside the healthy range (3–10) the alert token', () => {
+  it('gives bars outside the healthy range (3-10) the alert token', () => {
     render(
       <SpanDistributionChart
         data={[

@@ -150,9 +150,6 @@ async def get_org_summary(
 ) -> OrgSummaryReadAny:
     service = AnalyticsService(session)
     data = await service.get_org_summary(principal)
-    # The server-side cache already makes a repeat call cheap, and it is checked
-    # against the data rather than a clock. Letting the browser hold the payload
-    # instead would reintroduce exactly the staleness that cache removes.
     response.headers["Cache-Control"] = "private, no-cache"
     return to_org_summary_read(data, principal)
 

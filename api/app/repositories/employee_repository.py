@@ -184,6 +184,21 @@ class EmployeeRepository:
         stmt = select(Employee).where(Employee.id == id)
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def get_as_of(self, id: uuid.UUID, as_of: date) -> Employee | None:
+        """The employee as they stood on a given day, if they were there at all.
+
+        `get` asks whether somebody is here now, which is the wrong question for
+        an endpoint that reads a date: the root of a historical chart may well
+        be someone who has since left, and answering 404 for them turns an
+        ordinary historical view into a failed one. Matches the departure rule
+        the as-at SQL uses - gone from the day of deletion, present before it.
+        """
+        stmt = select(Employee).where(
+            Employee.id == id,
+            (Employee.deleted_at.is_(None)) | (func.date(Employee.deleted_at) > as_of),
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def get_for_update(self, id: uuid.UUID) -> Employee | None:
         stmt = (
             select(Employee)

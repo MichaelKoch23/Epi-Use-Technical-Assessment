@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   AlertDialog,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -13,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Spinner } from '@/components/ui/spinner'
 import { getErrorMessage } from '@/lib/apiError'
 import { fetchDeletionPreview, useDeleteEmployeeMutation } from './mutations'
 import type { EmployeeListItem } from './types'
@@ -21,7 +23,7 @@ const POLICIES = [
   {
     value: 'reparent',
     label: 'Reparent',
-    description: 'Direct reports move up to this employee’s own manager.',
+    description: "Direct reports move up to this employee's own manager.",
   },
   {
     value: 'promote_to_root',
@@ -71,56 +73,69 @@ export function DeleteEmployeeDialog({
     if (!employee) return
     try {
       await deleteEmployee.mutateAsync({ id: employee.id, policy })
-      toast.success(`${employee.first_name} ${employee.last_name} was deleted`)
+      toast.success(`${employee.first_name} ${employee.last_name} was deleted`, {
+        description: 'They can be brought back from the Deleted filter on the employee list.',
+      })
       onOpenChange(false)
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to delete employee'))
+      toast.error('Could not delete this employee', {
+        description: getErrorMessage(error, 'Nothing was changed. Try again in a moment.'),
+      })
     }
   }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-md" initialFocus={cancelRef}>
+      <AlertDialogContent initialFocus={cancelRef}>
         <AlertDialogHeader>
           <AlertDialogTitle>
             Delete {employee ? `${employee.first_name} ${employee.last_name}` : 'employee'}?
           </AlertDialogTitle>
+        </AlertDialogHeader>
+
+        <AlertDialogBody>
           <AlertDialogDescription>
             Choose what happens to their direct reports. This cannot be undone from here, but a
             deleted employee can still be restored from the Deleted filter.
           </AlertDialogDescription>
-        </AlertDialogHeader>
 
-        <RadioGroup value={policy} onValueChange={(value) => setPolicy(value as Policy)}>
-          {POLICIES.map((option) => {
-            const count = previews.data?.[option.value]?.length
-            return (
-              <Label
-                key={option.value}
-                htmlFor={`policy-${option.value}`}
-                className="flex cursor-pointer items-start gap-2 rounded-md border border-border p-3 font-normal has-data-checked:border-primary"
-              >
-                <RadioGroupItem value={option.value} id={`policy-${option.value}`} />
-                <span className="flex flex-col gap-0.5">
-                  <span className="flex items-center gap-2 font-medium">
-                    {option.label}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {previews.isPending
-                        ? 'Counting…'
-                        : `${count ?? 0} employee${count === 1 ? '' : 's'} affected`}
+          <RadioGroup value={policy} onValueChange={(value) => setPolicy(value as Policy)}>
+            {POLICIES.map((option) => {
+              const count = previews.data?.[option.value]?.length
+              return (
+                <Label
+                  key={option.value}
+                  htmlFor={`policy-${option.value}`}
+                  className="flex cursor-pointer items-start gap-2 rounded-md border border-border p-3 font-normal has-data-checked:border-primary"
+                >
+                  <RadioGroupItem value={option.value} id={`policy-${option.value}`} />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-2 font-medium">
+                      {option.label}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {previews.isPending
+                          ? 'Counting...'
+                          : `${count ?? 0} employee${count === 1 ? '' : 's'} affected`}
+                      </span>
                     </span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
                   </span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
-                </span>
-              </Label>
-            )
-          })}
-        </RadioGroup>
+                </Label>
+              )
+            })}
+          </RadioGroup>
+        </AlertDialogBody>
 
         <AlertDialogFooter>
           <AlertDialogCancel ref={cancelRef}>Cancel</AlertDialogCancel>
           <Button variant="destructive" onClick={confirmDelete} disabled={deleteEmployee.isPending}>
-            {deleteEmployee.isPending ? 'Deleting…' : 'Delete'}
+            {deleteEmployee.isPending ? (
+              <>
+                <Spinner /> Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

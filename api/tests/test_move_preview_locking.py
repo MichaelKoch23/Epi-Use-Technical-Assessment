@@ -23,8 +23,6 @@ async def test_move_preview_takes_no_row_locks(
     other_manager = await employee_factory()
     mover = await employee_factory(manager_id=manager.id)
 
-    # A scheduled move gives the preview a future assignment row to report on -
-    # which is precisely the row it used to lock.
     await AssignmentService(db_session).reassign(
         mover.id,
         other_manager.id,
@@ -39,9 +37,6 @@ async def test_move_preview_takes_no_row_locks(
     )
     assert len(preview.supersedes) == 1, "expected the scheduled move in the preview"
 
-    # db_session's transaction is still open. A second session must be able to
-    # take the write locks now; NOWAIT turns any conflict into an error rather
-    # than a hang, so a regression fails the test instead of stalling it.
     async with session_factory() as other:
         try:
             await other.execute(

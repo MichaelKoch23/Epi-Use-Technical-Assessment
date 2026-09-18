@@ -8,9 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.employee import EmployeeHierarchyNode, EmployeeReadAny
 
-# Every temporal read echoes the date it resolved, so a client never has to infer
-# which day the payload describes.
-
 
 class AsOfEmployees(BaseModel):
     as_of: date

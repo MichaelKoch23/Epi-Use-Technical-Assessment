@@ -10,9 +10,6 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-# One employee, one manager, any given day. The half-open '[)' convention means
-# valid_to is the first day the assignment is no longer in force, so a run ending
-# 2026-09-30 and one starting 2026-09-30 are adjacent rather than overlapping.
 CREATE_NO_OVERLAP = """
 ALTER TABLE employee_assignment
   ADD CONSTRAINT assignment_no_overlap
@@ -26,8 +23,6 @@ DROP_NO_OVERLAP = """
 ALTER TABLE employee_assignment DROP CONSTRAINT IF EXISTS assignment_no_overlap;
 """
 
-# Every live employee's current edge becomes an open-ended assignment starting
-# before any real data, so the as-of tree is never empty for historical dates.
 BACKFILL = """
 INSERT INTO employee_assignment (id, employee_id, manager_id, valid_from, valid_to, reason)
 SELECT gen_random_uuid(), e.id, e.manager_id, DATE '2020-01-01', NULL, 'Initial load'
@@ -35,12 +30,6 @@ FROM employee e
 WHERE e.deleted_at IS NULL;
 """
 
-# employee_assignment is authoritative for history; employee.manager_id is a
-# maintained cache of whichever row is effective today. This recomputes that
-# cache, which is what makes a future-dated assignment become current on its own
-# date with no scheduler. version is bumped alongside manager_id because it backs
-# the If-Match ETag - a silent manager change under a stale ETag would let a
-# client overwrite a decision it never saw.
 CREATE_SYNC_FUNCTION = """
 CREATE OR REPLACE FUNCTION sync_effective_assignments() RETURNS integer AS $$
 DECLARE
@@ -146,8 +135,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # employee.manager_id is deliberately left untouched: it still holds the
-    # currently-effective edge, which is the point of keeping the cache column.
     op.execute(DROP_SYNC_FUNCTION)
     op.drop_index("ix_assignment_range", table_name="employee_assignment")
     op.drop_index("ix_assignment_manager", table_name="employee_assignment")

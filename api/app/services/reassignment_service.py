@@ -60,8 +60,6 @@ class ReassignmentService:
         after = snapshot_employee(employee)
 
         await self._session.flush()
-        # This is the immediate, present-day path. The edge is recorded from today
-        # so the temporal history stays complete whichever endpoint made the move.
         await self._assignments.set_edge(
             employee_id,
             new_manager_id,

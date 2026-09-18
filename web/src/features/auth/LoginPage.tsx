@@ -1,11 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { LogIn } from 'lucide-react'
+import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
 import ehmLogo from '@/assets/ehm-logo.png'
 import { apiClient } from '@/lib/apiClient'
 import { getErrorMessage } from '@/lib/apiError'
@@ -15,16 +21,18 @@ import { meQueryKey } from './useAuth'
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
 
   const loginMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await apiClient.POST('/api/v1/auth/login', {
+      const { data, error: responseError } = await apiClient.POST('/api/v1/auth/login', {
         body: { email, password },
       })
-      if (error) throw error
+      if (responseError) throw responseError
       return data
     },
     onSuccess: (data) => {
@@ -33,15 +41,18 @@ export function LoginPage() {
       const redirectTo = (location.state as { from?: string } | null)?.from ?? '/chart'
       navigate(redirectTo, { replace: true })
     },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Incorrect email or password'))
+    onError: (failure) => {
+      setError(getErrorMessage(failure, 'Incorrect email or password'))
     },
   })
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault()
+    setError(null)
     loginMutation.mutate()
   }
+
+  const errorId = error ? 'login-error' : undefined
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-surface-bg p-4">
@@ -64,25 +75,56 @@ export function LoginPage() {
                 autoComplete="username"
                 required
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setError(null)
+                }}
+                aria-invalid={Boolean(error)}
+                aria-describedby={errorId}
                 className="h-10"
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="h-10"
-              />
+              <InputGroup className="h-10">
+                <InputGroupInput
+                  id="password"
+                  type={passwordVisible ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value)
+                    setError(null)
+                  }}
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={errorId}
+                  className="h-full"
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-sm"
+                    aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                    aria-pressed={passwordVisible}
+                    onClick={() => setPasswordVisible((visible) => !visible)}
+                    // The 32px control carries a 48px hit area, so it clears the 44px touch target.
+                    className="relative text-muted-foreground after:absolute after:-inset-2 after:content-['']"
+                  >
+                    {passwordVisible ? <EyeOff /> : <Eye />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+              {error && (
+                <p id="login-error" role="alert" className="text-xs font-medium text-status-critical">
+                  {error}
+                </p>
+              )}
             </div>
             <Button type="submit" disabled={loginMutation.isPending} className="mt-1 h-10">
               {loginMutation.isPending ? (
-                'Signing in…'
+                <>
+                  <Spinner /> Signing in...
+                </>
               ) : (
                 <>
                   <LogIn /> Sign in

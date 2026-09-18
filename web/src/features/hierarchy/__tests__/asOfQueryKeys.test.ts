@@ -5,7 +5,7 @@ import { shiftIso } from '../useAsOf'
 const ID = '11111111-1111-1111-1111-111111111111'
 
 /**
- * §33: every hierarchy-shaped key must vary with as_of. A key that ignores it
+ * section 33: every hierarchy-shaped key must vary with as_of. A key that ignores it
  * would serve present-day data under a past-date banner - the quiet failure
  * this whole feature is most likely to produce.
  */

@@ -64,8 +64,6 @@ export function ManagerPicker({
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 250)
 
-  // Typing always searches everyone: the suggestions are a better starting
-  // point, not a restriction on what can be chosen.
   const showingSuggestions = suggestions !== undefined && debouncedSearch.trim() === ''
 
   const { data: searchResults = [], isFetching } = useQuery({
@@ -105,7 +103,7 @@ export function ManagerPicker({
           <CommandList>
             <CommandEmpty>
               {busy
-                ? 'Searching…'
+                ? 'Searching...'
                 : showingSuggestions
                   ? 'No managers match these filters - type to search everyone.'
                   : 'No employees found.'}

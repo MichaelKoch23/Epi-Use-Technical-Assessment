@@ -11,6 +11,7 @@ from app.core.exceptions import (
     DuplicateEmployeeNumberError,
     EffectiveDateBeforeFirstAssignmentError,
     EmployeeNotFound,
+    ManagerUnchangedError,
     ReportingCycleError,
     ScheduledAssignmentInForceError,
     VersionConflictError,
@@ -43,6 +44,12 @@ _PROBLEMS: list[tuple[type[DomainError], int, str, str]] = [
         "Reassignment would create a reporting cycle",
     ),
     (AssignmentNotFound, 404, "assignment-not-found", "Assignment not found"),
+    (
+        ManagerUnchangedError,
+        409,
+        "manager-unchanged",
+        "That is already the employee's manager",
+    ),
     (
         ScheduledAssignmentInForceError,
         422,
@@ -85,6 +92,8 @@ def _field_errors(exc: DomainError) -> list[dict[str, str]]:
         return [{"field": "effective_from", "code": "before_first_assignment"}]
     if isinstance(exc, AssignmentOverlapError):
         return [{"field": "effective_from", "code": "overlap"}]
+    if isinstance(exc, ManagerUnchangedError):
+        return [{"field": "manager_id", "code": "unchanged"}]
     return []
 
 

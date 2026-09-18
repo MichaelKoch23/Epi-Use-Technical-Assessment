@@ -45,7 +45,7 @@ export function EmployeesPagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
       <p className="text-sm text-muted-foreground">
-        {total === 0 ? 'No employees found' : `Showing ${start}–${end} of ${total}`}
+        {total === 0 ? 'No employees found' : `Showing ${start}-${end} of ${total}`}
       </p>
 
       <div className="flex items-center gap-4">
@@ -78,7 +78,7 @@ export function EmployeesPagination({
           {pageWindow(page, pageCount).map((p, i) =>
             p === null ? (
               <span key={`ellipsis-${i}`} className="px-1 text-sm text-muted-foreground">
-                …
+                ...
               </span>
             ) : (
               <Button

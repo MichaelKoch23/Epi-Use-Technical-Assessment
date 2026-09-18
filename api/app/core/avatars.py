@@ -14,8 +14,6 @@ _UPLOADED_AVATAR_RE = re.compile(
 )
 
 
-# Gravatar caps requested images at 2048px; asking for more is an error rather
-# than a bigger picture.
 MAX_AVATAR_PX = 2048
 
 

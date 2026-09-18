@@ -65,14 +65,15 @@ export function ReassignManagerPalette({
         onValueChange={setSearch}
       />
       <CommandList>
-        <CommandEmpty>{isFetching ? 'Searching…' : 'No employees found.'}</CommandEmpty>
+        <CommandEmpty>{isFetching ? 'Searching...' : 'No employees found.'}</CommandEmpty>
         <CommandGroup>
           <CommandItem onSelect={() => onSelect(null, 'no manager')}>
             No manager (make root)
           </CommandItem>
           {options.map((option) => {
             const isSelf = option.id === employee.id
-            const disabled = excludedIds.has(option.id)
+            const isCurrent = option.id === employee.manager_id
+            const disabled = isCurrent || excludedIds.has(option.id)
             return (
               <CommandItem
                 key={option.id}
@@ -89,9 +90,11 @@ export function ReassignManagerPalette({
                   </span>
                   {disabled && (
                     <span className="text-xs text-muted-foreground">
-                      {isSelf
-                        ? "An employee can't manage themselves"
-                        : 'Would create a reporting cycle'}
+                      {isCurrent
+                        ? 'Already their manager'
+                        : isSelf
+                          ? "An employee can't manage themselves"
+                          : 'Would create a reporting cycle'}
                     </span>
                   )}
                 </span>

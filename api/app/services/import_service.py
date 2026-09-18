@@ -25,11 +25,6 @@ from app.services.reassignment_service import ReassignmentService
 
 _REQUIRED_TEXT_FIELDS = ("first_name", "last_name", "email", "position")
 
-# The same field constraints the JSON API applies, reused rather than restated so
-# the two entry points cannot drift apart. A spreadsheet reaches the database
-# without passing through a request body model, so without this a row that parses
-# cleanly can still violate a column type or a CHECK constraint - and that arrives
-# as a failed transaction, not as a blocked row with a reason anyone can act on.
 _FIELD_ADAPTERS: dict[str, TypeAdapter[object]] = {
     "employee_number": TypeAdapter(EmployeeNumber),
     "first_name": TypeAdapter(PersonName),
@@ -182,8 +177,6 @@ def _check_business_rules(rows: list[_Row], today: date) -> None:
 
 def _first_error_message(exc: ValidationError) -> str:
     message = exc.errors()[0]["msg"]
-    # Pydantic prefixes messages raised from a validator function; the prefix adds
-    # nothing for a reader looking at a spreadsheet row.
     return message.removeprefix("Value error, ")
 
 

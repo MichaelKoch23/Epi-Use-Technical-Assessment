@@ -13,8 +13,6 @@ from app.core.avatars import (
 )
 from app.core.config import settings
 
-# The worked example from Gravatar's own getting-started guide, which pins both
-# halves of the contract: trim, lower-case, then SHA-256.
 TUTORIAL_EMAIL = "sarahthompson@fork.do"
 TUTORIAL_HASH = "03f35cb0038f321f291113ba702c0b0574b9d64de93617c0b66b3504fe393152"
 

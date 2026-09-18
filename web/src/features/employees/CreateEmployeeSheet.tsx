@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Sheet,
   SheetContent,
@@ -68,10 +69,14 @@ export function CreateEmployeeSheet({
         manager_id: values.manager_id || null,
         avatar_override_url: values.avatar_override_url || null,
       })
-      toast.success(`${values.first_name} ${values.last_name} was created`)
+      toast.success(`${values.first_name} ${values.last_name} was created`, {
+        description: 'They now appear in the employee list and the org chart.',
+      })
       onOpenChange(false)
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to create employee'))
+      toast.error('Could not create this employee', {
+        description: getErrorMessage(error, 'Nothing was saved. Check the fields and try again.'),
+      })
     }
   })
 
@@ -101,7 +106,13 @@ export function CreateEmployeeSheet({
             Cancel
           </Button>
           <Button type="submit" form="create-employee-form" disabled={createEmployee.isPending}>
-            {createEmployee.isPending ? 'Creating…' : 'Create employee'}
+            {createEmployee.isPending ? (
+              <>
+                <Spinner /> Creating...
+              </>
+            ) : (
+              'Create employee'
+            )}
           </Button>
         </SheetFooter>
       </SheetContent>

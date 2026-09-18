@@ -60,7 +60,7 @@ export function CommandPalette({
             {search.length === 0
               ? 'Start typing to search employees.'
               : isFetching
-                ? 'Searching…'
+                ? 'Searching...'
                 : 'No employees found.'}
           </CommandEmpty>
           <CommandGroup>

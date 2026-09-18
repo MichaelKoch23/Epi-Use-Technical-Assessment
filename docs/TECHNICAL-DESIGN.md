@@ -6,14 +6,14 @@
 | **Prepared for** | EPI-USE Africa - Technical Services Internship Assessment |
 | **Author** | Michael Koch |
 | **Version** | 1.1 |
-| **Date** | «submission date» |
-| **Live application** | «https://…run.app» |
-| **API documentation** | «https://…run.app/docs» (interactive OpenAPI) |
-| **Source repository** | «https://github.com/…» |
-| **Container image** | «europe-west3-docker.pkg.dev/…» |
-| **Demo credentials** | Admin: «…» · Read-only: «…» |
+| **Date** | <submission date> |
+| **Live application** | <https://...run.app> |
+| **API documentation** | <https://...run.app/docs> (interactive OpenAPI) |
+| **Source repository** | <https://github.com/...> |
+| **Container image** | <europe-west3-docker.pkg.dev/...> |
+| **Demo credentials** | Admin: <...> - Read-only: <...> |
 
-> Placeholders marked «…» must be filled before submission.
+> Placeholders marked <...> must be filled before submission.
 
 ---
 
@@ -47,7 +47,7 @@ Three decisions shape the design, and the rest of this document justifies them:
 | FR-8 | Provide a table/list view sortable and filterable on any employee field | Brief |
 | FR-9 | Display Gravatar avatars linked to employee data | Brief |
 | FR-10 | Optionally support avatar upload | Brief (nice-to-have) |
-| FR-11 | Prevent indirect reporting cycles (A → B → C → A) | Derived from FR-4 |
+| FR-11 | Prevent indirect reporting cycles (A -> B -> C -> A) | Derived from FR-4 |
 | FR-12 | Define deletion behaviour for an employee who has direct reports | Derived from FR-1 |
 | FR-13 | Role-based access with salary visibility restricted to authorised roles | Added |
 | FR-14 | Audit trail of all data changes | Added |
@@ -65,10 +65,10 @@ Three decisions shape the design, and the rest of this document justifies them:
 | NFR-3 | Read latency for hierarchy and list views | p95 < 400 ms at 1 000 employees |
 | NFR-4 | Hierarchy remains acyclic under concurrent writes | Enforced at database level |
 | NFR-5 | Salary values never returned to unauthorised principals | Enforced server-side |
-| NFR-6 | Automated test coverage on domain and service layers | ≥ 80% |
+| NFR-6 | Automated test coverage on domain and service layers | >= 80% |
 | NFR-7 | Reproducible builds and one-command local startup | `docker compose up` |
 | NFR-8 | WCAG 2.1 AA for keyboard navigation and contrast | Audited via Lighthouse/axe |
-| NFR-9 | Alignment with POPIA principles for personal information | Documented in §9.5 |
+| NFR-9 | Alignment with POPIA principles for personal information | Documented in section 9.5 |
 
 ### 2.3 Requirements traceability
 
@@ -82,14 +82,14 @@ Three decisions shape the design, and the rest of this document justifies them:
 | FR-7 | `GET /search`, command palette, chart focus mode | `test_search.py` |
 | FR-8 | `GET /employees` with whitelisted sort/filter params | `test_list_filtering.py` |
 | FR-9 | `GravatarAdapter` (SHA-256 email hash) | `test_gravatar.py` |
-| FR-11 | Deferred constraint trigger + service pre-check; `AssignmentService._assert_acyclic` extends this across future boundary dates (§5.2) | `test_cycle_prevention.py`, `test_temporal_cycle_across_a_scheduled_change` |
+| FR-11 | Deferred constraint trigger + service pre-check; `AssignmentService._assert_acyclic` extends this across future boundary dates (section 5.2) | `test_cycle_prevention.py`, `test_temporal_cycle_across_a_scheduled_change` |
 | FR-12 | `DeletionPolicy` strategy | `test_deletion_policies.py` |
 | FR-13 | RBAC dependency + response schema selection | `test_salary_redaction.py` |
 | FR-14 | `AuditLog` written inside the unit of work | `test_audit_trail.py` |
 | FR-15 | `POST /imports/employees`, `GET /exports/employees.csv` | `test_import.py`, `test_export.py` |
-| FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` - `cost` field-gated to `hr_admin` (§9.3), not endpoint-gated | `test_analytics.py` |
+| FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` - `cost` field-gated to `hr_admin` (section 9.3), not endpoint-gated | `test_analytics.py` |
 | FR-17 | `employee_assignment` with a GiST exclusion constraint; `AssignmentRepository` as-of CTE; `?as_of=` on the four hierarchy reads; `AsOfControl` and the read-only banner in the web client | `test_effective_dating.py`, `test_effective_dating_api.py`, `asOfQueryKeys.test.ts`, `AsOfBanner.test.tsx` |
-| FR-18 | `AssignmentService.preview_move`, `POST /employees/{id}/move-preview` - `cost_delta` field-gated to `hr_admin` (§9.3) | `test_preview_writes_nothing`, `test_move_preview_hides_cost_from_a_viewer` |
+| FR-18 | `AssignmentService.preview_move`, `POST /employees/{id}/move-preview` - `cost_delta` field-gated to `hr_admin` (section 9.3) | `test_preview_writes_nothing`, `test_move_preview_hides_cost_from_a_viewer` |
 
 ---
 
@@ -97,12 +97,12 @@ Three decisions shape the design, and the rest of this document justifies them:
 
 ### 3.1 Architectural style
 
-The solution is a **client–server application composed of a single-page application and a stateless HTTP API over a managed relational database**. Internally the API is a **layered modular monolith**: a single deployable unit whose modules (employees, hierarchy, auth, audit, analytics, import/export) are separated by explicit interfaces rather than by network boundaries. The SPA and the API ship together in **one container image**.
+The solution is a **client-server application composed of a single-page application and a stateless HTTP API over a managed relational database**. Internally the API is a **layered modular monolith**: a single deployable unit whose modules (employees, hierarchy, auth, audit, analytics, import/export) are separated by explicit interfaces rather than by network boundaries. The SPA and the API ship together in **one container image**.
 
 It is worth being precise about what this architecture is *not*, because these labels are commonly misapplied:
 
 - **Not microservices.** There is one deployable service with one database schema and one transactional boundary. Splitting it would introduce distributed-transaction problems for an invariant (acyclicity) that must be enforced atomically.
-- **Not event-driven.** Communication is synchronous request/response. The optional outbound webhooks (§10.7) are a notification mechanism layered on top of synchronous writes, not an event-sourced or message-brokered core.
+- **Not event-driven.** Communication is synchronous request/response. The optional outbound webhooks (section 10.7) are a notification mechanism layered on top of synchronous writes, not an event-sourced or message-brokered core.
 - **Not serverless in the functions-as-a-service sense.** The application is an ordinary long-lived ASGI process in a container. Cloud Run is a managed container platform that happens to scale to zero - it executes the same image `docker run` would. The distinction matters: the application is written against no platform-specific handler API, so moving it to ECS, Kubernetes or a plain virtual machine is a configuration change rather than a rewrite.
 
 This choice is deliberate. For a bounded domain with a single strong consistency requirement and a one-week delivery window, a modular monolith gives the strongest correctness guarantees at the lowest operational cost. The module boundaries are drawn so that extraction into separate services remains possible if the domain later warranted it.
@@ -128,12 +128,12 @@ A single Cloud Run service serves both the API and the built SPA. This removes c
 ```mermaid
 graph TD
     subgraph Browser
-        SPA[React SPA<br/>TypeScript · Vite · Tailwind<br/>TanStack Query · React Flow]
+        SPA[React SPA<br/>TypeScript - Vite - Tailwind<br/>TanStack Query - React Flow]
     end
 
-    subgraph CR["Cloud Run service · europe-west3"]
+    subgraph CR["Cloud Run service - europe-west3"]
         UV[Uvicorn / ASGI]
-        API[FastAPI application<br/>Python 3.12 · Pydantic v2 · SQLAlchemy 2.0]
+        API[FastAPI application<br/>Python 3.12 - Pydantic v2 - SQLAlchemy 2.0]
         ST[StaticFiles<br/>built SPA bundle]
         UV --> API
         UV --> ST
@@ -151,10 +151,10 @@ graph TD
 
 **Route precedence inside the container.** The API mounts first and the static bundle acts as the fallback, so ordering is explicit rather than incidental:
 
-1. `/api/v1/*` → API routers
-2. `/docs`, `/redoc`, `/openapi.json` → generated documentation
-3. `/assets/*` → hashed, immutable static assets
-4. anything else → `index.html`, so client-side routes such as `/employees/018f…` survive a page refresh
+1. `/api/v1/*` -> API routers
+2. `/docs`, `/redoc`, `/openapi.json` -> generated documentation
+3. `/assets/*` -> hashed, immutable static assets
+4. anything else -> `index.html`, so client-side routes such as `/employees/018f...` survive a page refresh
 
 ### 3.4 API component view
 
@@ -194,9 +194,9 @@ The one-directional dependency rule means the domain and service layers are test
 2. The SPA optimistically updates its cache and issues `PUT /api/v1/employees/{id}/manager` with `If-Match: "<version>"`.
 3. A FastAPI dependency validates the JWT and asserts the `hr_admin` role.
 4. A second dependency checks a connection out of the pool and begins a transaction.
-5. `ReassignmentService` locks the employee row (`SELECT … FOR UPDATE`), checks the optimistic-lock version, then runs the subtree query of §4.6 to confirm the proposed manager is not a descendant.
+5. `ReassignmentService` locks the employee row (`SELECT ... FOR UPDATE`), checks the optimistic-lock version, then runs the subtree query of section 4.6 to confirm the proposed manager is not a descendant.
 6. The update is applied and an `audit_log` row is written in the same transaction.
-7. The deferred acyclicity trigger re-validates at `COMMIT`, closing the race window described in §5.2.
+7. The deferred acyclicity trigger re-validates at `COMMIT`, closing the race window described in section 5.2.
 8. The router returns `200 OK` with the new version; on conflict it returns `409` and the SPA rolls the optimistic update back and refetches.
 
 ---
@@ -209,7 +209,7 @@ The domain has one aggregate root, `Employee`, which owns its identity, personal
 
 Deliberate modelling choices:
 
-- **Position is a string field, not a separate `Role` entity.** The brief asks for a role/position on the employee record. Normalising it into a table would add a join and a management screen for no requirement. This is noted as a roadmap item (§15) rather than pretended away.
+- **Position is a string field, not a separate `Role` entity.** The brief asks for a role/position on the employee record. Normalising it into a table would add a join and a management screen for no requirement. This is noted as a roadmap item (section 15) rather than pretended away.
 - **`employee_number` is a natural key but not the primary key.** It is business-assigned, human-visible and potentially re-sequenced. A surrogate UUID primary key keeps foreign keys stable if numbering policy changes.
 - **UUIDv7 rather than UUIDv4.** UUIDv7 is time-ordered, which preserves B-tree index locality on insert and avoids the write amplification of random UUIDs, while remaining non-enumerable in URLs.
 
@@ -280,7 +280,7 @@ This is the central data-design decision, so the alternatives are set out in ful
 |---|---|---|---|---|
 | **Adjacency list + recursive CTE** | One recursive query per subtree | O(1) - update one column | Self-reference prevented declaratively; cycles prevented by trigger | **Selected** |
 | Materialised path (`/ceo/cto/eng/`) | Very fast prefix scan | O(subtree) - rewrite every descendant path | Cycles impossible by construction, but paths can desynchronise | Rejected |
-| Closure table (ancestor/descendant pairs) | Fastest - single indexed join | O(ancestors × descendants) rows rewritten per move | Strong, but duplicated state to keep consistent | Rejected at this scale |
+| Closure table (ancestor/descendant pairs) | Fastest - single indexed join | O(ancestors x descendants) rows rewritten per move | Strong, but duplicated state to keep consistent | Rejected at this scale |
 | `ltree` extension | Fast, with operators and GiST indexing | Same rewrite cost as materialised path | Good, but extension-dependent | Rejected |
 | Graph database (Neo4j) | Excellent traversal | Good | Excellent for traversal; weak for the tabular reporting view | Rejected |
 
@@ -305,7 +305,7 @@ ALTER TABLE employee_assignment
   );
 ```
 
-This is the same argument as §5.2 applied to time rather than to shape: application-level "does this overlap anything?" checks are correct in isolation and wrong under concurrency, whereas the constraint holds no matter how many instances write at once.
+This is the same argument as section 5.2 applied to time rather than to shape: application-level "does this overlap anything?" checks are correct in isolation and wrong under concurrency, whereas the constraint holds no matter how many instances write at once.
 
 **Why `employee.manager_id` was kept.** The column is now a *cache* of whichever assignment run is effective today, not an independent fact. It was retained rather than deleted for three reasons: every existing query, index and the deferred cycle trigger keep working untouched; the present-day read path stays a single indexed column rather than a range predicate; and a full temporal rewrite would have put the whole existing test suite at risk for no behavioural gain.
 
@@ -322,11 +322,11 @@ UPDATE employee e
    AND e.manager_id IS DISTINCT FROM ef.manager_id;
 ```
 
-It runs once per write transaction and once at application startup. **This is what makes a future-dated assignment become current on its own date with no scheduler, no cron and no background worker** - the change is already in the table, and the first transaction on or after its date simply observes it. `version` is bumped alongside `manager_id` because that column backs the `If-Match` ETag (§5.4): a manager that changed silently under a stale ETag would let a client overwrite a decision it never saw.
+It runs once per write transaction and once at application startup. **This is what makes a future-dated assignment become current on its own date with no scheduler, no cron and no background worker** - the change is already in the table, and the first transaction on or after its date simply observes it. `version` is bumped alongside `manager_id` because that column backs the `If-Match` ETag (section 5.4): a manager that changed silently under a stale ETag would let a client overwrite a decision it never saw.
 
-The function is a single indexed `UPDATE … FROM` that matches zero rows on the overwhelming majority of calls, so the cost of never letting the cache drift is negligible.
+The function is a single indexed `UPDATE ... FROM` that matches zero rows on the overwhelming majority of calls, so the cost of never letting the cache drift is negligible.
 
-**Limits of the model.** Only the *edge* is temporal, not the employee lifecycle. `deleted_at` remains a single timestamp, so an employee deleted today is absent from historical trees as well as from today's, and an employee created today reads as a root at every earlier date. Making the lifecycle temporal too would mean validity intervals on the employee row itself; it is not needed for the org-chart-as-at-a-date question this feature answers.
+**Limits of the model.** The *edge* is temporal, and so is the end of the lifecycle: `deleted_at` is compared against the as-of date, so an employee deleted today is absent from today's tree and still present in yesterday's. The start is not, because the employee row carries no hire date - `created_at` records when the row was written, which for an imported roster is the import, not the joining. An employee created today therefore reads as present at every earlier date. Closing that gap means a hire date and full validity intervals on the employee row; the departure half is what the org-chart-as-at-a-date question actually turns on, since deletions are the change most likely to be mistaken for the feature being broken.
 
 ### 4.4 Schema
 
@@ -371,7 +371,7 @@ Three details worth noting:
 
 ### 4.5 Soft deletion
 
-Employee records are soft-deleted by default (`deleted_at` set) rather than physically removed. Personnel data has audit and compliance value, accidental deletion in a hierarchy is destructive, and a restore path is cheap to provide. A hard-delete endpoint exists for genuine erasure requests (§9.5), and it cascades the audit rows explicitly rather than silently.
+Employee records are soft-deleted by default (`deleted_at` set) rather than physically removed. Personnel data has audit and compliance value, accidental deletion in a hierarchy is destructive, and a restore path is cheap to provide. A hard-delete endpoint exists for genuine erasure requests (section 9.5), and it cascades the audit rows explicitly rather than silently.
 
 ### 4.6 Key queries
 
@@ -452,7 +452,7 @@ An autoscaling platform heightens this risk rather than reducing it: Cloud Run m
 
 Three layers address this:
 
-1. **Row-level locking.** The service takes `SELECT … FOR UPDATE` on the employee and the proposed manager before validating, serialising conflicting moves on the same rows regardless of which instance handles them.
+1. **Row-level locking.** The service takes `SELECT ... FOR UPDATE` on the employee and the proposed manager before validating, serialising conflicting moves on the same rows regardless of which instance handles them.
 2. **A deferred constraint trigger.** Validation is re-run at `COMMIT`, after all statements in the transaction have been applied, so a cycle assembled from several statements is still caught.
 3. **A defensive path guard in every recursive read** (`NOT id = ANY(path)`), so that even if corrupt data somehow existed, reads terminate rather than looping.
 
@@ -500,7 +500,7 @@ for at in dates:
         raise ReportingCycleError(chain=repo.get_ancestors(new_manager_id, as_of=at), at=at)
 ```
 
-Checking the structure *before* the move is sufficient rather than merely convenient: the only new edge is employee → new manager, and a cycle can run through it only if the new manager is already inside the employee's subtree on that date. The move cannot add anyone to that subtree.
+Checking the structure *before* the move is sufficient rather than merely convenient: the only new edge is employee -> new manager, and a cycle can run through it only if the new manager is already inside the employee's subtree on that date. The move cannot add anyone to that subtree.
 
 **The cost is proportional to how far back the move is dated.** For a move taking effect today or later - the ordinary case - the only boundaries ahead of it are genuinely scheduled changes, so the set is a handful of dates and validation is a handful of queries. A *backdated correction* has to check every boundary between its effective date and the end of the schedule, which in an organisation with a long reassignment history can be a hundred or more dates, each one a separate recursive query. That is correct but not cheap, and it is the reason a deep backdated correction is noticeably slower than a normal move. Batching those checks into a single query over all candidate dates is the optimisation if it ever matters; it has not been needed at this scale.
 
@@ -541,7 +541,7 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `GET` | `/employees` | Paginated list; sort, filter, free-text search | Viewer |
 | `POST` | `/employees` | Create employee | Admin |
 | `GET` | `/employees/positions` | Distinct job titles in use, for the filter list | Viewer |
-| `GET` | `/employees/managers` | Distinct managers the *currently filtered* employees report to, for the "Reports to" filter | Viewer (salary filters gated to Admin, §9.3) |
+| `GET` | `/employees/managers` | Distinct managers the *currently filtered* employees report to, for the "Reports to" filter | Viewer (salary filters gated to Admin, section 9.3) |
 | `GET` | `/employees/gravatar-prefill` | Public Gravatar profile for an address, to prefill the create form | Admin |
 | `GET` | `/employees/{id}` | Single employee record | Viewer |
 | `PATCH` | `/employees/{id}` | Partial update (optimistic lock) | Admin |
@@ -549,28 +549,28 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `POST` | `/employees/{id}/restore` | Undo a soft delete | Admin |
 | `GET` | `/employees/{id}/deletion-preview` | Affected records for a given policy | Admin |
 | `PUT` | `/employees/{id}/manager` | Reassign reporting line; optional `effective_from` and `reason` schedule it (optimistic lock) | Admin |
-| `POST` | `/employees/{id}/move-preview` | Costed preview of a branch move; writes nothing | Viewer (`cost_delta` field-gated to Admin, §9.3) |
+| `POST` | `/employees/{id}/move-preview` | Costed preview of a branch move; writes nothing | Viewer (`cost_delta` field-gated to Admin, section 9.3) |
 | `GET` | `/employees/{id}/assignment-history` | Every reporting run for one employee, newest first | Viewer |
 | `GET` | `/employees/{id}/subtree` | Descendants to `?depth=`, as at `?as_of=` | Viewer |
 | `GET` | `/employees/{id}/reporting-line` | Ancestor chain to the root, as at `?as_of=` | Viewer |
-| `GET` | `/employees/{id}/audit` | Change history for one employee | Viewer (`salary` values field-gated to Admin, §9.3) |
+| `GET` | `/employees/{id}/audit` | Change history for one employee | Viewer (`salary` values field-gated to Admin, section 9.3) |
 | `PUT` | `/employees/{id}/avatar` | Upload a photo for an employee (optimistic lock) | Admin |
 | `DELETE` | `/employees/{id}/avatar` | Drop the uploaded photo, falling back to Gravatar | Admin |
 | `GET` | `/hierarchy/roots` | Employees with no manager, as at `?as_of=` | Viewer |
 | `GET` | `/hierarchy/tree` | Chart-shaped payload, lazily expandable, as at `?as_of=` | Viewer |
 | `GET` | `/hierarchy/scheduled` | Every future-dated assignment not yet in force | Viewer |
 | `DELETE` | `/hierarchy/scheduled/{id}` | Cancel a scheduled change and reopen the run it would have superseded | Admin |
-| `GET` | `/hierarchy/diff?from=&to=` | What changed in the structure between two dates | Viewer (`cost` field-gated to Admin, §9.3) |
+| `GET` | `/hierarchy/diff?from=&to=` | What changed in the structure between two dates | Viewer (`cost` field-gated to Admin, section 9.3) |
 | `GET` | `/analytics/org-summary` | Headcount, depth, span-of-control, anomalies | Viewer |
-| `GET` | `/analytics/branch/{id}` | Cost and headcount roll-up for a branch | Viewer (`cost` field-gated to Admin, §9.3) |
+| `GET` | `/analytics/branch/{id}` | Cost and headcount roll-up for a branch | Viewer (`cost` field-gated to Admin, section 9.3) |
 | `POST` | `/imports/employees` | CSV/XLSX upload; `?dry_run=true` validates only | Admin |
 | `GET` | `/exports/employees.csv` | Full extract honouring current filters | Viewer |
 | `GET` | `/search` | Cross-entity quick search for the command palette | Viewer |
-| `GET` | `/audit` | Global change-history feed across every employee | Viewer (`salary` values field-gated to Admin, §9.3) |
+| `GET` | `/audit` | Global change-history feed across every employee | Viewer (`salary` values field-gated to Admin, section 9.3) |
 | `GET` | `/profile` | Signed-in user, their avatar sources and their own employee record | Authenticated |
 | `PUT` | `/profile/avatar` | Upload the signed-in user's own photo | Authenticated |
 | `DELETE` | `/profile/avatar` | Drop the signed-in user's own photo | Authenticated |
-| `GET` | `/avatars/{id}` | Serve a stored avatar image (§8.3) | Public |
+| `GET` | `/avatars/{id}` | Serve a stored avatar image (section 8.3) | Public |
 | `GET` | `/health` | Liveness and database reachability | Public |
 
 The four hierarchy reads take an optional `as_of` date, defaulting to today, and **echo the resolved date back in every response** so a client never has to infer which day a payload describes. `PUT /employees/{id}/manager` returns the resulting assignment along with any scheduled changes the decision superseded, so a caller is never told silently that someone else's plan was cancelled.
@@ -597,7 +597,7 @@ All errors return `application/problem+json` per RFC 9457:
 
 ```json
 {
-  "type": "https://«host»/errors/reporting-cycle",
+  "type": "https://<host>/errors/reporting-cycle",
   "title": "Reassignment would create a reporting cycle",
   "status": 422,
   "detail": "Thandi Mokoena reports to Michael Koch indirectly and cannot become his manager.",
@@ -634,7 +634,7 @@ src/
 
 Feature-first rather than type-first: everything needed to change the org chart lives in one directory, which keeps the module boundaries in the UI aligned with those in the API.
 
-The SPA is built with Vite and the resulting bundle is copied into the API image at build time (§10.3), so the frontend is deployed as part of the same artefact and can never be a version behind the API it talks to.
+The SPA is built with Vite and the resulting bundle is copied into the API image at build time (section 10.3), so the frontend is deployed as part of the same artefact and can never be a version behind the API it talks to.
 
 ### 7.2 State management
 
@@ -657,11 +657,11 @@ Behaviour at scale:
 
 ### 7.4 Table view
 
-TanStack Table in fully controlled mode, with sorting, filtering and pagination delegated to the server (§6.3). Column visibility is user-configurable and persisted per session; salary columns are absent entirely for unauthorised roles rather than hidden client-side.
+TanStack Table in fully controlled mode, with sorting, filtering and pagination delegated to the server (section 6.3). Column visibility is user-configurable and persisted per session; salary columns are absent entirely for unauthorised roles rather than hidden client-side.
 
 ### 7.5 Accessibility and responsiveness
 
-Forms are built on Radix primitives via shadcn/ui, giving correct focus management, labelling and `aria` semantics. The chart, being inherently visual, has an equivalent accessible path: a keyboard-navigable nested-list view of the same hierarchy, which also serves as the print view. Colour is never the sole carrier of meaning. Target: Lighthouse accessibility ≥ 95 and zero critical axe violations.
+Forms are built on Radix primitives via shadcn/ui, giving correct focus management, labelling and `aria` semantics. The chart, being inherently visual, has an equivalent accessible path: a keyboard-navigable nested-list view of the same hierarchy, which also serves as the print view. Colour is never the sole carrier of meaning. Target: Lighthouse accessibility >= 95 and zero critical axe violations.
 
 ---
 
@@ -692,12 +692,12 @@ Resolution follows a deterministic fallback chain: an uploaded override, then th
 
 Uploaded photos are stored **in PostgreSQL** (`avatar_image`, a `bytea` column) rather than in object storage. The Cloud Run filesystem is ephemeral, the brief requires every modification to be committed to the remote database, and a normalised avatar is only a few tens of kilobytes - so a separate bucket would add a service, credentials and a second failure mode for no real benefit at this scale.
 
-- **Every upload is decoded and re-encoded** (Pillow) to a 512 × 512 centre-cropped WebP. The bytes served back are always an image this code produced, so a file that only *claims* to be an image (an SVG with script, an HTML polyglot) never reaches a browser, and EXIF metadata such as GPS coordinates is dropped. JPEG, PNG, WebP and GIF are accepted, up to 5 MB and 40 megapixels (a decompression-bomb guard); the body is read in capped chunks before any decoding.
+- **Every upload is decoded and re-encoded** (Pillow) to a 512 x 512 centre-cropped WebP. The bytes served back are always an image this code produced, so a file that only *claims* to be an image (an SVG with script, an HTML polyglot) never reaches a browser, and EXIF metadata such as GPS coordinates is dropped. JPEG, PNG, WebP and GIF are accepted, up to 5 MB and 40 megapixels (a decompression-bomb guard); the body is read in capped chunks before any decoding.
 - **Serving:** `GET /api/v1/avatars/{id}` is the one unauthenticated read, because an `<img>` tag cannot carry a bearer token. Ids are random UUIDs only ever handed out in authenticated responses - the same exposure as a Gravatar URL. Rows are immutable (a new upload is a new id), so images are served with `Cache-Control: immutable`.
 - **Employee photos** (`PUT`/`DELETE /employees/{id}/avatar`, HR admin only) set `avatar_override_url` through the ordinary update path, so a photo change is version-checked with `If-Match` and recorded in the audit trail like any other edit. The replaced image is deleted once nothing references it.
 - **Account photos** (`PUT`/`DELETE /profile/avatar`, any signed-in user) use the same storage and the same precedence over Gravatar, via `app_user.avatar_override_url`.
 
-The **profile page** (`GET /api/v1/profile`) shows the signed-in account, its avatar resolution (uploaded photo → Gravatar → initials, with a live check of whether a Gravatar exists), its permissions, and the employee record that shares its email address - including that person's manager and direct reports.
+The **profile page** (`GET /api/v1/profile`) shows the signed-in account, its avatar resolution (uploaded photo -> Gravatar -> initials, with a live check of whether a Gravatar exists), its permissions, and the employee record that shares its email address - including that person's manager and direct reports.
 
 ### 8.4 Profile enrichment
 
@@ -724,8 +724,8 @@ Two roles, kept deliberately minimal:
 
 | Role | Read employees | Read salary | Write | Import | Export | Audit log |
 |---|---|---|---|---|---|---|
-| `viewer` | ✓ | ✗ | ✗ | ✗ | ✓ (no salary column) | ✓ (salary values stripped) |
-| `hr_admin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `viewer` | Yes | No | No | No | Yes (no salary column) | Yes (salary values stripped) |
+| `hr_admin` | Yes | Yes | Yes | Yes | Yes | Yes |
 
 A viewer *can* read the change history. Knowing that a record was edited, by whom and when is an accountability property worth more than the small amount it reveals, and the salary values themselves are removed from those payloads by the same role check that removes them everywhere else - a viewer sees `salary_changed: true`, never the figures. This is a deliberate choice rather than an oversight, and it is recorded here because the two must not drift apart.
 
@@ -738,7 +738,7 @@ Salary is the one field in this dataset with genuine confidentiality weight, and
 ### 9.4 Input handling
 
 - All request bodies are parsed and validated by Pydantic models at the boundary; unknown fields are rejected rather than ignored.
-- All database access goes through SQLAlchemy with bound parameters. Identifiers that cannot be bound - sort columns - are resolved through an allow-list (§6.3).
+- All database access goes through SQLAlchemy with bound parameters. Identifiers that cannot be bound - sort columns - are resolved through an allow-list (section 6.3).
 - React escapes rendered content by default; `dangerouslySetInnerHTML` appears nowhere in the codebase.
 - Beyond presence and type, the write schemas bound every field: name and position lengths (the columns are `TEXT`, so without this one request can push arbitrary megabytes into a row), a salary ceiling matching `NUMERIC(12, 2)`, a birth date that must be past and after 1900, a three-letter currency, and an avatar URL restricted to absolute `http(s)`. These restate rules the database already enforces so that a bad input is a 422 naming the field rather than an `IntegrityError` surfacing as a 500.
 - Uploaded import files are read against a size cap rather than buffered whole, and the parsers bound row and field counts, so a small compressed workbook cannot expand into an out-of-memory condition.
@@ -760,7 +760,7 @@ The system processes personal information of South African data subjects and is 
 | Accountability | Every change is attributable through the audit log |
 | Data subject participation | Records are individually retrievable, correctable and erasable, including a hard-delete path for erasure requests |
 
-Data residency deserves an explicit note. The managed database is hosted in Frankfurt (§10.2), so personal information leaves South Africa. POPIA permits cross-border transfer where the recipient jurisdiction affords comparable protection, and the EU regime satisfies that test. A production deployment preferring in-country residency runs the same container unchanged against a PostgreSQL instance in Google's `africa-south1` (Johannesburg) region; the trade-off is cost, since no managed PostgreSQL offering with a free tier exists there today.
+Data residency deserves an explicit note. The managed database is hosted in Frankfurt (section 10.2), so personal information leaves South Africa. POPIA permits cross-border transfer where the recipient jurisdiction affords comparable protection, and the EU regime satisfies that test. A production deployment preferring in-country residency runs the same container unchanged against a PostgreSQL instance in Google's `africa-south1` (Johannesburg) region; the trade-off is cost, since no managed PostgreSQL offering with a free tier exists there today.
 
 This is a design-level alignment, not a compliance certification - a distinction this document states plainly rather than overclaiming.
 
@@ -828,10 +828,10 @@ Four details in that file are load-bearing:
 
 - **`$PORT` rather than a hardcoded value** is what Cloud Run requires, and it keeps the same image runnable locally, in CI, and on any other container host.
 - **The runtime stage carries no Node and no build tools.** Only `dist/` crosses from the first stage, so the SPA's toolchain is not part of the attack surface of the thing that runs.
-- **`USER appuser`** drops the process out of root. Nothing in the image needs to write to disk at runtime - uploads go to the database (§8.3), not the filesystem - so there is no reason to keep the privilege.
-- **`--proxy-headers`** makes the app trust `X-Forwarded-For` from the load balancer in front of it. Without it every request appears to originate from the proxy, which would collapse the login rate limiter (§9.1) into one shared bucket for the whole internet. `--forwarded-allow-ips='*'` is safe only because Cloud Run is the sole ingress; behind a different topology it must name the proxy.
+- **`USER appuser`** drops the process out of root. Nothing in the image needs to write to disk at runtime - uploads go to the database (section 8.3), not the filesystem - so there is no reason to keep the privilege.
+- **`--proxy-headers`** makes the app trust `X-Forwarded-For` from the load balancer in front of it. Without it every request appears to originate from the proxy, which would collapse the login rate limiter (section 9.1) into one shared bucket for the whole internet. `--forwarded-allow-ips='*'` is safe only because Cloud Run is the sole ingress; behind a different topology it must name the proxy.
 
-Note that `alembic/` is deliberately **not** copied into the image. Migrations are run as their own deployment step (§10.6), not from inside a running container, so shipping them would only invite the race that step exists to avoid.
+Note that `alembic/` is deliberately **not** copied into the image. Migrations are run as their own deployment step (section 10.6), not from inside a running container, so shipping them would only invite the race that step exists to avoid.
 
 ### 10.4 Database connections under autoscaling
 
@@ -841,9 +841,9 @@ Three settings address this together:
 
 1. The application connects through **Neon's pooled endpoint** (PgBouncer in transaction mode), so the database sees a bounded number of backend connections regardless of client count.
 2. SQLAlchemy uses a **small, explicitly bounded pool** - `pool_size=5, max_overflow=0, pool_recycle=240` - rather than the default. A container is a long-lived process, so a pool is correct here; what matters is that it is small and bounded. `pool_recycle` is preferred over `pool_pre_ping`: pre-ping spends an extra round trip on *every* request to detect a connection Neon has closed behind a suspended compute, while recycling below Neon's five-minute idle-suspend window retires those connections by age instead, for no per-request cost.
-3. **Maximum instances is capped** on the Cloud Run service, which puts a hard ceiling on total connections: `max_instances × pool_size`.
+3. **Maximum instances is capped** on the Cloud Run service, which puts a hard ceiling on total connections: `max_instances x pool_size`.
 
-Transaction-mode pooling rules out session-level state - server-side prepared-statement caching, `SET` statements, advisory locks held across statements - and the code avoids all three deliberately. `SELECT … FOR UPDATE` remains available, because its scope is a transaction.
+Transaction-mode pooling rules out session-level state - server-side prepared-statement caching, `SET` statements, advisory locks held across statements - and the code avoids all three deliberately. `SELECT ... FOR UPDATE` remains available, because its scope is a transaction.
 
 ### 10.5 Environments
 
@@ -853,7 +853,7 @@ Transaction-mode pooling rules out session-level state - server-side prepared-st
 | Preview | Every pull request | Neon branch, seeded automatically | Cloud Run revision deployed with `--no-traffic`, reachable by tag URL |
 | Production | Merge to `main` | Neon primary | Cloud Run, gradual traffic migration |
 
-The Preview and Production triggers describe the intended pipeline, not something the repository automates today - see §10.6.
+The Preview and Production triggers describe the intended pipeline, not something the repository automates today - see section 10.6.
 
 Local development runs the **production image** against a Neon branch rather than a throwaway PostgreSQL container. That costs a little start-up time and buys the thing worth having: the container being exercised is the container that ships, on a database with the same extensions (`pg_trgm`, `btree_gist`) and the same pooled-connection behaviour as production. `scripts/migrate.sh dev` applies migrations to that branch; the same script refuses to touch `main` without a typed confirmation.
 
@@ -881,7 +881,7 @@ Migrations belong in their own step rather than at container start, because cont
 
 ### 10.7 Observability
 
-**Implemented.** `GET /api/v1/health` reports API liveness and database reachability in one call, and serves as the container's startup probe. Uvicorn's access log goes to stdout, which Cloud Logging collects automatically, and Cloud Run's built-in metrics cover request count, latency percentiles, instance count and error rate without any application code. The audit trail (§9.6) answers "who changed this record and when" independently of any log retention policy, which is the question most likely to be asked months later.
+**Implemented.** `GET /api/v1/health` reports API liveness and database reachability in one call, and serves as the container's startup probe. Uvicorn's access log goes to stdout, which Cloud Logging collects automatically, and Cloud Run's built-in metrics cover request count, latency percentiles, instance count and error rate without any application code. The audit trail (section 9.6) answers "who changed this record and when" independently of any log retention policy, which is the question most likely to be asked months later.
 
 **Not implemented, and worth naming.** There is no structured-logging configuration and no per-request correlation ID: the application emits Uvicorn's default access lines, so a user-reported problem is traced by timestamp and path rather than by an id carried from the SPA. That is the honest state of it, and the gap is small - a middleware that reads or mints a request id and a JSON formatter - but it is a gap.
 
@@ -910,7 +910,7 @@ The last two rows are stated as they are rather than quietly omitted. There is n
 
 **The two-level split on the backend is deliberate, and was not free.** Most tests call a router *function* directly with a `Principal` passed in, which is fast and precise for business logic but bypasses FastAPI entirely - dependency wiring, `response_model` serialisation and status codes are all assumed rather than exercised. A route that simply forgot its `Depends(require_role(...))` looks identical from inside the function. The contract suite closes that by driving the real ASGI app, and it earns its keep: it is the level at which "every route rejects an anonymous caller" and "no endpoint accepts a salary filter from a viewer" can be asserted once, over the whole route table, instead of being re-checked by hand each time a route is added.
 
-The **cycle-prevention matrix** is treated as the flagship test: self-assignment, direct inversion (A↔B), indirect cycles at depths 2 through 5, reassignment to an unrelated branch (must succeed), reassignment to `NULL` (must succeed), and two concurrent inverse reassignments in separate transactions (exactly one must fail).
+The **cycle-prevention matrix** is treated as the flagship test: self-assignment, direct inversion (A<->B), indirect cycles at depths 2 through 5, reassignment to an unrelated branch (must succeed), reassignment to `NULL` (must succeed), and two concurrent inverse reassignments in separate transactions (exactly one must fail).
 
 Because the deployable unit is a container, `scripts/check.sh` finishes by building the actual production image, so a change that passes every test but breaks the build is still caught before it is promoted.
 
@@ -942,7 +942,7 @@ Patterns are listed only where they are actually used and earn their place. A pa
 | Decision | Chosen | Rationale | Accepted trade-off |
 |---|---|---|---|
 | Database engine | PostgreSQL 17 | Recursive CTEs, deferred constraint triggers, partial indexes, exact `NUMERIC` for salary, and transactional integrity for the acyclicity invariant. Alternatives considered: MySQL, Firestore, MongoDB, Neo4j, Oracle | Schema changes require migrations |
-| Hierarchy model | Adjacency list + recursive CTE | One authoritative representation of the reporting edge; O(1) writes; no derived state that can drift. Alternatives in §4.3 | Deep reads cost a recursive query |
+| Hierarchy model | Adjacency list + recursive CTE | One authoritative representation of the reporting edge; O(1) writes; no derived state that can drift. Alternatives in section 4.3 | Deep reads cost a recursive query |
 | API framework | FastAPI (Python 3.12) | Pydantic validates at the boundary and generates OpenAPI from the same types, so the published contract cannot drift from the code. Alternatives considered: Express/NestJS, Spring Boot, Django REST, ASP.NET Core | Slower per request than the JVM - irrelevant here, where latency is dominated by network and database |
 | Frontend | React 19 + TypeScript + Vite | Strongest ecosystem for the two hard UI problems here: a virtualised interactive graph and a server-driven data table. End-to-end type safety from the generated client | Larger bundle than Svelte |
 | Styling | Tailwind CSS v4 + shadcn/ui | Accessible Radix primitives owned in-repo rather than imported, so components follow the project's own style guide without fighting a theme system | Verbose class strings |
@@ -950,8 +950,8 @@ Patterns are listed only where they are actually used and earn their place. A pa
 | Server state | TanStack Query | Optimistic updates with automatic rollback, which is precisely what drag-to-reassign requires | Another concept to learn |
 | ORM | SQLAlchemy 2.0 async | Mature and fully typed, and unusually good at dropping to raw SQL for the recursive CTEs without abandoning the ORM elsewhere | Steeper learning curve |
 | Migrations | Alembic | Autogeneration with reviewable, version-controlled output | Autogenerated migrations need hand-editing for triggers and partial indexes |
-| **Compute platform** | **Google Cloud Run** | Runs the delivered container image unmodified, so local, CI and production are one artefact. No request-duration ceiling to design around for bulk import. Revision-based deploys with traffic splitting and instant rollback. Always-free monthly allowance of 2 million requests, 180 000 vCPU-seconds and 360 000 GiB-seconds | Cold start of 1–3 seconds at zero minimum instances, mitigated per §10.8 |
-| Managed database | Neon | A free tier that does not expire, PostgreSQL 17, and per-branch databases that make preview environments real rather than notional | No African region (§10.2) |
+| **Compute platform** | **Google Cloud Run** | Runs the delivered container image unmodified, so local, CI and production are one artefact. No request-duration ceiling to design around for bulk import. Revision-based deploys with traffic splitting and instant rollback. Always-free monthly allowance of 2 million requests, 180 000 vCPU-seconds and 360 000 GiB-seconds | Cold start of 1-3 seconds at zero minimum instances, mitigated per section 10.8 |
+| Managed database | Neon | A free tier that does not expire, PostgreSQL 17, and per-branch databases that make preview environments real rather than notional | No African region (section 10.2) |
 
 ### 13.1 Compute platforms considered and rejected
 
@@ -960,7 +960,7 @@ The hosting decision was made against one criterion above all others: an evaluat
 | Rejected | Why |
 |---|---|
 | **Amazon Web Services** | The most capable platform of the set, and the closest match to the enterprise environments this system would really live in. Rejected because it offers nothing this workload needs that Cloud Run does not, at materially more configuration: VPC, subnets, security groups, IAM, certificate management and a load balancer, none of which is part of the solution being assessed. Its free tier also changed in July 2025 from twelve months of service allowances to an expiring credit balance, which makes cost control an active concern during the assessment rather than a settled one. ECS Fargate or App Runner would be the right choice for a production deployment with an existing AWS footprint |
-| **Oracle Cloud** | The most generous nominal free tier of any provider, but Ampere A1 capacity is frequently unobtainable in a given region and the always-free managed database is Oracle Database rather than PostgreSQL. Adopting it would invalidate the recursive CTE, JSONB and trigram-index design in §4, or require self-managing PostgreSQL on a virtual machine and owning its patching, TLS and backups |
+| **Oracle Cloud** | The most generous nominal free tier of any provider, but Ampere A1 capacity is frequently unobtainable in a given region and the always-free managed database is Oracle Database rather than PostgreSQL. Adopting it would invalidate the recursive CTE, JSONB and trigram-index design in section 4, or require self-managing PostgreSQL on a virtual machine and owning its patching, TLS and backups |
 | **Vercel** | Excellent developer experience and the shortest path to a working URL. Rejected because it executes the application as a platform-specific function rather than as the delivered container, which weakens the "one artefact everywhere" property and introduces execution limits that bulk CSV import would need to be designed around |
 | **Render, Fly.io** | Render's free web services suspend after fifteen minutes of inactivity and take roughly a minute to wake, which is not acceptable for a URL under assessment. Fly.io is capable and container-native but offers no advantage over Cloud Run for this workload |
 | **Next.js as a full-stack alternative** | Would collapse the frontend and API into one build and one deployment, and was a close second on simplicity. Rejected because it also collapses the API into the UI's rendering model, and an independently documented, independently testable HTTP contract is a more valuable artefact for an organisation whose work is systems integration |
@@ -977,12 +977,12 @@ The hosting decision was made against one criterion above all others: an evaluat
 | List view | Server-side pagination, filtering and sorting. The page query carries its own `count(*) OVER ()`, so a page costs one round trip rather than two. Offset-based: deep pages get linearly more expensive, which is acceptable while a page is reached by filtering rather than by paging thousands of rows. Keyset pagination is the fix if that stops being true |
 | Search | GIN trigram index for fuzzy matching, rather than an unindexed leading-wildcard `LIKE` |
 | Static delivery | Hashed, immutable assets with long-lived cache headers, served from the same container; `index.html` is `no-cache` so a deploy is picked up immediately |
-| Payload size | `GZipMiddleware` compresses API responses and the JS/CSS bundle above 1 KB - roughly a 4× reduction on list payloads |
+| Payload size | `GZipMiddleware` compresses API responses and the JS/CSS bundle above 1 KB - roughly a 4x reduction on list payloads |
 | Bundle size | Route-level code splitting (`lazy` routes), so the chart's React Flow/Dagre and the analytics charts are fetched only when that route is opened |
 | Fonts | Inter and Inter Tight are self-hosted (`@fontsource-variable`) rather than loaded from Google Fonts: one less third-party round trip on first paint, and the only option the production CSP permits |
 | Cold start | Bytecode is pre-compiled into the image (`UV_COMPILE_BYTECODE`, `compileall`), because the container filesystem is read-only at runtime and would otherwise recompile on every start |
 | Horizontal scaling | Cloud Run adds instances on concurrency; the application holds no in-process state, so instances are interchangeable |
-| Database connections | Bounded pool per instance plus a capped maximum instance count (§10.4) |
+| Database connections | Bounded pool per instance plus a capped maximum instance count (section 10.4) |
 | Scaling ceiling | Comfortable to roughly 100 000 employees. Beyond that, the migration is a closure table maintained as a derived read model |
 
 ---
@@ -995,21 +995,21 @@ Stated plainly, because a design document that claims no limitations is not desc
 2. **Two roles only.** Real HR access control is usually scoped to organisational units, so a manager sees their own branch. That needs subtree-scoped authorisation.
 3. **No multi-tenancy.** A single organisation is assumed.
 4. **Single-parent hierarchy.** Matrix reporting (a solid-line and a dotted-line manager) would require a separate edge table and turns the tree into a DAG, with correspondingly harder cycle rules.
-5. **Login rate limiting is in-process.** The counter lives in one container's memory, so it blunts a single attacker against a single instance but is not shared across Cloud Run instances the way the reporting-cycle invariant is shared at the database layer. A Redis-backed counter is the upgrade path. Refresh-token revocation, which had the same shape as a limitation, is now backed by the `refresh_token` table (§9.1) rather than left to expiry.
+5. **Login rate limiting is in-process.** The counter lives in one container's memory, so it blunts a single attacker against a single instance but is not shared across Cloud Run instances the way the reporting-cycle invariant is shared at the database layer. A Redis-backed counter is the upgrade path. Refresh-token revocation, which had the same shape as a limitation, is now backed by the `refresh_token` table (section 9.1) rather than left to expiry.
 6. **Audit log grows unbounded.** Partitioning by month and archiving would be needed at volume.
-7. **Data residency is outside South Africa** for this deployment, with the in-country path documented in §10.2 but not taken.
+7. **Data residency is outside South Africa** for this deployment, with the in-country path documented in section 10.2 but not taken.
 8. **Access tokens cannot be revoked mid-life.** A role downgrade or a forced sign-out takes effect when the current 15-minute access token expires, not instantly. Making it instant means checking server state on every request, which is the cost the stateless-access/stateful-refresh split exists to avoid; 15 minutes is the chosen bound on that window.
-9. **No browser-level end-to-end suite** (§11).
-10. **Only the reporting edge is effective-dated, not the employee lifecycle.** Reporting lines can be read as at any date (§4.3), but `deleted_at` is still a single timestamp, so a historical org chart shows today's population under its historical reporting structure. Validity intervals on the employee row itself are the extension.
+9. **No browser-level end-to-end suite** (section 11).
+10. **Departures are effective-dated; arrivals are not.** Reporting lines and deletions can both be read as at any date - `deleted_at` is compared against the as-of date, so someone deleted on the 18th is absent from the 18th onward and present on the 17th. Arrivals have no equivalent, because the employee row carries no hire date and `created_at` records when the row was written rather than when the person joined. A historical org chart is therefore accurate about who had left and who reported to whom, but shows recent joiners as though they had always been there. Adding a hire date, and with it full validity intervals on the employee row, is the extension.
 
 ---
 
 ## Appendix A - Running the system
 
-**Locally, from a clean clone.** `docker compose` starts the application only - the database is a Neon branch, not a local container (§10.5), so `DATABASE_URL` must point at one before the first run.
+**Locally, from a clean clone.** `docker compose` starts the application only - the database is a Neon branch, not a local container (section 10.5), so `DATABASE_URL` must point at one before the first run.
 
 ```bash
-git clone «repository-url» && cd Epi-Use-Technical-Assessment
+git clone <repository-url> && cd Epi-Use-Technical-Assessment
 cp .env.example .env            # fill in DATABASE_URL and JWT_SECRET
 bash scripts/migrate.sh dev        # alembic upgrade head, over a direct connection
 bash scripts/dev.sh                # docker compose up --build, application on :8080
@@ -1017,7 +1017,7 @@ bash scripts/dev.sh                # docker compose up --build, application on :
 
 `JWT_SECRET` must be at least 32 characters of real entropy - `openssl rand -hex 32` - or the application refuses to start rather than booting with a guessable signing key.
 
-Migrations run from the host, not from inside the container: `alembic/` is deliberately not in the image (§10.3). To seed a demo organisation, run the seeder from the host too, against the same database:
+Migrations run from the host, not from inside the container: `alembic/` is deliberately not in the image (section 10.3). To seed a demo organisation, run the seeder from the host too, against the same database:
 
 ```bash
 cd api && uv run python -m app.seed --employees 250 --reset
@@ -1029,9 +1029,9 @@ That creates roughly 250 people across five departments, spreads their reporting
 
 ```bash
 docker run -p 8080:8080 \
-  -e DATABASE_URL="«pooled-neon-url»" \
-  -e JWT_SECRET="«secret»" \
-  «europe-west3-docker.pkg.dev/…/ehm:«tag»»
+  -e DATABASE_URL="<pooled-neon-url>" \
+  -e JWT_SECRET="<secret>" \
+  <europe-west3-docker.pkg.dev/.../ehm:<tag>>
 ```
 
 Seeding writes to the configured database through the same service layer as the application; no data is mocked, hardcoded or read from local files at runtime.
@@ -1043,17 +1043,17 @@ Defined in `api/app/core/config.py`; `DATABASE_URL` and `JWT_SECRET` are the onl
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | Pooled PostgreSQL connection string. **Required.** |
-| `JWT_SECRET` | Access and refresh token signing key. **Required**, and validated: under 32 characters, or a known weak value, and start-up fails (§9.1) |
+| `JWT_SECRET` | Access and refresh token signing key. **Required**, and validated: under 32 characters, or a known weak value, and start-up fails (section 9.1) |
 | `PORT` | Port the container listens on (Cloud Run sets this; defaults to 8080) |
 | `DB_POOL_SIZE` | SQLAlchemy pool size per instance (default 5) |
 | `JWT_ACCESS_TTL_SECONDS` | Access token lifetime (default 900, i.e. 15 minutes) |
 | `JWT_REFRESH_TTL_SECONDS` | Refresh token lifetime (default 604800, i.e. 7 days) |
 | `CORS_ORIGINS` | Allowed origins (default `["http://localhost:5173"]`). `*` is rejected outright, because the API is served with `allow_credentials=True`; in production plaintext origins are rejected too. Not needed for the deployed service, where the SPA is same-origin |
-| `GRAVATAR_DEFAULT_IMAGE` | What Gravatar serves for an address with no photo (default `mp`); `404` defers to client-rendered initials (§8.1) |
-| `GRAVATAR_API_KEY` | Optional. Unlocks the fuller profile payload behind `/employees/gravatar-prefill`; without it enrichment degrades rather than breaks (§8.4) |
+| `GRAVATAR_DEFAULT_IMAGE` | What Gravatar serves for an address with no photo (default `mp`); `404` defers to client-rendered initials (section 8.1) |
+| `GRAVATAR_API_KEY` | Optional. Unlocks the fuller profile payload behind `/employees/gravatar-prefill`; without it enrichment degrades rather than breaks (section 8.4) |
 | `GRAVATAR_API_TIMEOUT_SECONDS` | Timeout on that outbound call (default 3.0) |
 | `MAX_UPLOAD_BYTES` | Cap on a spreadsheet import (default 5 MB) |
-| `ENVIRONMENT` | Default `development`. Only `production`/`prod` is special: it switches off `/docs`, `/redoc` and `/openapi.json` and adds HSTS (§6.5) |
+| `ENVIRONMENT` | Default `development`. Only `production`/`prod` is special: it switches off `/docs`, `/redoc` and `/openapi.json` and adds HSTS (section 6.5) |
 
 ## Appendix C - Glossary
 

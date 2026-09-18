@@ -16,12 +16,12 @@ function state(overrides: Partial<AsOfState>): AsOfState {
 }
 
 describe('AsOfBanner', () => {
-  it('stays out of the way when viewing today (§26)', () => {
+  it('stays out of the way when viewing today (section 26)', () => {
     const { container } = render(<AsOfBanner state={state({})} />)
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('names the date being viewed and says editing is off (§26)', () => {
+  it('names the date being viewed and says editing is off (section 26)', () => {
     render(
       <AsOfBanner
         state={state({ asOf: '2026-06-14', isToday: false, isPast: true })}
@@ -34,7 +34,7 @@ describe('AsOfBanner', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/Editing is disabled/i)
   })
 
-  it('uses the alert token for the past and the teal token for the future (§27)', () => {
+  it('uses the alert token for the past and the teal token for the future (section 27)', () => {
     const { rerender } = render(
       <AsOfBanner state={state({ asOf: '2025-06-14', isToday: false, isPast: true })} />
     )

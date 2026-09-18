@@ -1,7 +1,9 @@
-import { useRef } from 'react'
-import { CameraIcon, Loader2Icon, Trash2Icon, UploadIcon } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { CameraIcon, Trash2Icon, UploadIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { EmployeeAvatar } from '@/components/employee-avatar'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +34,7 @@ export function AvatarEditor({
   className?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   function pick(file: File | undefined) {
     if (!file) return
@@ -74,16 +77,16 @@ export function AvatarEditor({
             isBusy ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
           )}
         >
-          {isBusy ? <Loader2Icon className="size-6 animate-spin" /> : <CameraIcon className="size-6" />}
+          {isBusy ? <Spinner className="size-6" label="Working" /> : <CameraIcon className="size-6" />}
         </span>
       </button>
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" disabled={isBusy} onClick={() => inputRef.current?.click()}>
-          <UploadIcon /> {hasUpload ? 'Change photo' : 'Upload photo'}
+          {isBusy ? <Spinner /> : <UploadIcon />} {hasUpload ? 'Change photo' : 'Upload photo'}
         </Button>
         {hasUpload && (
-          <Button variant="ghost" size="sm" disabled={isBusy} onClick={onRemove}>
+          <Button variant="ghost" size="sm" disabled={isBusy} onClick={() => setConfirmRemove(true)}>
             <Trash2Icon /> Remove
           </Button>
         )}
@@ -97,6 +100,30 @@ export function AvatarEditor({
         onChange={(event) => {
           pick(event.target.files?.[0])
           event.target.value = ''
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Remove this photo?"
+        description={
+          <>
+            The uploaded photo for{' '}
+            <span className="font-medium text-foreground">
+              {firstName} {lastName}
+            </span>{' '}
+            is deleted. A Gravatar or the initials will be shown instead, and a new photo can be
+            uploaded at any time.
+          </>
+        }
+        confirmLabel="Remove photo"
+        pendingLabel="Removing..."
+        cancelLabel="Keep photo"
+        isPending={isBusy}
+        onConfirm={() => {
+          setConfirmRemove(false)
+          onRemove()
         }}
       />
     </div>

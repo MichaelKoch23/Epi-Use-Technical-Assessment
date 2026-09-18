@@ -65,7 +65,6 @@ class GravatarClient:
         except httpx.HTTPError:
             return None
 
-        # 404 simply means the address has no Gravatar, which is not an error.
         if response.status_code != 200:
             return None
 

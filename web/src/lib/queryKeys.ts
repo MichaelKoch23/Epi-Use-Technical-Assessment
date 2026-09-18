@@ -11,9 +11,6 @@ export const employeeKeys = {
   list: (filters: EmployeeListFilters) => [...employeeKeys.lists(), filters] as const,
   details: () => [...employeeKeys.all, 'detail'] as const,
   detail: (id: string) => [...employeeKeys.details(), id] as const,
-  // asOf is a required argument on every hierarchy-shaped key, so a call site
-  // cannot silently reuse present-day data under a past-date banner - the
-  // compiler refuses to let you omit it.
   subtree: (id: string, asOf: string, depth?: number) =>
     [...employeeKeys.detail(id), 'subtree', asOf, depth] as const,
   reportingLine: (id: string, asOf: string) =>

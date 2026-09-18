@@ -265,7 +265,6 @@ async def _to_move_preview_read(
             _to_cancelled_read(row, manager_names) for row in preview.supersedes
         ],
     }
-    # Omit the key entirely for a viewer, exactly as EmployeeReadRestricted does.
     if principal.is_admin:
         assert preview.cost is not None
         return MovePreviewRead(
@@ -588,7 +587,7 @@ async def get_subtree(
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
 ) -> AsOfHierarchy:
-    if await EmployeeRepository(session).get(employee_id) is None:
+    if await EmployeeRepository(session).get_as_of(employee_id, as_of) is None:
         raise EmployeeNotFound(employee_id)
 
     rows = await AssignmentRepository(session).get_subtree(
@@ -612,7 +611,7 @@ async def get_reporting_line(
     session: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
 ) -> AsOfHierarchy:
-    if await EmployeeRepository(session).get(employee_id) is None:
+    if await EmployeeRepository(session).get_as_of(employee_id, as_of) is None:
         raise EmployeeNotFound(employee_id)
 
     rows = await AssignmentRepository(session).get_ancestors(employee_id, as_of)

@@ -98,7 +98,7 @@ export function AuditEntry({
         )}
       </div>
       <div className="text-xs text-muted-foreground">
-        {entry.actor_email} · {formatDateTime(entry.occurred_at)}
+        {entry.actor_email} - {formatDateTime(entry.occurred_at)}
       </div>
 
       {isReassignment && (

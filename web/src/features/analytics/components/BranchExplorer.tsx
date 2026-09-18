@@ -34,7 +34,7 @@ export function BranchExplorer() {
           value={branchId ?? ''}
           label={query.data?.employee.name ?? ''}
           onChange={(id) => selectBranch(id)}
-          clearLabel="Choose an employee…"
+          clearLabel="Choose an employee..."
           triggerAriaLabel="Choose an employee to explore their branch"
         />
       </div>

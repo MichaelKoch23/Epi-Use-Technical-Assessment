@@ -20,7 +20,9 @@ import { ImageDownIcon, ListIcon, NetworkIcon, XIcon } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/useAuth'
+import { formatDate } from '@/features/employees/format'
 import { apiClient } from '@/lib/apiClient'
 import { getErrorMessage } from '@/lib/apiError'
 import { triggerDownload } from '@/lib/download'
@@ -64,8 +66,6 @@ function OrgChartCanvas() {
   const { asOf, isToday } = asOfState
   const orgData = useOrgChartData(asOf)
   const { canEdit: canEditRole } = useAuth()
-  // Editing what looks like the present while reading the past is the failure
-  // mode this whole view invites, so writes are off unless as_of is today.
   const canEdit = canEditRole && isToday
   const { getIntersectingNodes, setCenter, getZoom } = useReactFlow<EmployeeFlowNode>()
 
@@ -76,6 +76,8 @@ function OrgChartCanvas() {
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [pendingCenterId, setPendingCenterId] = useState<string | null>(null)
+  const [isExportingPng, setIsExportingPng] = useState(false)
+  const [focusing, setFocusing] = useState<{ id: string; name: string } | null>(null)
 
   const structuralNodes = useMemo<EmployeeFlowNode[]>(() => {
     const loadedVisibleIds = new Set(
@@ -96,6 +98,7 @@ function OrgChartCanvas() {
           isRoot: depth === 0,
           hasChildren,
           expanded: hasChildren === true && !orgData.collapsedIds.has(id),
+          isExpanding: false,
           dropValidity: null,
           isDimmed: false,
           childNodeIds: childIds,
@@ -126,7 +129,9 @@ function OrgChartCanvas() {
   useEffect(() => setEdges(structuralEdges), [structuralEdges, setEdges])
 
   const focusSet = useMemo(() => {
-    if (!selectedId) return null
+    // A selection that no longer resolves - the employee was just deleted -
+    // would otherwise dim every remaining node against a focus of one ghost.
+    if (!selectedId || !orgData.employeesById.has(selectedId)) return null
     const set = new Set<string>([selectedId])
     for (const id of orgData.getDescendantIds(selectedId, focusDepth)) set.add(id)
     let cursor = orgData.employeesById.get(selectedId)?.manager_id ?? null
@@ -155,9 +160,10 @@ function OrgChartCanvas() {
               : ('valid' as const)
             : null,
           isDimmed: focusSet ? !focusSet.has(node.id) : false,
+          isExpanding: orgData.expandingIds.has(node.id),
         } satisfies EmployeeNodeData,
       })),
-    [nodes, selectedId, draggedInvalidIds, focusSet]
+    [nodes, selectedId, draggedInvalidIds, focusSet, orgData.expandingIds]
   )
 
   const centerOnNode = useCallback(
@@ -175,22 +181,55 @@ function OrgChartCanvas() {
     [nodes, setCenter, getZoom]
   )
 
+  const centeredAtRef = useRef<string | null>(null)
   useEffect(() => {
     if (!pendingCenterId) return
-    if (nodes.some((n) => n.id === pendingCenterId)) {
-      centerOnNode(pendingCenterId)
+    const node = nodes.find((n) => n.id === pendingCenterId)
+    if (!node) return
+    const position = `${pendingCenterId}@${node.position.x},${node.position.y}`
+    // The layout settles over several renders as the pinned ancestors and
+    // their branches arrive, so follow the node until it stops moving.
+    if (centeredAtRef.current === position) {
       setPendingCenterId(null)
+      return
     }
+    centeredAtRef.current = position
+    centerOnNode(pendingCenterId)
+    // The viewport is on its way, so the search is over as far as anyone
+    // watching is concerned.
+    setFocusing((current) => (current?.id === pendingCenterId ? null : current))
   }, [pendingCenterId, nodes, centerOnNode])
+
+  // A node that never arrives - unreachable, or deleted mid-search - must not
+  // leave the pill spinning for good.
+  useEffect(() => {
+    if (!focusing) return
+    const timer = setTimeout(() => setFocusing(null), 8000)
+    return () => clearTimeout(timer)
+  }, [focusing])
 
   const selectEmployee = useCallback(
     async (employee: ChartEmployee) => {
-      await orgData.focusPathTo(employee)
-      setSelectedId(employee.id)
+      const name = `${employee.first_name} ${employee.last_name}`
+      setFocusing({ id: employee.id, name })
       setViewMode('chart')
-      centerOnNode(employee.id)
+      try {
+        // Their reporting line has to be fetched before the branch can be
+        // opened, which is the part worth waiting on.
+        await orgData.focusPathTo(employee)
+      } catch (error) {
+        setFocusing(null)
+        toast.error(`Could not open ${name} in the chart`, {
+          description: getErrorMessage(error, 'Check your connection and try again.'),
+        })
+        return
+      }
+      setSelectedId(employee.id)
+      // Deferred rather than centred here: pinning the employee re-runs the
+      // layout, so centring now would aim at where the node used to be.
+      setPendingCenterId(employee.id)
     },
-    [orgData, centerOnNode]
+    [orgData]
   )
 
   const [searchParams] = useSearchParams()
@@ -213,10 +252,12 @@ function OrgChartCanvas() {
 
   const handleNodeClick: NodeMouseHandler<EmployeeFlowNode> = useCallback((_event, node) => {
     setSelectedId(node.id)
+    setPendingCenterId(null)
   }, [])
 
   const handleNodeDragStart: OnNodeDrag<EmployeeFlowNode> = useCallback((_event, node) => {
     setDraggingId(node.id)
+    setPendingCenterId(null)
   }, [])
 
   const handleNodeDragStop: OnNodeDrag<EmployeeFlowNode> = useCallback(
@@ -241,8 +282,14 @@ function OrgChartCanvas() {
         return
       }
 
-      // Snap the node back and let the preview carry the decision; nothing is
-      // written until the move is confirmed in the modal.
+      if (employee.manager_id === targetId) {
+        setNodes(structuralNodes)
+        toast.info(
+          `${employee.first_name} ${employee.last_name} already reports to ${target.first_name} ${target.last_name}`
+        )
+        return
+      }
+
       setNodes(structuralNodes)
       setPendingMove({
         employeeId: node.id,
@@ -271,16 +318,18 @@ function OrgChartCanvas() {
             ? ` ${cancelled} scheduled change${cancelled === 1 ? ' was' : 's were'} cancelled.`
             : ''
         if (result?.in_force_now) {
-          toast.success(
-            `${pendingMove.employeeName} now reports to ${pendingMove.newManagerName}.${cancelledNote}`
-          )
+          toast.success('Reporting line updated', {
+            description: `${pendingMove.employeeName} now reports to ${pendingMove.newManagerName}.${cancelledNote}`,
+          })
         } else {
-          toast.success(
-            `${pendingMove.employeeName} will report to ${pendingMove.newManagerName} from ${effectiveFrom}.${cancelledNote}`
-          )
+          toast.success('Move scheduled', {
+            description: `${pendingMove.employeeName} will report to ${pendingMove.newManagerName} from ${effectiveFrom}.${cancelledNote}`,
+          })
         }
       } catch (error) {
-        toast.error(getErrorMessage(error, 'Failed to reassign manager'))
+        toast.error('Could not reassign this employee', {
+          description: getErrorMessage(error, 'The reporting line is unchanged. Try again in a moment.'),
+        })
       }
     },
     [orgData, pendingMove]
@@ -343,6 +392,7 @@ function OrgChartCanvas() {
     }
     const viewportEl = document.querySelector<HTMLElement>('.react-flow__viewport')
     if (!viewportEl || nodes.length === 0) return
+    setIsExportingPng(true)
 
     const bounds = getNodesBounds(nodes)
     const imageWidth = Math.max(1024, Math.round(bounds.width + 200))
@@ -362,8 +412,15 @@ function OrgChartCanvas() {
       })
       const blob = await (await fetch(dataUrl)).blob()
       triggerDownload('org-chart.png', blob)
+      toast.success('Chart exported', {
+        description: 'org-chart.png has been downloaded.',
+      })
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to export the chart as an image'))
+      toast.error('Could not export the chart', {
+        description: getErrorMessage(error, 'Try again in a moment.'),
+      })
+    } finally {
+      setIsExportingPng(false)
     }
   }, [nodes, viewMode])
 
@@ -376,10 +433,16 @@ function OrgChartCanvas() {
         </div>
         <div className="flex items-center gap-2">
           <ChartSearch onSelect={selectEmployee} />
-          <Button variant="outline" size="sm" onClick={() => void exportPng()}>
-            <ImageDownIcon className="size-4" /> Export PNG
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isExportingPng}
+            onClick={() => void exportPng()}
+          >
+            {isExportingPng ? <Spinner className="size-4" /> : <ImageDownIcon className="size-4" />}
+            {isExportingPng ? 'Exporting...' : 'Export PNG'}
           </Button>
-          {selectedId && (
+          {selectedEmployee && (
             <Button variant="outline" size="sm" onClick={exitFocus}>
               <XIcon className="size-4" /> Exit focus
             </Button>
@@ -405,6 +468,7 @@ function OrgChartCanvas() {
         </div>
       </div>
 
+      <ScheduledChangesPanel state={asOfState} canEdit={canEdit} />
       <AsOfControl state={asOfState} />
       <AsOfBanner state={asOfState} />
 
@@ -434,7 +498,56 @@ function OrgChartCanvas() {
       )}
 
       <div className={cn(viewMode === 'chart' ? 'block' : 'hidden', 'print:hidden')}>
-        <div className="h-[70vh] w-full overflow-hidden rounded-md border border-border">
+        <div className="relative h-[70vh] w-full overflow-hidden rounded-md border border-border">
+          {focusing && !orgData.isLoading && (
+            <div
+              role="status"
+              className="absolute top-2 left-2 z-10 inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground shadow-sm"
+            >
+              <Spinner className="size-4 text-brand-steel" /> Finding {focusing.name} in the
+              chart...
+            </div>
+          )}
+
+          {orgData.isLoading && (
+            <div
+              role="status"
+              className="absolute inset-0 z-10 grid place-items-center bg-card/80"
+            >
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Spinner /> Loading the chart as at {formatDate(asOf)}...
+              </span>
+            </div>
+          )}
+
+          {!orgData.isLoading && orgData.isError && (
+            <div role="alert" className="absolute inset-0 z-10 grid place-items-center bg-card/80">
+              <span className="flex max-w-md flex-col items-center gap-1 px-6 text-center">
+                <span className="text-sm font-semibold text-status-critical">
+                  Could not load the chart
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  The organisation as at {formatDate(asOf)} could not be read. Check your
+                  connection and try again.
+                </span>
+              </span>
+            </div>
+          )}
+
+          {!orgData.isLoading && !orgData.isError && renderNodes.length === 0 && (
+            <div role="status" className="absolute inset-0 z-10 grid place-items-center bg-card/80">
+              <span className="flex max-w-md flex-col items-center gap-1 px-6 text-center">
+                <span className="text-sm font-semibold text-foreground">
+                  Nobody to show as at {formatDate(asOf)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  No reporting lines were in force on that date. Try a later date, or return to
+                  today.
+                </span>
+              </span>
+            </div>
+          )}
+
           <ReactFlow
             nodes={renderNodes}
             edges={edges}
@@ -461,8 +574,6 @@ function OrgChartCanvas() {
       <div className={cn(viewMode === 'list' ? 'block' : 'hidden', 'print:block')}>
         <OrgChartNestedList onSelect={selectEmployee} asOf={asOf} />
       </div>
-
-      <ScheduledChangesPanel state={asOfState} canEdit={canEdit} />
 
       <EmployeeDetailDrawer
         employee={selectedEmployee}

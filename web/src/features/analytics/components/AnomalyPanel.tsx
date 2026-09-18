@@ -112,7 +112,7 @@ export function AnomalyPanel({
   const wideSpans: GroupEntry[] = data.wide_spans.map((row) => ({
     id: row.id,
     name: row.name,
-    line: `${row.name} has ${row.direct_reports} direct reports - above the healthy range of 3–10`,
+    line: `${row.name} has ${row.direct_reports} direct reports - above the healthy range of 3-10`,
   }))
   const singleReportManagers: GroupEntry[] = data.single_report_managers.map((row) => ({
     id: row.id,

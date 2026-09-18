@@ -15,8 +15,6 @@ from app.models.employee import Employee
 from app.models.employee_assignment import EmployeeAssignment
 from app.repositories.employee_repository import MAX_REPORTING_DEPTH
 
-# The edge set effective on a single day. Every temporal read below opens with
-# this CTE; it is the one place the half-open '[)' convention is spelled out.
 _EDGE_CTE = """
     edge AS (
         SELECT a.employee_id, a.manager_id
@@ -26,21 +24,45 @@ _EDGE_CTE = """
     )
 """
 
-# Roots at :as_of are employees with no edge row, or an edge row naming no
-# manager - the LEFT JOIN covers both.
+
+def _alive(alias: str) -> str:
+    """Employees who had not yet been deleted as at :as_of.
+
+    A departure ends on its date the same way a reporting edge does: deleting
+    someone on the 18th removes them from the 18th onward and leaves the 17th
+    untouched. Hence the cast to date - deleted_at is a timestamp, and
+    comparing it raw against :as_of would put anyone deleted later in the day
+    back into their own last day's chart.
+
+    Arrivals are deliberately not dated. There is no hire date on the employee
+    row, and created_at records when the row was written rather than when the
+    person joined, so a historical view shows today's joiners as though they
+    had always been there (TECHNICAL-DESIGN section 4.3).
+    """
+    return f"({alias}.deleted_at IS NULL OR {alias}.deleted_at::date > :as_of)"
+
+
 _TREE_SQL = text(
     f"""
     WITH RECURSIVE {_EDGE_CTE},
     tree AS (
+        -- Roots as at the date: nobody above them, or nobody above them any
+        -- more. Deleting a manager reparents their reports from that day on
+        -- (see DeletionPolicy), so the second case should not arise on data
+        -- this application wrote. It is kept as a guard: an edge left pointing
+        -- at someone already gone by :as_of would otherwise strand their whole
+        -- branch outside the tree, and empty the view entirely when that
+        -- manager was the only root.
         SELECT e.id, NULL::uuid AS manager_id, 0 AS depth, ARRAY[e.id] AS path
         FROM employee e
         LEFT JOIN edge ed ON ed.employee_id = e.id
-        WHERE e.deleted_at IS NULL
-          AND ed.manager_id IS NULL
+        LEFT JOIN employee m ON m.id = ed.manager_id AND {_alive("m")}
+        WHERE {_alive("e")}
+          AND m.id IS NULL
       UNION ALL
         SELECT c.id, ed.manager_id, t.depth + 1, t.path || c.id
         FROM edge ed
-        JOIN employee c ON c.id = ed.employee_id AND c.deleted_at IS NULL
+        JOIN employee c ON c.id = ed.employee_id AND {_alive("c")}
         JOIN tree   t   ON ed.manager_id = t.id
         WHERE NOT c.id = ANY(t.path)
           AND t.depth < :max_depth
@@ -59,11 +81,11 @@ _SUBTREE_SQL = text(
         SELECT e.id, ed.manager_id, 0 AS depth, ARRAY[e.id] AS path
         FROM employee e
         LEFT JOIN edge ed ON ed.employee_id = e.id
-        WHERE e.id = :root_id AND e.deleted_at IS NULL
+        WHERE e.id = :root_id AND {_alive("e")}
       UNION ALL
         SELECT c.id, ed.manager_id, t.depth + 1, t.path || c.id
         FROM edge ed
-        JOIN employee c ON c.id = ed.employee_id AND c.deleted_at IS NULL
+        JOIN employee c ON c.id = ed.employee_id AND {_alive("c")}
         JOIN tree   t   ON ed.manager_id = t.id
         WHERE NOT c.id = ANY(t.path)
           AND t.depth < :max_depth
@@ -75,9 +97,6 @@ _SUBTREE_SQL = text(
     """
 )
 
-# The path guard matters more here than in the present-day equivalent: at a
-# future boundary date the structure may genuinely be cyclic, which is the very
-# thing temporal validation is looking for, and an unguarded walk would spin.
 _ANCESTORS_SQL = text(
     f"""
     WITH RECURSIVE {_EDGE_CTE},
@@ -85,11 +104,11 @@ _ANCESTORS_SQL = text(
         SELECT e.id, ed.manager_id, 0 AS level, ARRAY[e.id] AS path
         FROM employee e
         LEFT JOIN edge ed ON ed.employee_id = e.id
-        WHERE e.id = :employee_id AND e.deleted_at IS NULL
+        WHERE e.id = :employee_id AND {_alive("e")}
       UNION ALL
         SELECT m.id, ed.manager_id, l.level + 1, l.path || m.id
         FROM line l
-        JOIN employee m ON m.id = l.manager_id AND m.deleted_at IS NULL
+        JOIN employee m ON m.id = l.manager_id AND {_alive("m")}
         LEFT JOIN edge ed ON ed.employee_id = m.id
         WHERE l.level < :max_depth
           AND NOT m.id = ANY(l.path)
@@ -125,11 +144,10 @@ _EDGES_AT_SQL = text(
     SELECT e.id, edge.manager_id
     FROM employee e
     LEFT JOIN edge ON edge.employee_id = e.id
-    WHERE e.deleted_at IS NULL
+    WHERE {_alive("e")}
     """
 )
 
-# Both ends of every future range: the dates on which the structure can change.
 _BOUNDARY_DATES_SQL = text(
     """
     SELECT DISTINCT d
@@ -149,11 +167,11 @@ _SUBTREE_SALARY_SQL = text(
     tree AS (
         SELECT e.id, ARRAY[e.id] AS path
         FROM employee e
-        WHERE e.id = :root_id AND e.deleted_at IS NULL
+        WHERE e.id = :root_id AND {_alive("e")}
       UNION ALL
         SELECT c.id, t.path || c.id
         FROM edge ed
-        JOIN employee c ON c.id = ed.employee_id AND c.deleted_at IS NULL
+        JOIN employee c ON c.id = ed.employee_id AND {_alive("c")}
         JOIN tree   t   ON ed.manager_id = t.id
         WHERE NOT c.id = ANY(t.path)
     )
@@ -492,12 +510,8 @@ class AssignmentRepository:
         open_row = await self.get_open_at(employee_id, effective_from)
         for row in superseded:
             await self.delete(row)
-        # A row starting exactly on effective_from is among the superseded and has
-        # just been deleted; only a genuinely earlier run gets closed off.
         if open_row is not None and open_row.valid_from < effective_from:
             open_row.valid_to = effective_from
-        # Land the deletes and the close before inserting, so the exclusion
-        # constraint sees the freed range rather than the one being replaced.
         await self._session.flush()
 
         assignment = EmployeeAssignment(

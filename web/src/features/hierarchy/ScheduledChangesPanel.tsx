@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarClockIcon, XIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { formatDate } from '@/features/employees/format'
 import { getErrorMessage } from '@/lib/apiError'
 import { employeeKeys, hierarchyKeys } from '@/lib/queryKeys'
-import { cancelScheduled, fetchScheduled } from './api'
+import { cancelScheduled, fetchScheduled, type ScheduledAssignment } from './api'
 import type { AsOfState } from './useAsOf'
 
 export function ScheduledChangesPanel({
@@ -17,6 +20,7 @@ export function ScheduledChangesPanel({
   canEdit: boolean
 }) {
   const queryClient = useQueryClient()
+  const [pendingCancel, setPendingCancel] = useState<ScheduledAssignment | null>(null)
   const query = useQuery({
     queryKey: hierarchyKeys.scheduled(),
     queryFn: fetchScheduled,
@@ -33,10 +37,17 @@ export function ScheduledChangesPanel({
           queryKey: employeeKeys.assignmentHistory(row.employee_id),
         })
       }
-      toast.success('Scheduled change cancelled')
+      toast.success('Scheduled move cancelled', {
+        description: row
+          ? `${row.employee_name} keeps their current manager. The move to ${row.manager_name ?? 'no manager'} on ${formatDate(row.effective_from)} will not happen.`
+          : undefined,
+      })
+      setPendingCancel(null)
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to cancel the scheduled change'))
+      toast.error('Could not cancel the scheduled move', {
+        description: getErrorMessage(error, 'The change is still scheduled. Try again in a moment.'),
+      })
     },
   })
 
@@ -98,15 +109,44 @@ export function ScheduledChangesPanel({
                   variant="outline"
                   size="sm"
                   disabled={cancelMutation.isPending}
-                  onClick={() => cancelMutation.mutate(row.id)}
+                  onClick={() => setPendingCancel(row)}
                 >
-                  <XIcon className="size-3.5" aria-hidden="true" /> Cancel
+                  {cancelMutation.isPending && cancelMutation.variables === row.id ? (
+                    <Spinner className="size-3.5" label="Cancelling" />
+                  ) : (
+                    <XIcon className="size-3.5" aria-hidden="true" />
+                  )}{' '}
+                  Cancel
                 </Button>
               )}
             </li>
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingCancel)}
+        onOpenChange={(open) => !open && setPendingCancel(null)}
+        title="Cancel this scheduled move?"
+        description={
+          pendingCancel ? (
+            <>
+              <span className="font-medium text-foreground">{pendingCancel.employee_name}</span> is
+              scheduled to start reporting to{' '}
+              <span className="font-medium text-foreground">
+                {pendingCancel.manager_name ?? 'no manager'}
+              </span>{' '}
+              on {formatDate(pendingCancel.effective_from)}. Cancelling removes that move, so they
+              keep their current manager. You can schedule it again afterwards.
+            </>
+          ) : null
+        }
+        confirmLabel="Cancel the move"
+        pendingLabel="Cancelling..."
+        cancelLabel="Keep it scheduled"
+        isPending={cancelMutation.isPending}
+        onConfirm={() => pendingCancel && cancelMutation.mutate(pendingCancel.id)}
+      />
     </section>
   )
 }

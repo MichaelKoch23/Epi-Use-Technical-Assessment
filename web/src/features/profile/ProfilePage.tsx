@@ -153,7 +153,7 @@ function PictureCard({ profile, initials }: { profile: Profile; initials: string
           active={gravatarActive}
           detail={
             gravatar === 'loading' ? (
-              'Checking…'
+              'Checking...'
             ) : gravatar === 'found' ? (
               <>Found for {profile.email}</>
             ) : (
@@ -317,8 +317,16 @@ export function ProfilePage() {
 
   function changePhoto(file: File | null) {
     avatarMutation.mutate(file, {
-      onSuccess: () => toast.success(file ? 'Profile photo updated' : 'Profile photo removed'),
-      onError: (error) => toast.error(getErrorMessage(error, 'Could not update your photo')),
+      onSuccess: () =>
+        toast.success(file ? 'Profile photo updated' : 'Profile photo removed', {
+          description: file
+            ? 'It now appears everywhere your account is shown.'
+            : 'Your Gravatar or initials will be shown instead.',
+        }),
+      onError: (error) =>
+        toast.error('Could not update your photo', {
+          description: getErrorMessage(error, 'Your current photo is unchanged. Try again in a moment.'),
+        }),
     })
   }
 

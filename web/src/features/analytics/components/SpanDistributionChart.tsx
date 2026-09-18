@@ -42,7 +42,7 @@ export function SpanDistributionChart({
       </h2>
       <p className="mb-4 text-xs text-muted-foreground">
         How many employees have how many direct reports. The healthy range is{' '}
-        {HEALTHY_MIN}–{HEALTHY_MAX} direct reports; bars outside it are flagged.
+        {HEALTHY_MIN}-{HEALTHY_MAX} direct reports; bars outside it are flagged.
       </p>
 
       <div
@@ -82,7 +82,7 @@ export function SpanDistributionChart({
           <tr>
             <th scope="col">Direct reports</th>
             <th scope="col">Employees</th>
-            <th scope="col">In healthy range (3–10)</th>
+            <th scope="col">In healthy range (3-10)</th>
           </tr>
         </thead>
         <tbody>

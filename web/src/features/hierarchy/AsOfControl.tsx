@@ -17,7 +17,6 @@ export function AsOfControl({ state }: { state: AsOfState }) {
     staleTime: 60_000,
   })
 
-  // One jump per distinct date, however many people move on it.
   const changeDates = useMemo(() => {
     const dates = new Set((scheduledQuery.data ?? []).map((row) => row.effective_from))
     return [...dates].sort()

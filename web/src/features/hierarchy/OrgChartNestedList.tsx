@@ -1,4 +1,5 @@
 import { EmployeeAvatar } from '@/components/employee-avatar'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import type { ChartEmployee } from './types'
 import { useFullHierarchy, type HierarchyTreeNode } from './useFullHierarchy'
@@ -51,7 +52,11 @@ export function OrgChartNestedList({
   return (
     <div className={cn('org-chart-list', className)}>
       <h2 className="font-display text-lg font-semibold">Org chart - list view</h2>
-      {isLoading && <p className="text-sm text-muted-foreground">Loading hierarchy…</p>}
+      {isLoading && (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Spinner /> Loading hierarchy...
+        </p>
+      )}
       {isError && (
         <p role="alert" className="text-sm text-status-critical">
           Could not load the hierarchy.

@@ -22,9 +22,7 @@ from app.services.employee_service import EmployeeService
 
 SEED_ACTOR_EMAIL = "seed@employee.example.com"
 
-# Temporal shape of the generated data. Without a spread of dates every as-of
-# view returns the same tree and the feature reads as broken rather than new.
-HISTORY_DAYS = 548  # eighteen months
+HISTORY_DAYS = 548
 HISTORICAL_MOVES = 30
 FUTURE_MOVES = 3
 
@@ -38,8 +36,8 @@ MOVE_REASONS = [
 ]
 
 DEMO_ACCOUNTS = [
-    ("admin@epiuse-demo.com", "EpiUse-Admin-2026!", "hr_admin"),
-    ("viewer@epiuse-demo.com", "EpiUse-Viewer-2026!", "viewer"),
+    ("admin@example.com", "Demo-Admin-2026!", "hr_admin"),
+    ("viewer@example.com", "Demo-Viewer-2026!", "viewer"),
 ]
 
 FIRST_NAMES = [
@@ -266,7 +264,6 @@ async def _generate_moves(
 ) -> tuple[int, int]:
     """Reassign people through the real service, so every row is one it would write."""
     service = AssignmentService(session)
-    # An IC moves between managers, a manager between directors, and so on.
     ladder = [("ic", "manager"), ("manager", "director"), ("director", "exec")]
 
     async def attempt(effective_from_window: tuple[int, int]) -> bool:

@@ -12,8 +12,6 @@ export function todayIso(): string {
 
 export function shiftIso(iso: string, { months = 0, days = 0 }): string {
   const [year, month, day] = iso.split('-').map(Number)
-  // Clamp to the last day of the target month first: without this, three months
-  // back from 31 May would roll through 31 February and land on 3 March.
   const lastDayOfTarget = new Date(Date.UTC(year, month + months, 0)).getUTCDate()
   const date = new Date(
     Date.UTC(year, month - 1 + months, Math.min(day, lastDayOfTarget) + days)
@@ -64,7 +62,6 @@ export function useAsOf(): AsOfState {
     () => ({
       asOf,
       today,
-      // ISO dates sort lexicographically, which is also chronologically.
       isToday: asOf === today,
       isPast: asOf < today,
       isFuture: asOf > today,

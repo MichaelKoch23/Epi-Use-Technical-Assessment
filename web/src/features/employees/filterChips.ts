@@ -8,13 +8,13 @@ export interface Chip {
 }
 
 function salaryLabel(min: string, max: string): string {
-  if (min && max) return `Salary: ${formatCurrency(min, 'ZAR')} – ${formatCurrency(max, 'ZAR')}`
-  if (min) return `Salary: ≥ ${formatCurrency(min, 'ZAR')}`
-  return `Salary: ≤ ${formatCurrency(max, 'ZAR')}`
+  if (min && max) return `Salary: ${formatCurrency(min, 'ZAR')} - ${formatCurrency(max, 'ZAR')}`
+  if (min) return `Salary: >= ${formatCurrency(min, 'ZAR')}`
+  return `Salary: <= ${formatCurrency(max, 'ZAR')}`
 }
 
 function birthDateLabel(min: string, max: string): string {
-  if (min && max) return `Born: ${formatDate(min)} – ${formatDate(max)}`
+  if (min && max) return `Born: ${formatDate(min)} - ${formatDate(max)}`
   if (min) return `Born: after ${formatDate(min)}`
   return `Born: before ${formatDate(max)}`
 }
