@@ -183,6 +183,22 @@ async def test_security_headers_are_present(api_client):
     assert response.headers["Referrer-Policy"] == "no-referrer"
 
 
+async def test_csp_lets_the_png_export_read_gravatar(api_client):
+    """The chart export inlines avatars with fetch, which connect-src governs.
+
+    img-src alone is not enough: it lets an avatar be shown, not read, and the
+    exporter rejects with a bare DOM Event when a picture cannot be inlined -
+    so narrowing this back to 'self' breaks the export with no usable message.
+    """
+    response = await api_client.get("/api/v1/employees")
+    csp = response.headers["Content-Security-Policy"]
+
+    connect = next(d for d in csp.split("; ") if d.startswith("connect-src"))
+    assert "https://gravatar.com" in connect
+    # Still a named host, not a blanket https: the way img-src is.
+    assert "https:;" not in connect and not connect.endswith("https:")
+
+
 async def test_unknown_api_path_is_404_not_the_spa_shell(api_client):
     response = await api_client.get("/api/v1/employeez")
 

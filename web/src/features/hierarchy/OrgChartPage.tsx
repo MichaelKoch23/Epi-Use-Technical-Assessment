@@ -15,7 +15,7 @@ import {
   type OnNodeDrag,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { toPng } from 'html-to-image'
+import { toBlob } from 'html-to-image'
 import { ImageDownIcon, ListIcon, NetworkIcon, XIcon } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
@@ -44,6 +44,25 @@ import { useOrgChartData } from './useOrgChartData'
 
 const nodeTypes = { employee: EmployeeNode }
 const DEFAULT_FOCUS_DEPTH = 2
+
+/** 1x1 transparent PNG, stood in for any avatar the exporter cannot inline. */
+const TRANSPARENT_PIXEL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+/**
+ * Describe a failed export, including the failures that are not Errors.
+ *
+ * html-to-image rejects with a DOM Event when the image it builds will not
+ * load, which carries no message at all - so the generic fallback used to be
+ * the only thing this could ever say, however the export failed.
+ */
+function exportFailureMessage(error: unknown): string {
+  if (typeof Event !== 'undefined' && error instanceof Event) {
+    return 'The browser could not rasterise the chart. Try collapsing some branches, or use the print view.'
+  }
+  if (error instanceof Error && error.message) return error.message
+  return getErrorMessage(error, 'Try again in a moment.')
+}
 
 function buildEdges(visibleIds: Set<string>, childrenByManager: Map<string, Set<string>>): Edge[] {
   const edges: Edge[] = []
@@ -400,24 +419,33 @@ function OrgChartCanvas() {
     const viewport = getViewportForBounds(bounds, imageWidth, imageHeight, 0.1, 2, 0.1)
 
     try {
-      const dataUrl = await toPng(viewportEl, {
+      // toBlob, not toPng: toPng hands back a data: URL, and turning that into
+      // a Blob meant fetch()ing it - which connect-src forbids, since a data:
+      // URL is an origin of its own. toBlob goes through canvas.toBlob and
+      // never touches the network.
+      const blob = await toBlob(viewportEl, {
         backgroundColor: '#ffffff',
         width: imageWidth,
         height: imageHeight,
+        // An avatar the exporter cannot inline is left blank rather than
+        // failing the whole export. Gravatar is reachable (see the API's
+        // connect-src), but avatar_override_url accepts any host, and one
+        // unreachable picture should not cost the chart.
+        imagePlaceholder: TRANSPARENT_PIXEL,
         style: {
           width: `${imageWidth}px`,
           height: `${imageHeight}px`,
           transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
         },
       })
-      const blob = await (await fetch(dataUrl)).blob()
+      if (!blob) throw new Error('The browser produced an empty image.')
       triggerDownload('org-chart.png', blob)
       toast.success('Chart exported', {
         description: 'org-chart.png has been downloaded.',
       })
     } catch (error) {
       toast.error('Could not export the chart', {
-        description: getErrorMessage(error, 'Try again in a moment.'),
+        description: exportFailureMessage(error),
       })
     } finally {
       setIsExportingPng(false)
