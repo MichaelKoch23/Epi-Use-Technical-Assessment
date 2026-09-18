@@ -51,7 +51,7 @@ export function AssignmentHistoryTimeline({ employeeId }: { employeeId: string }
                     {row.manager_name ?? 'No manager'}
                   </span>
                   {row.scheduled ? (
-                    <Badge className="bg-depth-4/15 text-depth-4">Scheduled</Badge>
+                    <Badge className="bg-brand-teal/15 text-brand-teal">Scheduled</Badge>
                   ) : row.in_force ? (
                     <Badge variant="secondary">Current</Badge>
                   ) : null}

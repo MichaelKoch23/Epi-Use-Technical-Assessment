@@ -8,6 +8,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters.gravatar import GravatarClient
+from app.core.avatars import gravatar_hash, gravatar_url
 from app.core.exceptions import EmployeeNotFound
 from app.core.pagination import (
     EmployeeSortParams,
@@ -57,6 +59,7 @@ from app.schemas.employee import (
     EmployeeReadAny,
     EmployeeReadRestricted,
     EmployeeUpdate,
+    GravatarPrefillRead,
     ManagerReassignRequest,
 )
 from app.services.assignment_service import (
@@ -327,6 +330,39 @@ async def create_employee(
     employee = await service.create(**body.model_dump(), actor_id=principal.id)
     await session.commit()
     return EmployeeRead.model_validate(employee)
+
+
+@router.get("/gravatar-prefill", response_model=GravatarPrefillRead)
+async def gravatar_prefill(
+    email: str = Query(..., min_length=3, max_length=320),
+    _principal: Principal = Depends(require_role("hr_admin")),
+) -> GravatarPrefillRead:
+    """Look up a public Gravatar profile to prefill the create-employee form.
+
+    The administrator decides what to accept; nothing here writes. A miss is a
+    200 with found=false rather than a 404, because "this address has no
+    Gravatar" is a normal answer, not a failure.
+    """
+    profile = await GravatarClient().get_profile(email)
+    if profile is None:
+        return GravatarPrefillRead(
+            found=False,
+            hash=gravatar_hash(email),
+            avatar_url=gravatar_url(email, 256),
+        )
+    return GravatarPrefillRead(
+        found=True,
+        hash=profile.hash,
+        avatar_url=profile.avatar_url or gravatar_url(email, 256),
+        profile_url=profile.profile_url,
+        display_name=profile.display_name,
+        first_name=profile.first_name,
+        last_name=profile.last_name,
+        position=profile.job_title,
+        company=profile.company,
+        location=profile.location,
+        description=profile.description,
+    )
 
 
 @router.get("/positions", response_model=list[str])

@@ -53,6 +53,8 @@ Three decisions shape the design, and the rest of this document justifies them:
 | FR-14 | Audit trail of all data changes | Added |
 | FR-15 | Bulk CSV/Excel import with validation, and full data export | Added |
 | FR-16 | Organisational analytics (headcount, cost roll-up, span of control) | Added |
+| FR-17 | Effective-dated reporting lines: view the organisation as at any date, and schedule a change to take effect on a future date | Added |
+| FR-18 | Costed preview of a branch move before it is committed | Added |
 
 ### 2.2 Non-functional requirements
 
@@ -80,12 +82,14 @@ Three decisions shape the design, and the rest of this document justifies them:
 | FR-7 | `GET /search`, command palette, chart focus mode | `test_search.py` |
 | FR-8 | `GET /employees` with whitelisted sort/filter params | `test_list_filtering.py` |
 | FR-9 | `GravatarAdapter` (SHA-256 email hash) | `test_gravatar.py` |
-| FR-11 | Deferred constraint trigger + service pre-check | `test_cycle_prevention.py` |
+| FR-11 | Deferred constraint trigger + service pre-check; `AssignmentService._assert_acyclic` extends this across future boundary dates (§5.2) | `test_cycle_prevention.py`, `test_temporal_cycle_across_a_scheduled_change` |
 | FR-12 | `DeletionPolicy` strategy | `test_deletion_policies.py` |
 | FR-13 | RBAC dependency + response schema selection | `test_salary_redaction.py` |
 | FR-14 | `AuditLog` written inside the unit of work | `test_audit_trail.py` |
 | FR-15 | `POST /imports/employees`, `GET /exports/employees.csv` | `test_import.py`, `test_export.py` |
 | FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` - `cost` field-gated to `hr_admin` (§9.3), not endpoint-gated | `test_analytics.py` |
+| FR-17 | `employee_assignment` with a GiST exclusion constraint; `AssignmentRepository` as-of CTE; `?as_of=` on the four hierarchy reads; `AsOfControl` and the read-only banner in the web client | `test_effective_dating.py`, `test_effective_dating_api.py`, `asOfQueryKeys.test.ts`, `AsOfBanner.test.tsx` |
+| FR-18 | `AssignmentService.preview_move`, `POST /employees/{id}/move-preview` - `cost_delta` field-gated to `hr_admin` (§9.3) | `test_preview_writes_nothing`, `test_move_preview_hides_cost_from_a_viewer` |
 
 ---
 
@@ -216,6 +220,9 @@ erDiagram
     EMPLOYEE ||--o{ EMPLOYEE : "manages"
     EMPLOYEE ||--o{ AUDIT_LOG : "is subject of"
     APP_USER ||--o{ AUDIT_LOG : "performs"
+    EMPLOYEE ||--o{ EMPLOYEE_ASSIGNMENT : "has reporting history"
+    EMPLOYEE ||--o{ EMPLOYEE_ASSIGNMENT : "is manager in"
+    APP_USER ||--o{ EMPLOYEE_ASSIGNMENT : "records"
 
     EMPLOYEE {
         uuid id PK
@@ -252,6 +259,17 @@ erDiagram
         jsonb after
         timestamptz occurred_at
     }
+
+    EMPLOYEE_ASSIGNMENT {
+        uuid id PK
+        uuid employee_id FK
+        uuid manager_id FK
+        date valid_from
+        date valid_to
+        text reason
+        uuid created_by FK
+        timestamptz created_at
+    }
 ```
 
 ### 4.3 Choosing a hierarchy representation
@@ -271,6 +289,44 @@ This is the central data-design decision, so the alternatives are set out in ful
 The graph database deserves a word, because a reporting structure is a natural graph. It was rejected because the structure here is the *simple* case of a graph - a single-parent forest - which relational databases handle natively, while the brief's tabular reporting, sorting and filtering requirements are where relational databases are strongest and graph databases weakest. Adopting Neo4j would optimise the easy half of the problem and complicate the hard half.
 
 If the system later needed sub-millisecond ancestor lookups across a million rows, the migration path is to add a closure table as a derived read model maintained by trigger, leaving the adjacency list authoritative.
+
+#### The reporting edge is date-bounded
+
+The adjacency list above answers "who reports to whom **now**". `employee_assignment` answers it for any date: one row per run of time during which an employee reported to a particular manager, with a half-open `[valid_from, valid_to)` interval. `valid_to` is the first day the assignment is *no longer* in force, so a run ending 2026-09-30 and one starting 2026-09-30 are adjacent rather than overlapping. That convention is used without exception, in the schema, the queries and the tests.
+
+**The non-overlap invariant is structural, not defensive.** A GiST exclusion constraint makes two managers on the same day unrepresentable:
+
+```sql
+ALTER TABLE employee_assignment
+  ADD CONSTRAINT assignment_no_overlap
+  EXCLUDE USING gist (
+      employee_id WITH =,
+      daterange(valid_from, valid_to, '[)') WITH &&
+  );
+```
+
+This is the same argument as §5.2 applied to time rather than to shape: application-level "does this overlap anything?" checks are correct in isolation and wrong under concurrency, whereas the constraint holds no matter how many instances write at once.
+
+**Why `employee.manager_id` was kept.** The column is now a *cache* of whichever assignment run is effective today, not an independent fact. It was retained rather than deleted for three reasons: every existing query, index and the deferred cycle trigger keep working untouched; the present-day read path stays a single indexed column rather than a range predicate; and a full temporal rewrite would have put the whole existing test suite at risk for no behavioural gain.
+
+A cache is only defensible if something keeps it honest, so nothing updates it by hand. `sync_effective_assignments()` recomputes it from whatever is in force today:
+
+```sql
+UPDATE employee e
+   SET manager_id = ef.manager_id,
+       version    = e.version + 1,
+       updated_at = now()
+  FROM effective ef
+ WHERE e.id = ef.employee_id
+   AND e.deleted_at IS NULL
+   AND e.manager_id IS DISTINCT FROM ef.manager_id;
+```
+
+It runs once per write transaction and once at application startup. **This is what makes a future-dated assignment become current on its own date with no scheduler, no cron and no background worker** - the change is already in the table, and the first transaction on or after its date simply observes it. `version` is bumped alongside `manager_id` because that column backs the `If-Match` ETag (§5.4): a manager that changed silently under a stale ETag would let a client overwrite a decision it never saw.
+
+The function is a single indexed `UPDATE … FROM` that matches zero rows on the overwhelming majority of calls, so the cost of never letting the cache drift is negligible.
+
+**Limits of the model.** Only the *edge* is temporal, not the employee lifecycle. `deleted_at` remains a single timestamp, so an employee deleted today is absent from historical trees as well as from today's, and an employee created today reads as a root at every earlier date. Making the lifecycle temporal too would mean validity intervals on the employee row itself; it is not needed for the org-chart-as-at-a-date question this feature answers.
 
 ### 4.4 Schema
 
@@ -429,6 +485,27 @@ CREATE CONSTRAINT TRIGGER employee_no_cycle
 
 The service-layer pre-check is not redundant with the trigger: it exists to return a clear, actionable `422` naming the offending employee, rather than surfacing a database exception to the user.
 
+#### Cycle validation has to be temporal too
+
+Both the `CHECK` constraint and the deferred trigger guard the `employee` table, and `employee.manager_id` only ever holds the edge in force **today**. Neither can see a change that has not taken effect yet. Once reporting lines can be scheduled, that leaves a real gap: a move can be perfectly acyclic on the day it takes effect and still close a loop later, when some other scheduled change lands.
+
+Concretely - schedule B under A from 1 October, then attempt to move A under B effective 1 September. On 1 September the structure is a tree and a point-in-time check passes it. On 1 October the two edges meet and the structure is cyclic.
+
+The set of dates on which the structure can change is finite: the distinct `valid_from` and `valid_to` values after the effective date. So the move is validated against every one of them.
+
+```python
+dates = [effective_from, *repo.get_boundary_dates(after=effective_from)]
+for at in dates:
+    if repo.is_descendant(new_manager_id, of_id=employee_id, as_of=at):
+        raise ReportingCycleError(chain=repo.get_ancestors(new_manager_id, as_of=at), at=at)
+```
+
+Checking the structure *before* the move is sufficient rather than merely convenient: the only new edge is employee → new manager, and a cycle can run through it only if the new manager is already inside the employee's subtree on that date. The move cannot add anyone to that subtree.
+
+**The cost is proportional to how far back the move is dated.** For a move taking effect today or later - the ordinary case - the only boundaries ahead of it are genuinely scheduled changes, so the set is a handful of dates and validation is a handful of queries. A *backdated correction* has to check every boundary between its effective date and the end of the schedule, which in an organisation with a long reassignment history can be a hundred or more dates, each one a separate recursive query. That is correct but not cheap, and it is the reason a deep backdated correction is noticeably slower than a normal move. Batching those checks into a single query over all candidate dates is the optimisation if it ever matters; it has not been needed at this scale.
+
+This is a fourth layer on top of the three above, and the only one that looks forward. `test_temporal_cycle_across_a_scheduled_change` is the test that pins it; reducing the date set to `[effective_from]` alone makes that test fail and every other test in the suite still pass, which is the clearest statement of what it is protecting.
+
 ### 5.3 Deleting an employee who has direct reports
 
 The brief does not specify what happens to an employee's reports when that employee is removed, which makes it a design decision rather than an omission. Three policies are implemented behind a **strategy interface**, selected per request:
@@ -467,12 +544,17 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `DELETE` | `/employees/{id}` | Soft delete with `?policy=` | Admin |
 | `POST` | `/employees/{id}/restore` | Undo a soft delete | Admin |
 | `GET` | `/employees/{id}/deletion-preview` | Affected records for a given policy | Admin |
-| `PUT` | `/employees/{id}/manager` | Reassign reporting line | Admin |
-| `GET` | `/employees/{id}/subtree` | Descendants to `?depth=` | Viewer |
-| `GET` | `/employees/{id}/reporting-line` | Ancestor chain to the root | Viewer |
+| `PUT` | `/employees/{id}/manager` | Reassign reporting line; optional `effective_from` and `reason` schedule it (optimistic lock) | Admin |
+| `POST` | `/employees/{id}/move-preview` | Costed preview of a branch move; writes nothing | Viewer (`cost_delta` field-gated to Admin, §9.3) |
+| `GET` | `/employees/{id}/assignment-history` | Every reporting run for one employee, newest first | Viewer |
+| `GET` | `/employees/{id}/subtree` | Descendants to `?depth=`, as at `?as_of=` | Viewer |
+| `GET` | `/employees/{id}/reporting-line` | Ancestor chain to the root, as at `?as_of=` | Viewer |
 | `GET` | `/employees/{id}/audit` | Change history for one employee | Viewer (`salary` values field-gated to Admin, §9.3) |
-| `GET` | `/hierarchy/roots` | Employees with no manager | Viewer |
-| `GET` | `/hierarchy/tree` | Chart-shaped payload, lazily expandable | Viewer |
+| `GET` | `/hierarchy/roots` | Employees with no manager, as at `?as_of=` | Viewer |
+| `GET` | `/hierarchy/tree` | Chart-shaped payload, lazily expandable, as at `?as_of=` | Viewer |
+| `GET` | `/hierarchy/scheduled` | Every future-dated assignment not yet in force | Viewer |
+| `DELETE` | `/hierarchy/scheduled/{id}` | Cancel a scheduled change and reopen the run it would have superseded | Admin |
+| `GET` | `/hierarchy/diff?from=&to=` | What changed in the structure between two dates | Viewer (`cost` field-gated to Admin, §9.3) |
 | `GET` | `/analytics/org-summary` | Headcount, depth, span-of-control, anomalies | Viewer |
 | `GET` | `/analytics/branch/{id}` | Cost and headcount roll-up for a branch | Viewer (`cost` field-gated to Admin, §9.3) |
 | `POST` | `/imports/employees` | CSV/XLSX upload; `?dry_run=true` validates only | Admin |
@@ -480,6 +562,8 @@ Resource-oriented, versioned under `/api/v1`, JSON only, no verbs in paths. Stat
 | `GET` | `/search` | Cross-entity quick search for the command palette | Viewer |
 | `GET` | `/audit` | Global change-history feed across every employee | Viewer (`salary` values field-gated to Admin, §9.3) |
 | `GET` | `/health` | Liveness and database reachability | Public |
+
+The four hierarchy reads take an optional `as_of` date, defaulting to today, and **echo the resolved date back in every response** so a client never has to infer which day a payload describes. `PUT /employees/{id}/manager` returns the resulting assignment along with any scheduled changes the decision superseded, so a caller is never told silently that someone else's plan was cancelled.
 
 ### 6.3 List query contract
 
@@ -867,15 +951,15 @@ The hosting decision was made against one criterion above all others: an evaluat
 Stated plainly, because a design document that claims no limitations is not describing a real system.
 
 1. **Position is free text.** Typos create distinct positions. A normalised job-catalogue entity is the correct fix.
-2. **No effective dating.** The system stores the organisation as it is now, not as it was on a given date. Adding validity intervals to reporting assignments would allow historical org charts and planned future restructures - the model SAP HCM uses, and the most valuable single extension.
-3. **Two roles only.** Real HR access control is usually scoped to organisational units, so a manager sees their own branch. That needs subtree-scoped authorisation.
-4. **No multi-tenancy.** A single organisation is assumed.
-5. **Single-parent hierarchy.** Matrix reporting (a solid-line and a dotted-line manager) would require a separate edge table and turns the tree into a DAG, with correspondingly harder cycle rules.
-6. **Login rate limiting is in-process.** The counter lives in one container's memory, so it blunts a single attacker against a single instance but is not shared across Cloud Run instances the way the reporting-cycle invariant is shared at the database layer. A Redis-backed counter is the upgrade path. Refresh-token revocation, which had the same shape as a limitation, is now backed by the `refresh_token` table (§9.1) rather than left to expiry.
-7. **Audit log grows unbounded.** Partitioning by month and archiving would be needed at volume.
-8. **Data residency is outside South Africa** for this deployment, with the in-country path documented in §10.2 but not taken.
-9. **Access tokens cannot be revoked mid-life.** A role downgrade or a forced sign-out takes effect when the current 15-minute access token expires, not instantly. Making it instant means checking server state on every request, which is the cost the stateless-access/stateful-refresh split exists to avoid; 15 minutes is the chosen bound on that window.
-10. **No browser-level end-to-end suite** (§11).
+2. **Two roles only.** Real HR access control is usually scoped to organisational units, so a manager sees their own branch. That needs subtree-scoped authorisation.
+3. **No multi-tenancy.** A single organisation is assumed.
+4. **Single-parent hierarchy.** Matrix reporting (a solid-line and a dotted-line manager) would require a separate edge table and turns the tree into a DAG, with correspondingly harder cycle rules.
+5. **Login rate limiting is in-process.** The counter lives in one container's memory, so it blunts a single attacker against a single instance but is not shared across Cloud Run instances the way the reporting-cycle invariant is shared at the database layer. A Redis-backed counter is the upgrade path. Refresh-token revocation, which had the same shape as a limitation, is now backed by the `refresh_token` table (§9.1) rather than left to expiry.
+6. **Audit log grows unbounded.** Partitioning by month and archiving would be needed at volume.
+7. **Data residency is outside South Africa** for this deployment, with the in-country path documented in §10.2 but not taken.
+8. **Access tokens cannot be revoked mid-life.** A role downgrade or a forced sign-out takes effect when the current 15-minute access token expires, not instantly. Making it instant means checking server state on every request, which is the cost the stateless-access/stateful-refresh split exists to avoid; 15 minutes is the chosen bound on that window.
+9. **No browser-level end-to-end suite** (§11).
+10. **Only the reporting edge is effective-dated, not the employee lifecycle.** Reporting lines can be read as at any date (§4.3), but `deleted_at` is still a single timestamp, so a historical org chart shows today's population under its historical reporting structure. Validity intervals on the employee row itself are the extension.
 
 ---
 

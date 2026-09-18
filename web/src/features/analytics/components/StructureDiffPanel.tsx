@@ -136,7 +136,7 @@ export function StructureDiffPanel() {
       {diff && (
         <div className="mt-4 flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            {formatDate(diff.from_date)} to {formatDate(diff.to_date)} &mdash;{' '}
+            {formatDate(diff.from_date)} to {formatDate(diff.to_date)}:{' '}
             {diff.manager_changes.length === 0
               ? 'the reporting structure is unchanged.'
               : `${diff.manager_changes.length} reporting change${

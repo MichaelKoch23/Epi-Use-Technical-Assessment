@@ -39,13 +39,13 @@ describe('AsOfBanner', () => {
       <AsOfBanner state={state({ asOf: '2025-06-14', isToday: false, isPast: true })} />
     )
     expect(screen.getByRole('status').className).toContain('status-alert')
-    expect(screen.getByRole('status').className).not.toContain('depth-4')
+    expect(screen.getByRole('status').className).not.toContain('brand-teal')
     expect(screen.getByRole('status')).toHaveTextContent(/historical view/i)
 
     rerender(
       <AsOfBanner state={state({ asOf: '2027-06-14', isToday: false, isFuture: true })} />
     )
-    expect(screen.getByRole('status').className).toContain('depth-4')
+    expect(screen.getByRole('status').className).toContain('brand-teal')
     expect(screen.getByRole('status').className).not.toContain('status-alert')
     expect(screen.getByRole('status')).toHaveTextContent(/scheduled future view/i)
   })

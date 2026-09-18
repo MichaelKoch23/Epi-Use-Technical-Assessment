@@ -77,7 +77,7 @@ export function ScheduledChangesPanel({
                 <div className="flex flex-wrap items-baseline gap-2 text-sm">
                   <button
                     type="button"
-                    className="font-medium text-depth-4 underline underline-offset-2"
+                    className="font-medium text-brand-teal underline underline-offset-2"
                     onClick={() => state.setAsOf(row.effective_from)}
                   >
                     {formatDate(row.effective_from)}

@@ -17,7 +17,14 @@ class Settings(BaseSettings):
     JWT_ACCESS_TTL_SECONDS: int = 900
     JWT_REFRESH_TTL_SECONDS: int = 60 * 60 * 24 * 7
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    # What Gravatar serves for an address with no uploaded photo. "404" makes the
+    # client fall back to initials; "identicon" and friends give every address a
+    # distinct generated image. See app.core.avatars.gravatar_url.
     GRAVATAR_DEFAULT_IMAGE: str = "mp"
+    # Optional. Without it the profile API still answers, but returns fewer
+    # fields, so enrichment degrades rather than breaks.
+    GRAVATAR_API_KEY: str = ""
+    GRAVATAR_API_TIMEOUT_SECONDS: float = 3.0
     ENVIRONMENT: str = "development"
     DB_POOL_SIZE: int = 5
     PORT: int = 8080

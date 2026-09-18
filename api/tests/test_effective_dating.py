@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import itertools
 import uuid
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
@@ -128,6 +130,30 @@ async def test_temporal_cycle_across_a_scheduled_change(
     assert exc.value.at == october
     assert b.id in exc.value.chain
     await db_session.rollback()
+
+
+async def test_the_same_move_is_allowed_when_nothing_is_scheduled(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """The control for the flagship case above.
+
+    Identical move, identical dates, but with no scheduled change to close the
+    loop - it succeeds. That is what shows the rejection came from the future
+    edge rather than from anything about the move itself.
+    """
+    root = await employee_factory()
+    a = await employee_factory(manager_id=root.id)
+    b = await employee_factory(manager_id=root.id)
+
+    result = await AssignmentService(db_session).reassign(
+        a.id,
+        b.id,
+        effective_from=TODAY + timedelta(days=30),
+        reason="A under B",
+        actor_id=actor_id,
+    )
+    await db_session.commit()
+    assert result.assignment.manager_id == b.id
 
 
 async def test_move_supersedes_scheduled_and_reports_them(
@@ -293,3 +319,230 @@ async def test_diff_structure_reads_from_assignments_alone(
     assert [c.employee_id for c in diff.branch_moves] == [mover.id]
     assert diff.became_root == []
     assert diff.max_depth_from == diff.max_depth_to == 3
+
+
+# --- Step 34: the non-overlap invariant is structural, not defensive ----------
+
+
+async def _insert_assignment(
+    session: AsyncSession,
+    employee_id: uuid.UUID,
+    manager_id: uuid.UUID | None,
+    valid_from: date,
+    valid_to: date | None = None,
+) -> None:
+    await session.execute(
+        text(
+            "INSERT INTO employee_assignment"
+            " (employee_id, manager_id, valid_from, valid_to)"
+            " VALUES (:e, :m, :f, :t)"
+        ),
+        {"e": employee_id, "m": manager_id, "f": valid_from, "t": valid_to},
+    )
+
+
+async def test_exclusion_constraint_rejects_an_overlapping_assignment(
+    db_session: AsyncSession, employee_factory: EmployeeFactory
+) -> None:
+    """An employee can never have two managers on the same day."""
+    root = await employee_factory()
+    other = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=root.id)
+    await db_session.commit()
+
+    # The run opened by create() is open-ended from today, so any row covering
+    # today overlaps it.
+    with pytest.raises(IntegrityError) as exc:
+        async with db_session.begin_nested():
+            await _insert_assignment(db_session, mover.id, other.id, TODAY)
+    assert "assignment_no_overlap" in str(exc.value.orig)
+
+
+async def test_exclusion_constraint_permits_an_adjacent_assignment(
+    db_session: AsyncSession, employee_factory: EmployeeFactory
+) -> None:
+    """valid_to is the first day NOT in force, so touching ranges do not overlap."""
+    root = await employee_factory()
+    other = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=root.id)
+
+    handover = TODAY + timedelta(days=30)
+    await db_session.execute(
+        text("UPDATE employee_assignment SET valid_to = :t WHERE employee_id = :e"),
+        {"t": handover, "e": mover.id},
+    )
+    # Starts on the very day the previous run ends - adjacent, not overlapping.
+    await _insert_assignment(db_session, mover.id, other.id, handover)
+    await db_session.commit()
+
+    rows = await AssignmentRepository(db_session).get_assignment_history(mover.id)
+    assert [r.assignment.valid_from for r in rows] == [handover, TODAY]
+    assert rows[1].assignment.valid_to == rows[0].assignment.valid_from
+
+
+async def test_exclusion_constraint_is_scoped_to_one_employee(
+    db_session: AsyncSession, employee_factory: EmployeeFactory
+) -> None:
+    """Two different people may of course both have a manager today."""
+    root = await employee_factory()
+    first = await employee_factory(manager_id=root.id)
+    second = await employee_factory(manager_id=root.id)
+    await db_session.commit()
+
+    before = await _count(db_session)
+    await db_session.execute(
+        text("DELETE FROM employee_assignment WHERE employee_id IN (:a, :b)"),
+        {"a": first.id, "b": second.id},
+    )
+    await _insert_assignment(db_session, first.id, root.id, TODAY)
+    await _insert_assignment(db_session, second.id, root.id, TODAY)
+    await db_session.commit()
+    assert await _count(db_session) == before
+
+
+# --- Step 35: the as-of tree is the historical structure ---------------------
+
+
+async def test_get_tree_returns_the_structure_as_it_stood_at_four_dates(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """Three moves, four dates, four different answers."""
+    root = await employee_factory()
+    a = await employee_factory(manager_id=root.id)
+    b = await employee_factory(manager_id=root.id)
+    c = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=a.id)
+
+    opened = TODAY - timedelta(days=400)
+    await db_session.execute(
+        text("UPDATE employee_assignment SET valid_from = :d WHERE employee_id = :e"),
+        {"d": opened, "e": mover.id},
+    )
+
+    service = AssignmentService(db_session)
+    moves = [
+        (b.id, TODAY - timedelta(days=300), "to B"),
+        (c.id, TODAY - timedelta(days=200), "to C"),
+        (a.id, TODAY - timedelta(days=100), "back to A"),
+    ]
+    for manager_id, effective_from, reason in moves:
+        await service.reassign(
+            mover.id,
+            manager_id,
+            effective_from=effective_from,
+            reason=reason,
+            actor_id=actor_id,
+        )
+    await db_session.commit()
+
+    repo = AssignmentRepository(db_session)
+
+    async def manager_at(as_of: date) -> uuid.UUID | None:
+        rows = await repo.get_tree(as_of)
+        return next(r.employee.manager_id for r in rows if r.employee.id == mover.id)
+
+    assert await manager_at(TODAY - timedelta(days=350)) == a.id
+    assert await manager_at(TODAY - timedelta(days=250)) == b.id
+    assert await manager_at(TODAY - timedelta(days=150)) == c.id
+    assert await manager_at(TODAY) == a.id
+
+    # The runs tile the whole period with no gap and no overlap.
+    history = [r.assignment for r in await repo.get_assignment_history(mover.id)]
+    assert [row.valid_from for row in history] == [
+        TODAY - timedelta(days=100),
+        TODAY - timedelta(days=200),
+        TODAY - timedelta(days=300),
+        opened,
+    ]
+    assert history[0].valid_to is None
+    for newer, older in itertools.pairwise(history):
+        assert older.valid_to == newer.valid_from
+
+
+async def test_the_boundary_day_itself_belongs_to_the_new_manager(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """'[)' means the effective date is the new manager's first day, not the old one's last."""
+    root = await employee_factory()
+    a = await employee_factory(manager_id=root.id)
+    b = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=a.id)
+
+    await db_session.execute(
+        text("UPDATE employee_assignment SET valid_from = :d WHERE employee_id = :e"),
+        {"d": TODAY - timedelta(days=90), "e": mover.id},
+    )
+    changeover = TODAY - timedelta(days=30)
+    await AssignmentService(db_session).reassign(
+        mover.id, b.id, effective_from=changeover, reason="moved", actor_id=actor_id
+    )
+    await db_session.commit()
+
+    repo = AssignmentRepository(db_session)
+
+    async def manager_at(as_of: date) -> uuid.UUID | None:
+        rows = await repo.get_tree(as_of)
+        return next(r.employee.manager_id for r in rows if r.employee.id == mover.id)
+
+    assert await manager_at(changeover - timedelta(days=1)) == a.id
+    assert await manager_at(changeover) == b.id
+
+
+# --- Step 37: a scheduled change becomes current by date, with no scheduler ---
+
+
+async def test_a_scheduled_change_applies_itself_once_its_date_arrives(
+    db_session: AsyncSession, employee_factory: EmployeeFactory, actor_id: uuid.UUID
+) -> None:
+    """Advance the world past a scheduled date and sync applies it.
+
+    sync_effective_assignments() reads CURRENT_DATE inside the database, so the
+    test cannot move the clock the process sees. Shifting the employee's rows
+    back by the same interval produces exactly the row state the database would
+    hold once that date arrived, which is what the function reacts to.
+    """
+    root = await employee_factory()
+    a = await employee_factory(manager_id=root.id)
+    b = await employee_factory(manager_id=root.id)
+    mover = await employee_factory(manager_id=a.id)
+    await db_session.commit()
+
+    service = AssignmentService(db_session)
+    repo = AssignmentRepository(db_session)
+    horizon = 30
+    await service.reassign(
+        mover.id,
+        b.id,
+        effective_from=TODAY + timedelta(days=horizon),
+        reason="planned",
+        actor_id=actor_id,
+    )
+    await db_session.commit()
+
+    await db_session.refresh(mover)
+    version_while_pending = mover.version
+    assert mover.manager_id == a.id
+    assert await repo.sync_effective(force=True) == 0
+
+    # The date arrives.
+    await db_session.execute(
+        text(
+            "UPDATE employee_assignment"
+            " SET valid_from = valid_from - make_interval(days => :d),"
+            "     valid_to   = valid_to   - make_interval(days => :d)"
+            " WHERE employee_id = :e"
+        ),
+        {"d": horizon, "e": mover.id},
+    )
+    await db_session.commit()
+
+    assert await repo.sync_effective(force=True) == 1
+    await db_session.commit()
+
+    await db_session.refresh(mover)
+    assert mover.manager_id == b.id
+    # The cache column backs the If-Match ETag, so it has to move with it.
+    assert mover.version == version_while_pending + 1
+    # Nothing is left scheduled, and a second sync has nothing to do.
+    assert await repo.get_scheduled() == []
+    assert await repo.sync_effective(force=True) == 0

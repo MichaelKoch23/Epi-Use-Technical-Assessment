@@ -168,7 +168,7 @@ export function MovePreviewDialog({
                 <ul className="mt-1.5 flex flex-col gap-1 text-xs">
                   {preview.supersedes.map((row) => (
                     <li key={row.id}>
-                      {formatDate(row.effective_from)} &mdash; move to{' '}
+                      {formatDate(row.effective_from)}: move to{' '}
                       <span className="font-medium">{row.manager_name ?? 'No manager'}</span>
                       {row.reason && <span className="text-muted-foreground"> ({row.reason})</span>}
                     </li>
@@ -210,7 +210,7 @@ export function MovePreviewDialog({
                   className="rounded-sm border border-input px-2 py-1.5 text-sm"
                 />
                 {effectiveFrom > today && (
-                  <span className="text-xs text-depth-4">
+                  <span className="text-xs text-brand-teal">
                     Scheduled - takes effect on {formatDate(effectiveFrom)}
                   </span>
                 )}

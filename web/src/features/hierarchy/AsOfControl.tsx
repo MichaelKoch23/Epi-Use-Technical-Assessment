@@ -75,8 +75,8 @@ export function AsOfControl({ state }: { state: AsOfState }) {
               size="sm"
               aria-pressed={asOf === date}
               className={cn(
-                'border-depth-4/40 text-depth-4',
-                asOf === date && 'bg-depth-4/10'
+                'border-brand-teal/40 text-brand-teal',
+                asOf === date && 'bg-brand-teal/10'
               )}
               onClick={() => setAsOf(date)}
             >

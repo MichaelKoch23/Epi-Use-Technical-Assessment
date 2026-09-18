@@ -60,6 +60,22 @@ class ManagerReassignRequest(BaseModel):
     reason: ReassignReason = None
 
 
+class GravatarPrefillRead(BaseModel):
+    """A suggestion drawn from a public Gravatar profile, never applied on its own."""
+
+    found: bool
+    hash: str
+    avatar_url: str | None = None
+    profile_url: str | None = None
+    display_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    position: str | None = None
+    company: str | None = None
+    location: str | None = None
+    description: str | None = None
+
+
 class _EmployeeReadBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
