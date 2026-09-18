@@ -107,7 +107,6 @@ export function LoginPage() {
                     aria-label={passwordVisible ? 'Hide password' : 'Show password'}
                     aria-pressed={passwordVisible}
                     onClick={() => setPasswordVisible((visible) => !visible)}
-                    // The 32px control carries a 48px hit area, so it clears the 44px touch target.
                     className="relative text-muted-foreground after:absolute after:-inset-2 after:content-['']"
                   >
                     {passwordVisible ? <EyeOff /> : <Eye />}

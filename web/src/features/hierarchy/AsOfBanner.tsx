@@ -4,11 +4,6 @@ import { formatDate } from '@/features/employees/format'
 import { cn } from '@/lib/utils'
 import type { AsOfState } from './useAsOf'
 
-/**
- * Past and future views are deliberately different colours: --status-alert for
- * a historical view, and the palette's teal for a scheduled one. Mistaking one
- * for the other is the whole risk this banner exists to remove.
- */
 export function AsOfBanner({ state }: { state: AsOfState }) {
   const { asOf, isToday, isPast, setAsOf } = state
   if (isToday) return null

@@ -44,6 +44,24 @@ function redirectToLogin() {
   }
 }
 
+export async function authedFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const send = (token: string | null) => {
+    const headers = new Headers(init.headers)
+    if (token) headers.set('Authorization', `Bearer ${token}`)
+    return fetch(input, { ...init, headers })
+  }
+
+  const response = await send(getAccessToken())
+  if (response.status !== 401) return response
+
+  const newToken = await refreshAccessToken()
+  if (!newToken) {
+    redirectToLogin()
+    return response
+  }
+  return send(newToken)
+}
+
 const authMiddleware: Middleware = {
   onRequest({ request, id }) {
     requestClones.set(id, request.clone())

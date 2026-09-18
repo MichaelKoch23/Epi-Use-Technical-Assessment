@@ -12,10 +12,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 
-/**
- * Asks before anything that writes. Opens with focus on Cancel, per the style
- * guide's rule for destructive dialogs, so Enter never confirms by accident.
- */
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -33,7 +29,6 @@ export function ConfirmDialog({
   onOpenChange: (open: boolean) => void
   title: string
   description: ReactNode
-  /** Extra detail - the rows about to change, the name being removed. */
   children?: ReactNode
   confirmLabel: string
   pendingLabel?: string

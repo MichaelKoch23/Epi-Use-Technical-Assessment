@@ -41,12 +41,6 @@ function toPopoverState(filters: EmployeesFilterState): PopoverFilterState {
   return rest
 }
 
-/**
- * A range with its bounds the wrong way round can never match anyone, so
- * applying it would empty the table and blame the data. Both ends are only
- * compared when both are filled in - a one-sided range is perfectly valid.
- * ISO dates compare lexicographically, which is also chronologically.
- */
 function rangeError(min: string, max: string, numeric: boolean): string | null {
   if (!min || !max) return null
   const inverted = numeric ? Number(min) > Number(max) : min > max

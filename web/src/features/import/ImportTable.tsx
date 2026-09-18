@@ -20,12 +20,9 @@ export function ImportTable({
   rowIssues,
   onCellChange,
 }: {
-  /** The page being shown, not the whole file. */
   rows: string[][]
   startIndex: number
-  /** Client-side errors, keyed `${rowIndex}:${columnName}`. */
   cellErrors: Map<string, string>
-  /** Server verdicts from the last check, keyed by row index. */
   rowIssues: Map<number, RowIssue>
   onCellChange: (rowIndex: number, columnIndex: number, value: string) => void
 }) {
@@ -67,7 +64,6 @@ export function ImportTable({
                     ) : (
                       <CheckCircle2Icon className="size-3.5 text-status-safe" aria-label="Valid" />
                     )}
-                    {/* The file's own line number, so it matches the error report. */}
                     {rowIndex + 2}
                   </span>
                 </TableCell>

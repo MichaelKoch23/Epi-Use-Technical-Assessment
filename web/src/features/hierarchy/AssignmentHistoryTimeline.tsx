@@ -13,7 +13,6 @@ function dateRange(row: AssignmentHistoryItem): string {
   return row.valid_to ? `${from} - ${formatDate(row.valid_to)}` : `${from} - present`
 }
 
-/** Mirrors the change-history list in the employee drawer: one bordered row per entry. */
 export function AssignmentHistoryTimeline({ employeeId }: { employeeId: string }) {
   const [expanded, setExpanded] = useState(false)
   const query = useQuery({

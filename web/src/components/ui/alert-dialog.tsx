@@ -7,13 +7,6 @@ import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
 
-/**
- * The style guide's Modal: a bordered header carrying the title and a close
- * control, a padded body, and a footer whose divider separates the decision
- * from the explanation. Destructive dialogs never close on a backdrop click -
- * only Escape, Cancel, or the confirm button - which is why this is built on
- * AlertDialog rather than Dialog.
- */
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
 }
@@ -56,7 +49,6 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Popup
         data-slot="alert-dialog-content"
         className={cn(
-          // 420px / 90%, radius-lg and shadow-md, per the Modal spec.
           "fixed top-1/2 left-1/2 z-50 flex max-h-[85vh] w-[90%] max-w-[420px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-card text-card-foreground shadow-[0_4px_12px_rgba(0,0,0,0.12)] outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-open:duration-[400ms] data-open:ease-[cubic-bezier(0,0,0.2,1)] data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-closed:duration-[250ms] data-closed:ease-[cubic-bezier(0.4,0,1,1)] motion-reduce:animate-none",
           className
         )}
@@ -100,7 +92,6 @@ function AlertDialogHeader({
   )
 }
 
-/** The Modal spec's body: --sp-5/--sp-6 padding, base text, relaxed leading. */
 function AlertDialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

@@ -13,7 +13,6 @@ const OLD_MANAGER = 'manager-old'
 const NEW_MANAGER = 'manager-new'
 const MOVER = 'employee-mover'
 
-/** The server's copy of the org, which the mocked endpoints read from. */
 let managerOf: Record<string, string | null>
 let deleted: Set<string>
 
@@ -61,8 +60,6 @@ vi.mock('@/lib/apiClient', () => ({
         return Promise.resolve({ data: { items: [employee(ROOT)] }, error: undefined })
       }
       if (path === '/api/v1/employees/{employee_id}/subtree') {
-        // One query loads the whole org, as a root's depth-2 fetch does: the
-        // moved employee is cached under the ROOT's key, not either manager's.
         return Promise.resolve({
           data: {
             items: live([ROOT, OLD_MANAGER, NEW_MANAGER, MOVER]).map((each) => ({
@@ -86,8 +83,6 @@ vi.mock('@/lib/apiClient', () => ({
         })
       }
       if (path === '/api/v1/employees/{employee_id}') {
-        // The API filters soft-deleted rows out of this lookup, so a deleted
-        // employee is a 404 rather than a record with deleted_at set.
         if (deleted.has(id)) {
           return Promise.resolve({
             data: undefined,
@@ -177,8 +172,6 @@ describe('useOrgChartData', () => {
 
     await waitFor(() => expect(result.current.employeesById.has(MOVER)).toBe(true))
 
-    // Reached through search, which pins the record and its ancestors so they
-    // render before their subtrees load.
     await act(async () => {
       await result.current.focusPathTo(employee(MOVER))
     })

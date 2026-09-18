@@ -45,17 +45,9 @@ import { useOrgChartData } from './useOrgChartData'
 const nodeTypes = { employee: EmployeeNode }
 const DEFAULT_FOCUS_DEPTH = 2
 
-/** 1x1 transparent PNG, stood in for any avatar the exporter cannot inline. */
 const TRANSPARENT_PIXEL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
-/**
- * Describe a failed export, including the failures that are not Errors.
- *
- * html-to-image rejects with a DOM Event when the image it builds will not
- * load, which carries no message at all - so the generic fallback used to be
- * the only thing this could ever say, however the export failed.
- */
 function exportFailureMessage(error: unknown): string {
   if (typeof Event !== 'undefined' && error instanceof Event) {
     return 'The browser could not rasterise the chart. Try collapsing some branches, or use the print view.'
@@ -148,8 +140,6 @@ function OrgChartCanvas() {
   useEffect(() => setEdges(structuralEdges), [structuralEdges, setEdges])
 
   const focusSet = useMemo(() => {
-    // A selection that no longer resolves - the employee was just deleted -
-    // would otherwise dim every remaining node against a focus of one ghost.
     if (!selectedId || !orgData.employeesById.has(selectedId)) return null
     const set = new Set<string>([selectedId])
     for (const id of orgData.getDescendantIds(selectedId, focusDepth)) set.add(id)
@@ -206,21 +196,15 @@ function OrgChartCanvas() {
     const node = nodes.find((n) => n.id === pendingCenterId)
     if (!node) return
     const position = `${pendingCenterId}@${node.position.x},${node.position.y}`
-    // The layout settles over several renders as the pinned ancestors and
-    // their branches arrive, so follow the node until it stops moving.
     if (centeredAtRef.current === position) {
       setPendingCenterId(null)
       return
     }
     centeredAtRef.current = position
     centerOnNode(pendingCenterId)
-    // The viewport is on its way, so the search is over as far as anyone
-    // watching is concerned.
     setFocusing((current) => (current?.id === pendingCenterId ? null : current))
   }, [pendingCenterId, nodes, centerOnNode])
 
-  // A node that never arrives - unreachable, or deleted mid-search - must not
-  // leave the pill spinning for good.
   useEffect(() => {
     if (!focusing) return
     const timer = setTimeout(() => setFocusing(null), 8000)
@@ -233,8 +217,6 @@ function OrgChartCanvas() {
       setFocusing({ id: employee.id, name })
       setViewMode('chart')
       try {
-        // Their reporting line has to be fetched before the branch can be
-        // opened, which is the part worth waiting on.
         await orgData.focusPathTo(employee)
       } catch (error) {
         setFocusing(null)
@@ -244,8 +226,6 @@ function OrgChartCanvas() {
         return
       }
       setSelectedId(employee.id)
-      // Deferred rather than centred here: pinning the employee re-runs the
-      // layout, so centring now would aim at where the node used to be.
       setPendingCenterId(employee.id)
     },
     [orgData]
@@ -419,18 +399,10 @@ function OrgChartCanvas() {
     const viewport = getViewportForBounds(bounds, imageWidth, imageHeight, 0.1, 2, 0.1)
 
     try {
-      // toBlob, not toPng: toPng hands back a data: URL, and turning that into
-      // a Blob meant fetch()ing it - which connect-src forbids, since a data:
-      // URL is an origin of its own. toBlob goes through canvas.toBlob and
-      // never touches the network.
       const blob = await toBlob(viewportEl, {
         backgroundColor: '#ffffff',
         width: imageWidth,
         height: imageHeight,
-        // An avatar the exporter cannot inline is left blank rather than
-        // failing the whole export. Gravatar is reachable (see the API's
-        // connect-src), but avatar_override_url accepts any host, and one
-        // unreachable picture should not cost the chart.
         imagePlaceholder: TRANSPARENT_PIXEL,
         style: {
           width: `${imageWidth}px`,

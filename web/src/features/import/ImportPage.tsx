@@ -39,7 +39,6 @@ export function ImportPage() {
   const { elapsed, isLongRunning } = useCommitProgress(isCommitting)
   useUnloadWarning(isCommitting)
 
-  // Recomputed on every keystroke, so a corrected cell clears as it is typed.
   const cellErrors = useMemo(() => validateRows(rows), [rows])
   const rowsNeedingWork = useMemo(() => {
     const flagged = new Set(rowIssues.keys())
@@ -61,7 +60,6 @@ export function ImportPage() {
     setPage(1)
   }
 
-  /** Send the table as it stands for a dry run - the server is the authority. */
   const check = async (nextRows: string[][], name: string) => {
     setIsChecking(true)
     try {
@@ -109,8 +107,6 @@ export function ImportPage() {
       return next
     })
 
-    // The server's verdict described the old value, so retire it rather than
-    // leave a stale reason under a row that has just been edited.
     setRowIssues((previous) => {
       if (!previous.has(rowIndex)) return previous
       const next = new Map(previous)

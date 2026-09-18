@@ -195,7 +195,6 @@ async def test_csp_lets_the_png_export_read_gravatar(api_client):
 
     connect = next(d for d in csp.split("; ") if d.startswith("connect-src"))
     assert "https://gravatar.com" in connect
-    # Still a named host, not a blanket https: the way img-src is.
     assert "https:;" not in connect and not connect.endswith("https:")
 
 

@@ -46,7 +46,7 @@ async def test_move_preview_takes_no_row_locks(
                 ),
                 {"id": mover.id},
             )
-        except DBAPIError as exc:  # pragma: no cover - only on regression
+        except DBAPIError as exc:  # pragma: no cover
             pytest.fail(f"move-preview is still holding row locks: {exc}")
         finally:
             await other.rollback()

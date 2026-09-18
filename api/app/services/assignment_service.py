@@ -163,10 +163,6 @@ class AssignmentService:
         )
 
         if new_manager_id == previous_manager_id:
-            # Re-affirming the manager in force is still a real edit when it
-            # supersedes a scheduled move to somebody else - that is how a
-            # pending change is called off. With nothing pending it writes a
-            # move from a manager to themselves, which is what this rejects.
             upcoming = await self._assignments.get_starting_on_or_after(
                 employee_id, effective_from
             )

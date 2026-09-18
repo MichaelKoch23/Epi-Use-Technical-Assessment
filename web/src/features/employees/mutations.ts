@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/lib/apiClient'
+import { apiClient, authedFetch } from '@/lib/apiClient'
 import type { components } from '@/lib/api-types'
-import { getAccessToken } from '@/lib/auth'
 import { triggerDownload } from '@/lib/download'
 import {
   analyticsKeys,
@@ -15,12 +14,6 @@ type EmployeeCreate = components['schemas']['EmployeeCreate']
 type EmployeeUpdate = components['schemas']['EmployeeUpdate']
 type DeletionPolicy = 'reparent' | 'promote_to_root' | 'cascade'
 
-/**
- * Every write here can move somebody in or out of the chart and shift the
- * analytics figures, and those live under their own query keys. Invalidating
- * only the employee keys is what leaves the org chart showing a person who has
- * just been deleted.
- */
 function invalidateEmployeeViews(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: employeeKeys.all })
   void queryClient.invalidateQueries({ queryKey: hierarchyKeys.all })
@@ -146,13 +139,6 @@ export async function fetchDeletionPreview(id: string, policy: DeletionPolicy) {
   return data
 }
 
-/**
- * The managers that the currently filtered employees report to.
- *
- * Offered as the "Reports to" filter's starting list: having narrowed to a
- * position, the useful next choice is one of the handful of managers those
- * people actually report to, not the first eight names in the company.
- */
 export async function fetchFilterManagers(filters: EmployeeListFilters) {
   const { data, error } = await apiClient.GET('/api/v1/employees/managers', {
     params: { query: filters },
@@ -176,10 +162,7 @@ export async function exportEmployeesCsv(filters: EmployeeListFilters): Promise<
     params.set(key, String(value))
   }
 
-  const token = getAccessToken()
-  const response = await fetch(`/api/v1/exports/employees.csv?${params.toString()}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  })
+  const response = await authedFetch(`/api/v1/exports/employees.csv?${params.toString()}`)
   if (!response.ok) throw new Error('Failed to export employees')
 
   triggerDownload('employees.csv', await response.blob())

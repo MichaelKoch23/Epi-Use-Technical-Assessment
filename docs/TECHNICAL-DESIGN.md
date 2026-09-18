@@ -74,22 +74,23 @@ Three decisions shape the design, and the rest of this document justifies them:
 
 | Requirement | Implemented by | Verified by |
 |---|---|---|
-| FR-1, FR-2 | `EmployeeService`, `/api/v1/employees` | Integration tests `test_employee_crud.py` |
-| FR-3 | `PUT /employees/{id}/manager`, `ReassignmentService` | `test_reassignment.py` |
-| FR-4 | `CHECK (manager_id IS DISTINCT FROM id)` | `test_self_manager_rejected` |
-| FR-5 | Nullable `manager_id`; `GET /hierarchy/roots` | `test_root_employee` |
-| FR-6 | `OrgChart` component (React Flow + Dagre) | Manual + Playwright smoke test |
+| FR-1, FR-2 | `EmployeeService`, `/api/v1/employees` | `test_audit_trail.py` (create, update, soft delete, restore), `test_optimistic_lock.py`, `test_api_contract.py` |
+| FR-3 | `PUT /employees/{id}/manager`, `AssignmentService.reassign` | `test_effective_dating_api.py`, `test_cycle_prevention.py` |
+| FR-4 | `CHECK (manager_id IS DISTINCT FROM id)` | `test_cycle_prevention.py::test_self_assignment_rejected` |
+| FR-5 | Nullable `manager_id`; `GET /hierarchy/roots` | `test_hierarchy_roots.py`, `test_cycle_prevention.py::test_reassignment_to_null_succeeds` |
+| FR-6 | `OrgChartPage` (React Flow + Dagre), with `OrgChartNestedList` as the keyboard-navigable equivalent | `useOrgChartData.test.tsx`; the chart interactions themselves are verified manually - there is no browser suite (section 11) |
 | FR-7 | `GET /search`, command palette, chart focus mode | `test_search.py` |
-| FR-8 | `GET /employees` with whitelisted sort/filter params | `test_list_filtering.py` |
-| FR-9 | `GravatarAdapter` (SHA-256 email hash) | `test_gravatar.py` |
-| FR-11 | Deferred constraint trigger + service pre-check; `AssignmentService._assert_acyclic` extends this across future boundary dates (section 5.2) | `test_cycle_prevention.py`, `test_temporal_cycle_across_a_scheduled_change` |
+| FR-8 | `GET /employees` with whitelisted sort/filter params | `test_filter_ranges.py`, `test_filter_managers.py`, `test_positions.py`, `test_api_contract.py` |
+| FR-9 | `core/avatars.py` and `adapters/gravatar.py` (SHA-256 email hash) | `test_gravatar.py` |
+| FR-10 | `PUT`/`DELETE /employees/{id}/avatar` and `/profile/avatar`; Pillow re-encode to WebP (section 8.3) | `test_avatars.py` |
+| FR-11 | Deferred constraint trigger + service pre-check; `AssignmentService._assert_acyclic` extends this across future boundary dates (section 5.2) | `test_cycle_prevention.py`, `test_effective_dating.py::test_temporal_cycle_across_a_scheduled_change` |
 | FR-12 | `DeletionPolicy` strategy | `test_deletion_policies.py` |
-| FR-13 | RBAC dependency + response schema selection | `test_salary_redaction.py` |
-| FR-14 | `AuditLog` written inside the unit of work | `test_audit_trail.py` |
+| FR-13 | RBAC dependency + response schema selection | `test_api_contract.py`, `test_auth.py` |
+| FR-14 | `AuditLog` written inside the unit of work | `test_audit_trail.py`, `test_audit_feed.py` |
 | FR-15 | `POST /imports/employees`, `GET /exports/employees.csv` | `test_import.py`, `test_export.py` |
 | FR-16 | `AnalyticsService`, `GET /analytics/org-summary`, `GET /analytics/branch/{id}` - `cost` field-gated to `hr_admin` (section 9.3), not endpoint-gated | `test_analytics.py` |
 | FR-17 | `employee_assignment` with a GiST exclusion constraint; `AssignmentRepository` as-of CTE; `?as_of=` on the four hierarchy reads; `AsOfControl` and the read-only banner in the web client | `test_effective_dating.py`, `test_effective_dating_api.py`, `asOfQueryKeys.test.ts`, `AsOfBanner.test.tsx` |
-| FR-18 | `AssignmentService.preview_move`, `POST /employees/{id}/move-preview` - `cost_delta` field-gated to `hr_admin` (section 9.3) | `test_preview_writes_nothing`, `test_move_preview_hides_cost_from_a_viewer` |
+| FR-18 | `AssignmentService.preview_move`, `POST /employees/{id}/move-preview` - `cost_delta` field-gated to `hr_admin` (section 9.3) | `test_effective_dating.py::test_preview_writes_nothing`, `test_effective_dating_api.py::test_move_preview_hides_cost_from_a_viewer`, `test_move_preview_locking.py` |
 
 ---
 
@@ -194,7 +195,7 @@ The one-directional dependency rule means the domain and service layers are test
 2. The SPA optimistically updates its cache and issues `PUT /api/v1/employees/{id}/manager` with `If-Match: "<version>"`.
 3. A FastAPI dependency validates the JWT and asserts the `hr_admin` role.
 4. A second dependency checks a connection out of the pool and begins a transaction.
-5. `ReassignmentService` locks the employee row (`SELECT ... FOR UPDATE`), checks the optimistic-lock version, then runs the subtree query of section 4.6 to confirm the proposed manager is not a descendant.
+5. `AssignmentService.reassign` locks the employee and the proposed manager (`SELECT ... FOR UPDATE`, in id order so two conflicting moves cannot deadlock), checks the optimistic-lock version, then runs the subtree query of section 4.6 - at the effective date and at every later boundary date - to confirm the proposed manager is not a descendant on any of them (section 5.2).
 6. The update is applied and an `audit_log` row is written in the same transaction.
 7. The deferred acyclicity trigger re-validates at `COMMIT`, closing the race window described in section 5.2.
 8. The router returns `200 OK` with the new version; on conflict it returns `409` and the SPA rolls the optimistic update back and refetches.
@@ -211,7 +212,7 @@ Deliberate modelling choices:
 
 - **Position is a string field, not a separate `Role` entity.** The brief asks for a role/position on the employee record. Normalising it into a table would add a join and a management screen for no requirement. This is noted as a roadmap item (section 15) rather than pretended away.
 - **`employee_number` is a natural key but not the primary key.** It is business-assigned, human-visible and potentially re-sequenced. A surrogate UUID primary key keeps foreign keys stable if numbering policy changes.
-- **UUIDv7 rather than UUIDv4.** UUIDv7 is time-ordered, which preserves B-tree index locality on insert and avoids the write amplification of random UUIDs, while remaining non-enumerable in URLs.
+- **A random UUID primary key, defaulted in the database.** Ids come from `gen_random_uuid()` (UUIDv4), so an id is never guessable from another one and a client cannot mint its own. The accepted cost is that random keys insert in no particular order and so scatter across the primary-key B-tree; at an organisational scale of thousands of rows that is immaterial. Time-ordered UUIDv7 would recover that locality and is the change to make if insert volume ever justified it.
 
 ### 4.2 Entity-relationship diagram
 
@@ -371,7 +372,7 @@ Three details worth noting:
 
 ### 4.5 Soft deletion
 
-Employee records are soft-deleted by default (`deleted_at` set) rather than physically removed. Personnel data has audit and compliance value, accidental deletion in a hierarchy is destructive, and a restore path is cheap to provide. A hard-delete endpoint exists for genuine erasure requests (section 9.5), and it cascades the audit rows explicitly rather than silently.
+Employee records are soft-deleted by default (`deleted_at` set) rather than physically removed. Personnel data has audit and compliance value, accidental deletion in a hierarchy is destructive, and a restore path is cheap to provide. There is deliberately **no hard-delete endpoint**: erasure removes the very audit rows that make the rest of the trail trustworthy, so it is handled out-of-band against the database rather than exposed as a route anyone can reach with a stale tab open (section 9.5).
 
 ### 4.6 Key queries
 
@@ -397,26 +398,34 @@ SELECT * FROM subtree ORDER BY depth, last_name;
 ```sql
 WITH RECURSIVE line AS (
     SELECT e.id, e.manager_id, 0 AS level
-    FROM employee e WHERE e.id = :employee_id
+    FROM employee e
+    WHERE e.id = :employee_id AND e.deleted_at IS NULL
   UNION ALL
     SELECT m.id, m.manager_id, l.level + 1
     FROM employee m JOIN line l ON m.id = l.manager_id
-    WHERE l.level < 100
+    WHERE m.deleted_at IS NULL AND l.level < :max_level
 )
-SELECT * FROM line WHERE level > 0 ORDER BY level;
+SELECT e.*, line.level AS depth
+FROM line JOIN employee e ON e.id = line.id
+WHERE line.level > 0
+ORDER BY line.level;
 ```
 
 **Cycle safety check before reassignment** - the proposed manager must not be inside the employee's own subtree:
 
 ```sql
-SELECT NOT EXISTS (
-    WITH RECURSIVE subtree AS (
-        SELECT id FROM employee WHERE id = :employee_id
-      UNION ALL
-        SELECT c.id FROM employee c JOIN subtree s ON c.manager_id = s.id
-    )
-    SELECT 1 FROM subtree WHERE id = :new_manager_id
-) AS is_safe;
+WITH RECURSIVE subtree AS (
+    SELECT id, 0 AS depth, ARRAY[id] AS path
+    FROM employee WHERE id = :of_id
+  UNION ALL
+    SELECT c.id, s.depth + 1, s.path || c.id
+    FROM employee c JOIN subtree s ON c.manager_id = s.id
+    WHERE NOT c.id = ANY(s.path)
+      AND s.depth < :max_depth
+)
+SELECT EXISTS (
+    SELECT 1 FROM subtree WHERE id = :candidate_id
+) AS is_descendant;
 ```
 
 **Cost and headcount roll-up for any branch** (powers the analytics panel):
@@ -520,7 +529,7 @@ The UI never applies `cascade` silently: it requests a preview first, showing th
 
 ### 5.4 Concurrency control
 
-Every write carries the record's `version`, supplied as an `If-Match` header. A mismatch returns `409 Conflict` with both the client's stale representation and the current server state, so the UI can present a meaningful "this record changed while you were editing" dialogue rather than discarding one user's work. Pessimistic locking was rejected: lock lifetime across a human editing session is unbounded, and conflicts in this domain are rare enough that optimistic control is the better trade.
+Every write carries the record's `version`, supplied as an `If-Match` header. A mismatch returns `409 Conflict` as a problem document naming both the expected and the actual version, so the UI can tell the user their copy is stale and send them back to a freshly read record rather than silently discarding one user's work. The payload carries the versions, not the two representations; reconciling them is a refetch. Pessimistic locking was rejected: lock lifetime across a human editing session is unbounded, and conflicts in this domain are rare enough that optimistic control is the better trade.
 
 ---
 
@@ -622,7 +631,7 @@ The same document is the source for the SPA's request and response types: `npm r
 
 ```
 src/
-  app/            routing, providers, error boundaries
+  app/            routing, providers, the authenticated shell
   features/
     employees/    list view, detail drawer, forms
     hierarchy/    org chart, node renderers, layout
@@ -657,11 +666,11 @@ Behaviour at scale:
 
 ### 7.4 Table view
 
-TanStack Table in fully controlled mode, with sorting, filtering and pagination delegated to the server (section 6.3). Column visibility is user-configurable and persisted per session; salary columns are absent entirely for unauthorised roles rather than hidden client-side.
+TanStack Table in fully controlled mode, with sorting, filtering and pagination delegated to the server (section 6.3). The column set is built per role by `buildEmployeeColumns(canViewSalary)`, so for a viewer the salary column is never constructed at all rather than hidden client-side - which matches the payload, where the key is equally absent (section 9.3). User-configurable column visibility is not implemented.
 
 ### 7.5 Accessibility and responsiveness
 
-Forms are built on Radix primitives via shadcn/ui, giving correct focus management, labelling and `aria` semantics. The chart, being inherently visual, has an equivalent accessible path: a keyboard-navigable nested-list view of the same hierarchy, which also serves as the print view. Colour is never the sole carrier of meaning. Target: Lighthouse accessibility >= 95 and zero critical axe violations.
+Forms and overlays are built on Base UI primitives (`@base-ui/react`) via shadcn/ui, giving correct focus management, labelling and `aria` semantics. The chart, being inherently visual, has an equivalent accessible path: a keyboard-navigable nested-list view of the same hierarchy, which also serves as the print view. Colour is never the sole carrier of meaning. Target: Lighthouse accessibility >= 95 and zero critical axe violations.
 
 ---
 
@@ -672,9 +681,10 @@ Forms are built on Radix primitives via shadcn/ui, giving correct focus manageme
 Gravatar identifies users by a hash of their email address. The current specification uses **SHA-256** of the address after trimming whitespace and lower-casing it - MD5 is legacy and is not used here.
 
 ```python
-def gravatar_url(email: str, size: int = 200, default: str = "mp") -> str:
-    digest = hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()
-    query = urlencode({"s": size, "d": default, "r": "pg"})
+def gravatar_url(email: str, size_px: int = 64) -> str:
+    size = max(1, min(size_px, MAX_AVATAR_PX))
+    digest = hashlib.sha256(email.strip().lower().encode()).hexdigest()
+    query = urlencode({"s": size, "d": settings.GRAVATAR_DEFAULT_IMAGE, "r": "pg"})
     return f"https://gravatar.com/avatar/{digest}?{query}"
 ```
 
@@ -684,7 +694,7 @@ Resolution follows a deterministic fallback chain: an uploaded override, then th
 
 - **The hash is computed server-side and returned as part of the employee representation.** The browser never needs the raw email to render an avatar, which keeps addresses out of any client-side caching or logging path.
 - **Images are requested directly by the browser from Gravatar's CDN**, not proxied. Proxying would put an external dependency in the critical path of every API response and consume container CPU for no benefit.
-- **The integration sits behind an `AvatarProvider` port.** The Gravatar implementation is one adapter; a fake is injected in tests so the suite makes no network calls, and an internal provider could be substituted without touching the service layer.
+- **The integration is confined to two modules.** `core/avatars.py` resolves an address to a URL and is pure, so it is tested without a network; `adapters/gravatar.py` is the only code that makes an outbound call, and the profile tests stub its HTTP client so the suite never reaches the internet. Substituting an internal avatar service means replacing those two modules, not touching the services that call them.
 - **Requested size is capped and `r=pg` is enforced**, so the application never renders an unrated third-party image in a corporate context.
 - **Failures are non-fatal.** Avatar rendering is presentation, never a reason for a request to fail.
 
@@ -742,7 +752,7 @@ Salary is the one field in this dataset with genuine confidentiality weight, and
 - React escapes rendered content by default; `dangerouslySetInnerHTML` appears nowhere in the codebase.
 - Beyond presence and type, the write schemas bound every field: name and position lengths (the columns are `TEXT`, so without this one request can push arbitrary megabytes into a row), a salary ceiling matching `NUMERIC(12, 2)`, a birth date that must be past and after 1900, a three-letter currency, and an avatar URL restricted to absolute `http(s)`. These restate rules the database already enforces so that a bad input is a 422 naming the field rather than an `IntegrityError` surfacing as a 500.
 - Uploaded import files are read against a size cap rather than buffered whole, and the parsers bound row and field counts, so a small compressed workbook cannot expand into an out-of-memory condition.
-- CSV exports neutralise leading `=`, `+`, `-` and `@` so a crafted employee name cannot execute as a formula in whoever's spreadsheet opens the download (CSV injection, CWE-1236).
+- CSV exports neutralise a leading `=`, `+`, `-`, `@`, tab or carriage return so a crafted employee name cannot execute as a formula in whoever's spreadsheet opens the download (CSV injection, CWE-1236).
 - Because the SPA and the API share an origin, CORS is configured with an explicit origin allow-list rather than a wildcard; `*` is rejected at startup, since the API is served with `allow_credentials=True`. In production the list is the deployed origin only; in development it is `localhost`.
 - Rate limiting is applied to authentication endpoints to blunt credential stuffing. It keys on the client address as rewritten from `X-Forwarded-For` by uvicorn's `--proxy-headers`; without that the container sees only Cloud Run's ingress address and the limiter would collapse into a single global bucket - useless against one attacker and a denial of service against everyone else.
 - Security headers (HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a restrictive CSP allowing `https:` image sources for Gravatar and avatar overrides) are set by application middleware, so they travel with the container rather than living in platform configuration that a redeployment elsewhere would lose. The CSP matters more than usual here: the access token lives in the SPA's `localStorage`, so it is exactly as reachable as any script the page runs, and `script-src 'self'` is what keeps that set to none.
@@ -758,7 +768,7 @@ The system processes personal information of South African data subjects and is 
 | Purpose specification | Data is used solely for organisational structure management |
 | Security safeguards | Encryption in transit, hashed credentials, role-based access, least-privilege database user, secrets in a managed secret store |
 | Accountability | Every change is attributable through the audit log |
-| Data subject participation | Records are individually retrievable, correctable and erasable, including a hard-delete path for erasure requests |
+| Data subject participation | Records are individually retrievable and correctable through the API. Erasure is a manual database operation rather than an endpoint (section 4.5) - an accepted gap, since a self-service erasure route is the one deletion nothing can undo |
 
 Data residency deserves an explicit note. The managed database is hosted in Frankfurt (section 10.2), so personal information leaves South Africa. POPIA permits cross-border transfer where the recipient jurisdiction affords comparable protection, and the EU regime satisfies that test. A production deployment preferring in-country residency runs the same container unchanged against a PostgreSQL instance in Google's `africa-south1` (Johannesburg) region; the trade-off is cost, since no managed PostgreSQL offering with a free tier exists there today.
 
@@ -945,7 +955,7 @@ Patterns are listed only where they are actually used and earn their place. A pa
 | Hierarchy model | Adjacency list + recursive CTE | One authoritative representation of the reporting edge; O(1) writes; no derived state that can drift. Alternatives in section 4.3 | Deep reads cost a recursive query |
 | API framework | FastAPI (Python 3.12) | Pydantic validates at the boundary and generates OpenAPI from the same types, so the published contract cannot drift from the code. Alternatives considered: Express/NestJS, Spring Boot, Django REST, ASP.NET Core | Slower per request than the JVM - irrelevant here, where latency is dominated by network and database |
 | Frontend | React 19 + TypeScript + Vite | Strongest ecosystem for the two hard UI problems here: a virtualised interactive graph and a server-driven data table. End-to-end type safety from the generated client | Larger bundle than Svelte |
-| Styling | Tailwind CSS v4 + shadcn/ui | Accessible Radix primitives owned in-repo rather than imported, so components follow the project's own style guide without fighting a theme system | Verbose class strings |
+| Styling | Tailwind CSS v4 + shadcn/ui (Base UI) | Accessible unstyled primitives owned in-repo rather than imported, so components follow the project's own style guide without fighting a theme system | Verbose class strings |
 | Chart rendering | React Flow + Dagre | Pan, zoom, minimap and drag interaction out of the box; nodes remain ordinary React components; viewport virtualisation handles large organisations | Heavier than a static SVG tree |
 | Server state | TanStack Query | Optimistic updates with automatic rollback, which is precisely what drag-to-reassign requires | Another concept to learn |
 | ORM | SQLAlchemy 2.0 async | Mature and fully typed, and unusually good at dropping to raw SQL for the recursive CTEs without abandoning the ORM elsewhere | Steeper learning curve |

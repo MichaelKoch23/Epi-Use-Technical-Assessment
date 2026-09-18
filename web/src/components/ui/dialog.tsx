@@ -93,7 +93,6 @@ function DialogHeader({
   )
 }
 
-/** The Modal spec's body: --sp-5/--sp-6 padding, base text, relaxed leading. */
 function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

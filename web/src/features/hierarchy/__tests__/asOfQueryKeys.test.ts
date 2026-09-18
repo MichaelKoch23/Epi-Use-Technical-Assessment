@@ -4,11 +4,6 @@ import { shiftIso } from '../useAsOf'
 
 const ID = '11111111-1111-1111-1111-111111111111'
 
-/**
- * section 33: every hierarchy-shaped key must vary with as_of. A key that ignores it
- * would serve present-day data under a past-date banner - the quiet failure
- * this whole feature is most likely to produce.
- */
 describe('hierarchy query keys carry as_of', () => {
   it('distinguishes two dates for every hierarchy key', () => {
     const a = '2026-09-17'

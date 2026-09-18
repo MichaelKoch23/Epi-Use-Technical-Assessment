@@ -65,9 +65,6 @@ export function MovePreviewDialog({
 
   const preview = query.data
   const blocked = preview?.blocked ?? false
-  // Re-affirming the manager already in force writes a move from someone to
-  // themselves, which the API rejects. It is only a real edit when it calls
-  // off something scheduled.
   const unchanged =
     Boolean(preview) &&
     (preview?.current_manager?.id ?? null) === (move?.newManagerId ?? null) &&

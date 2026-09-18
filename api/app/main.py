@@ -65,13 +65,6 @@ _SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' https: data:; "
         "font-src 'self' data:; "
-        # gravatar.com is readable, not just displayable, because the PNG export
-        # rasterises the chart by fetching every avatar and inlining it. Without
-        # it the export fails outright rather than losing the pictures. Widening
-        # connect-src by one named host costs nothing here: img-src already
-        # permits requests to any https origin, so this grants no destination an
-        # attacker could not already reach, and Gravatar serves public images
-        # under no-credential requests.
         "connect-src 'self' https://gravatar.com; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "

@@ -80,7 +80,6 @@ async def test_a_historical_view_rooted_on_someone_since_deleted_still_reads(
     headers = await auth_headers("hr_admin")
     yesterday = (TODAY - timedelta(days=1)).isoformat()
 
-    # Backdate the opening runs so yesterday has a structure to read at all.
     await db_session.execute(
         text("UPDATE employee_assignment SET valid_from = :from_date"),
         {"from_date": TODAY - timedelta(days=30)},
@@ -116,7 +115,6 @@ async def test_a_historical_view_rooted_on_someone_since_deleted_still_reads(
     assert line.status_code == 200, line.text
     assert [item["employee"]["id"] for item in line.json()["items"]] == [str(root.id)]
 
-    # ...and today they really are gone.
     today_subtree = await api_client.get(
         f"{API}/employees/{root.id}/subtree",
         params={"as_of": TODAY.isoformat()},

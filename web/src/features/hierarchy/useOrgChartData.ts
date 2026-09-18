@@ -72,18 +72,11 @@ export function useOrgChartData(asOf: string) {
     })),
   })
 
-  /**
-   * People pinned into the chart by a search or a ?focus= link, who may sit
-   * outside every loaded subtree. They are held as queries rather than as a
-   * frozen copy so that a delete or an edit elsewhere reaches them: a snapshot
-   * would keep drawing someone the server has already removed until a reload.
-   */
   const [extraIds, setExtraIds] = useState<Set<string>>(new Set())
   const extraQueries = useQueries({
     queries: [...extraIds].map((id) => ({
       queryKey: employeeKeys.detail(id),
       queryFn: () => fetchEmployee(id),
-      // A deleted employee is a 404 here, which is an answer, not a failure.
       retry: false,
     })),
   })
@@ -181,10 +174,6 @@ export function useOrgChartData(asOf: string) {
     return visible
   }, [roots, childrenByManager, collapsedIds])
 
-  /**
-   * The branches whose children are still in flight. Expanding a deep node can
-   * take a moment, and without this the chevron looks like it did nothing.
-   */
   const expandingIds = useMemo(() => {
     const ids = new Set<string>()
     ;[...pendingExpandIds].forEach((id, index) => {
@@ -228,8 +217,6 @@ export function useOrgChartData(asOf: string) {
   )
 
   const focusPathTo = useCallback(async (employee: ChartEmployee): Promise<string[]> => {
-    // Seeded into the cache so the node draws immediately, then tracked as a
-    // query so later invalidations refresh - or retire - it.
     const pin = (record: ChartEmployee) =>
       queryClient.setQueryData(employeeKeys.detail(record.id), record)
 
@@ -270,14 +257,6 @@ export function useOrgChartData(asOf: string) {
     [childrenByManager]
   )
 
-  /**
-   * A move changes a row that is cached under whichever node's subtree query
-   * fetched it - a root, or whichever ancestor was expanded - and not under
-   * either manager's own key. Invalidating just the two managers therefore
-   * leaves the moved employee's stale manager_id (and stale version, which the
-   * next If-Match is built from) in the cache, so the node springs back to its
-   * old parent the moment the optimistic override is dropped.
-   */
   const invalidateChartData = useCallback(
     () =>
       Promise.all([
@@ -337,8 +316,6 @@ export function useOrgChartData(asOf: string) {
       })
     },
     onSuccess: async (data, { employeeId }) => {
-      // The response carries the saved row, so a node held here from a search
-      // does not keep answering with the reporting line it was moved off.
       if (data?.employee) {
         queryClient.setQueryData(employeeKeys.detail(employeeId), data.employee)
       }
@@ -347,8 +324,6 @@ export function useOrgChartData(asOf: string) {
       void queryClient.invalidateQueries({
         queryKey: employeeKeys.assignmentHistory(employeeId),
       })
-      // Dropped only once the refetch has landed, so the move never flickers
-      // back to the old parent in between.
       setManagerOverrides((prev) => {
         const next = new Map(prev)
         next.delete(employeeId)

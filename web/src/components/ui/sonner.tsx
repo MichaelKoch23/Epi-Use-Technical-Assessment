@@ -3,12 +3,6 @@ import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 
-/**
- * Top-centre, wide and slow to leave: a confirmation nobody notices is the same
- * as no confirmation at all. Status is carried by the icon's shape and colour,
- * so it is never colour alone. `!` is needed on the utilities because sonner's
- * own unlayered CSS would otherwise win over Tailwind's utility layer.
- */
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
@@ -43,7 +37,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
           "--width": "420px",
-          // Sonner anchors the close button to the top-left corner by default.
           "--toast-close-button-start": "auto",
           "--toast-close-button-end": "0",
           "--toast-close-button-transform": "translate(35%, -35%)",

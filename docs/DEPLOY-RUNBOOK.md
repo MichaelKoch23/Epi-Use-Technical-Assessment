@@ -86,6 +86,8 @@ bash scripts/check.sh
 
 Lint, types, tests and the production image build, for both halves of the system, in one command. It is the gate: if it passes, the change is shippable.
 
+One detail in that script is easy to undo by accident: the frontend type-check is `tsc -b`, not `tsc --noEmit`. `web/tsconfig.json` is a solution file with `"files": []`, so in non-build mode `tsc` type-checks nothing at all and passes unconditionally. Only build mode follows the project references to the configs that actually cover `src/`.
+
 ---
 
 ## 4. Seeding a demo organisation

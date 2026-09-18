@@ -1,8 +1,3 @@
-/**
- * The shape of an import file, mirrored from the API's own field rules so the
- * table can flag a bad cell before anything is sent. The server re-checks every
- * one of these and stays the authority - this only saves a round trip.
- */
 export type ImportColumnType = 'text' | 'email' | 'date' | 'number' | 'currency'
 
 export interface ImportColumn {
@@ -74,7 +69,6 @@ export function validateCell(value: string, column: ImportColumn): string | null
   }
 }
 
-/** Every cell error in the file, keyed `${rowIndex}:${columnName}`. */
 export function validateRows(rows: string[][]): Map<string, string> {
   const errors = new Map<string, string>()
   rows.forEach((row, rowIndex) => {

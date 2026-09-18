@@ -251,7 +251,6 @@ async def test_a_departure_ends_on_its_date_rather_than_rewriting_history(
     ic = await employee_factory(manager_id=manager.id)
     yesterday = TODAY - timedelta(days=1)
 
-    # Backdate the opening runs so there is a day of history to read.
     await db_session.execute(
         text("UPDATE employee_assignment SET valid_from = :from_date"),
         {"from_date": TODAY - timedelta(days=30)},

@@ -51,11 +51,6 @@ export function ManagerPicker({
   excludeEmployeeId?: string
   clearLabel?: string
   triggerAriaLabel?: string
-  /**
-   * Shown instead of a generic employee list while the search box is empty.
-   * Omitting it keeps the original behaviour, which is what picking a real
-   * manager for an employee wants - there, anyone is a legitimate choice.
-   */
   suggestions?: ManagerOption[]
   suggestionsHeading?: string
   suggestionsLoading?: boolean

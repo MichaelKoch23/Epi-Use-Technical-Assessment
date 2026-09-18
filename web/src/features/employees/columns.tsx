@@ -24,15 +24,6 @@ export const SORTABLE_COLUMN_IDS: Partial<Record<string, string>> = {
   salary: 'salary',
 }
 
-/**
- * Columns whose values are numbers and so read right-aligned, in tabular
- * figures, with the magnitudes lining up.
- *
- * It lives here rather than as a class on the header, because a sortable header
- * is wrapped in an inline-flex button that shrinks to its text - `text-right`
- * inside it has nothing to align against. The alignment has to be applied to the
- * cell, which is what the table does with this set.
- */
 export const NUMERIC_COLUMN_IDS: ReadonlySet<string> = new Set([
   'salary',
   'direct_report_count',

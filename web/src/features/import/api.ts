@@ -1,5 +1,5 @@
 import type { components } from '@/lib/api-types'
-import { getAccessToken } from '@/lib/auth'
+import { authedFetch } from '@/lib/apiClient'
 import { triggerDownload } from '@/lib/download'
 
 export type ImportResult = components['schemas']['ImportResult']
@@ -9,10 +9,8 @@ export async function importEmployees(file: File, dryRun: boolean): Promise<Impo
   const formData = new FormData()
   formData.append('file', file)
 
-  const token = getAccessToken()
-  const response = await fetch(`/api/v1/imports/employees?dry_run=${dryRun}`, {
+  const response = await authedFetch(`/api/v1/imports/employees?dry_run=${dryRun}`, {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: formData,
   })
 

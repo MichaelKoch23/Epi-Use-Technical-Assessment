@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
-/** Today in the viewer's own timezone - toISOString() would drift a day either side. */
 export function todayIso(): string {
   const now = new Date()
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
@@ -28,13 +27,6 @@ export interface AsOfState {
   setAsOf: (next: string | null) => void
 }
 
-/**
- * The as-of date lives in the URL, so any historical view is a shareable link.
- *
- * Writes merge against a ref rather than the value react-router hands back:
- * two updates in the same tick would otherwise both build on the same stale
- * params and the first would be lost.
- */
 export function useAsOf(): AsOfState {
   const [searchParams, setSearchParams] = useSearchParams()
 

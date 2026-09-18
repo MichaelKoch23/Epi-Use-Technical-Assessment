@@ -1,6 +1,5 @@
 import { IMPORT_COLUMNS, IMPORT_HEADER } from './schema'
 
-/** A parser that understands quoting, because names and positions contain commas. */
 function parseCsvText(text: string): string[][] {
   const rows: string[][] = []
   let row: string[] = []
@@ -49,10 +48,6 @@ function parseCsvText(text: string): string[][] {
 
 export class ImportFileError extends Error {}
 
-/**
- * Turn a file into table rows, one array of cells per employee, padded to the
- * column list so every row is editable even where the file left fields out.
- */
 export function parseImportFile(text: string): string[][] {
   const withoutBom = text.replace(/^\uFEFF/, '')
   const rows = parseCsvText(withoutBom).filter((row) =>
@@ -68,7 +63,6 @@ export function parseImportFile(text: string): string[][] {
     )
   }
 
-  // Read by heading rather than by position, so a reordered file still imports.
   const indexes = IMPORT_HEADER.map((column) => header.indexOf(column))
   return rows
     .slice(1)
@@ -86,7 +80,6 @@ export function rowsToCsv(rows: string[][]): string {
   return [IMPORT_HEADER.join(','), ...lines].join('\n')
 }
 
-/** The edited table, back in the shape the import endpoint already accepts. */
 export function rowsToFile(rows: string[][], filename: string): File {
   return new File([rowsToCsv(rows)], filename, { type: 'text/csv' })
 }
