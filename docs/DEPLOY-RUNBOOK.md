@@ -51,6 +51,36 @@ cp .env.example .env
 
 Everything else has a working default; the full list is [Appendix B](TECHNICAL-DESIGN.md#appendix-b---configuration).
 
+### `DATABASE_URL` is not what the Neon console hands you
+
+Neon's **Connect** dialog gives a string for `psql`. The application drives
+PostgreSQL through SQLAlchemy's **asyncpg** dialect, which needs three changes to
+it. Miss any one and the container starts and then fails on its first query:
+
+| Neon gives you | Store this |
+|---|---|
+| `postgresql://` | `postgresql+asyncpg://` |
+| `?sslmode=require&channel_binding=require` | `?ssl=require` |
+| the plain host | the **`-pooler`** host (toggle *Connection pooling* on in the dialog) |
+
+The result is one line:
+
+```
+postgresql+asyncpg://USER:PASSWORD@ep-xxxx-pooler.eu-central-1.aws.neon.tech/DBNAME?ssl=require
+```
+
+`sslmode` and `channel_binding` are libpq spellings. asyncpg does not accept
+them and raises `connect() got an unexpected keyword argument 'sslmode'`, which
+reads like a code fault and is in fact a configuration one. asyncpg spells the
+same thing `ssl`.
+
+Alembic is the exception and needs no thought: `alembic/env.py` rewrites
+whatever it is given onto the synchronous `postgresql+psycopg` driver, and
+`scripts/migrate.sh` resolves its own **direct** (non-pooled) string.
+
+When storing the value in a secret manager, write it with `printf '%s'` rather
+than `echo` - a trailing newline makes the URL unparseable.
+
 Two settings are worth knowing before a production deploy:
 
 - **`ENVIRONMENT=production`** switches off `/docs`, `/redoc` and `/openapi.json`, and adds an HSTS header. Anything else leaves them reachable.
@@ -182,6 +212,7 @@ This takes seconds and needs no database restore **provided the migration in tha
 | Symptom | Likely cause | Check |
 |---|---|---|
 | Container exits immediately at start | `JWT_SECRET` too short or well-known; `CORS_ORIGINS` contains `*`, or a plaintext origin in production | The validation error is printed on stdout and names the variable |
+| Container starts, then every request 500s with `connect() got an unexpected keyword argument` | `DATABASE_URL` still carries libpq's `sslmode`/`channel_binding` | Rewrite it for asyncpg - see section 2 |
 | `/health` 500s | Database unreachable, or the pool is exhausted | Neon compute suspended or at its connection limit; see below |
 | Every request is slow on first hit after idle | Neon scale-to-zero, or a Cloud Run cold start | [section 10.8](TECHNICAL-DESIGN.md#108-cold-starts) - raise minimum instances |
 | Requests hang, then time out | Connection pool exhausted (`pool_size=5, max_overflow=0`) | Long-running CSV exports hold a connection for the whole download; check for concurrent large exports |
