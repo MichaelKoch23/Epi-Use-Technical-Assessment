@@ -77,6 +77,23 @@ _SECURITY_HEADERS = {
     "Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=()",
 }
 
+_DOCS_PATHS = frozenset({"/docs", "/docs/oauth2-redirect", "/redoc"})
+
+_DOCS_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net "
+    "https://fonts.googleapis.com; "
+    "img-src 'self' https: data:; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "connect-src 'self'; "
+    "worker-src 'self' blob:; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "object-src 'none'"
+)
+
 
 @app.middleware("http")
 async def security_headers(
@@ -85,6 +102,8 @@ async def security_headers(
     response = await call_next(request)
     for header, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(header, value)
+    if not _IS_PRODUCTION and request.url.path in _DOCS_PATHS:
+        response.headers["Content-Security-Policy"] = _DOCS_CSP
     if request.url.path.startswith("/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif not request.url.path.startswith("/api/"):

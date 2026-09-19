@@ -198,6 +198,38 @@ async def test_csp_lets_the_png_export_read_gravatar(api_client):
     assert "https:;" not in connect and not connect.endswith("https:")
 
 
+async def test_docs_csp_allows_the_swagger_and_redoc_bundles(api_client):
+    """Swagger UI and ReDoc load from a CDN, which script-src 'self' blocks.
+
+    The block is silent: the page returns 200 and renders as a blank white
+    screen, because the bundle that fills #swagger-ui never executes. The
+    inline SwaggerUIBundle({...}) call needs 'unsafe-inline' on top of the
+    origin, so both have to be present for the console to appear at all.
+    """
+    for path in ("/docs", "/redoc"):
+        response = await api_client.get(path)
+
+        assert response.status_code == 200
+        csp = response.headers["Content-Security-Policy"]
+        script = next(d for d in csp.split("; ") if d.startswith("script-src"))
+        assert "https://cdn.jsdelivr.net" in script
+        assert "'unsafe-inline'" in script
+
+
+async def test_docs_csp_does_not_relax_the_application(api_client):
+    """The CDN allowance is scoped to the doc pages and must stay there.
+
+    The access token lives in the SPA's localStorage, so script-src 'self' on
+    every other response is what keeps it unreachable - widening the shared
+    header to fix the console would trade that away.
+    """
+    response = await api_client.get("/api/v1/employees")
+    csp = response.headers["Content-Security-Policy"]
+
+    script = next(d for d in csp.split("; ") if d.startswith("script-src"))
+    assert script == "script-src 'self'"
+
+
 async def test_unknown_api_path_is_404_not_the_spa_shell(api_client):
     response = await api_client.get("/api/v1/employeez")
 
