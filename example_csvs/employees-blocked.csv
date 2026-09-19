@@ -1,0 +1,20 @@
+employee_number,first_name,last_name,email,birth_date,position,salary,currency,manager_employee_number
+EMP-09100,Sipho,Mabaso,sipho.mabaso@import-demo.example.com,1990-09-12,Procurement Officer,505000.00,ZAR,EMP-00002
+EMP-09101,Lerato,Dlamini,lerato.dlamini@import-demo.example.com,1990-05-14,,,ZAR,EMP-00002
+,Sipho,Nkosi,sipho.nkosi@import-demo.example.com,1987-02-19,Financial Analyst,530000.00,ZAR,EMP-00002
+EMP-09103,Kagiso,Molefe,kagiso.molefe@import-demo.example.com,14/07/1992,Accountant,480000.00,ZAR,EMP-00002
+EMP-09104,Zanele,Sithole,zanele.sithole@import-demo.example.com,2031-04-02,Recruiter,450000.00,ZAR,EMP-00002
+EMP-09105,Pieter,Fourie,pieter.fourie@import-demo.example.com,1979-09-08,Logistics Lead,-25000.00,ZAR,EMP-00002
+EMP-09106,Nomvula,Cele,not-an-email,1993-12-01,Support Engineer,415000.00,ZAR,EMP-00002
+EMP-09107,Tumelo,Radebe,tumelo.radebe@import-demo.example.com,1986-07-21,Payroll Clerk,abc,ZAR,EMP-00002
+EMP-09108,Karin,Nel,karin.nel@import-demo.example.com,1994-10-05,Brand Manager,505000.999,ZAR,EMP-00002
+EMP-09109,Yusuf,Naidoo,yusuf.naidoo@import-demo.example.com,1983-03-30,Operations Analyst,540000.00,RANDS,EMP-00002
+EMP-09110,Dineo,Mahlangu,dineo.mahlangu@import-demo.example.com,1996-04-12,Senior Principal Regional Operations and Logistics Coordination Specialist for Southern Africa and Adjacent Territories Group,470000.00,ZAR,EMP-00002
+EMP-09111,Bongani,Zulu,bongani.zulu@import-demo.example.com,1989-08-15,Field Technician,395000.00,ZAR,EMP-99999
+EMP-09112,Lindiwe,Ndlovu,lindiwe.ndlovu@import-demo.example.com,1992-01-09,Team Lead,700000.00,ZAR,EMP-09113
+EMP-09113,Mandla,Khumalo,mandla.khumalo@import-demo.example.com,1981-11-27,Group Lead,820000.00,ZAR,EMP-09112
+EMP-09114,Precious,Williams,precious.williams@import-demo.example.com,1990-02-02,Analyst,430000.00,ZAR,EMP-00002
+EMP-09114,Charlotte,Smith,charlotte.smith@import-demo.example.com,1991-06-06,Analyst,440000.00,ZAR,EMP-00002
+EMP-09115,Kiran,Pillay,shared.address@import-demo.example.com,1988-04-18,Consultant,460000.00,ZAR,EMP-00002
+EMP-09116,Anil,Reddy,shared.address@import-demo.example.com,1993-07-23,Consultant,465000.00,ZAR,EMP-00002
+EMP-09117,Ilse,Kruger,mzwandile.williams.1@employee.example.com,1985-05-05,Executive Assistant,520000.00,ZAR,EMP-00002

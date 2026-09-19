@@ -1,0 +1,6 @@
+employee_number,first_name,last_name,email,birth_date,position,salary,currency,manager_employee_number
+EMP-09001,Thandi,Mokoena,thandi.mokoena@import-demo.example.com,1984-03-11,Head of Platform Engineering,1145000.00,ZAR,EMP-00002
+EMP-09002,Riaan,Botha,riaan.botha@import-demo.example.com,1991-08-02,Platform Engineer,612000.00,ZAR,EMP-09001
+EMP-09003,Naledi,Phiri,naledi.phiri@import-demo.example.com,1995-11-24,Site Reliability Engineer,588500.50,ZAR,EMP-09001
+EMP-09004,Johan,Van der Merwe,johan.vandermerwe@import-demo.example.com,1988-01-30,Data Engineer,655000.00,ZAR,EMP-09005
+EMP-09005,Ayanda,Khumalo,ayanda.khumalo@import-demo.example.com,1982-06-17,Data Engineering Manager,905000.00,ZAR,EMP-00002
