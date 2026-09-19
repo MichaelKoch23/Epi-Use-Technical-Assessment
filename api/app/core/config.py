@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     JWT_ACCESS_TTL_SECONDS: int = 900
     JWT_REFRESH_TTL_SECONDS: int = 60 * 60 * 24 * 7
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
-    GRAVATAR_DEFAULT_IMAGE: str = "mp"
+    GRAVATAR_DEFAULT_IMAGE: str = "identicon"
     GRAVATAR_API_KEY: str = ""
     GRAVATAR_API_TIMEOUT_SECONDS: float = 3.0
     ENVIRONMENT: str = "development"
